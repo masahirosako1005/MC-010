@@ -9,6 +9,7 @@ import { stableId } from './catalog.js';
 import { pool, transaction } from './db.js';
 
 const batch = 'additional-demo-20261109';
+const legacyImages = ['coast', 'street', 'market', 'music', 'windmill', 'coast', 'lake', 'music', 'street', 'lake'];
 const columns = ['batch_id', 'external_id', 'addition_type', 'name', 'category', 'description',
   'theme_tags', 'companion_tags', 'image', 'source', 'active', 'has_gift', 'image_note'];
 const rowSchema = z.object({
@@ -28,6 +29,9 @@ const rowSchema = z.object({
 }).strict();
 
 async function main() {
+  const args = process.argv.slice(2);
+  const refreshImages = args.length === 1 && args[0] === '--refresh-images';
+  if (args.length && !refreshImages) throw new Error('指定できるオプションは --refresh-images だけです。');
   const file = path.resolve('data/additions/2026-11-09-additional-demo-spots.csv');
   const [header, ...records] = parse(await readFile(file, 'utf8'), {
     bom: true, skip_empty_lines: true,
@@ -43,7 +47,17 @@ async function main() {
   const result = await transaction(async client => {
     await client.query('SELECT pg_advisory_xact_lock(6821452)');
     let inserted = 0;
+    let imagesUpdated = 0;
     for (const spot of spots) {
+      if (refreshImages) {
+        const legacyImage = `/assets/${legacyImages[Number(spot.external_id.slice(-2)) - 1]}.png`;
+        const updated = await client.query(`UPDATE spots SET image=$1,revision=revision+1,updated_at=now()
+          WHERE external_id=$2 AND source=$3 AND image=$4 AND revision=1
+          AND NOT EXISTS (SELECT 1 FROM spot_photos WHERE spot_id=spots.id)
+          RETURNING id`, [spot.image, spot.external_id, spot.source, legacyImage]);
+        imagesUpdated += updated.rowCount ?? 0;
+        continue;
+      }
       const added = await client.query(`INSERT INTO spots
         (id,external_id,name,category,description,theme_tags,companion_tags,image,source,active,has_gift)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
@@ -57,7 +71,8 @@ async function main() {
       category: category.label,
       candidates: rows.filter(spot => spot.active && spotSupportsExperienceCategory({ themeTags: spot.theme_tags }, category.id)).length,
     }));
-    return { batch, inserted, skipped: spots.length - inserted, totalSpots: rows.length, coverage };
+    return { batch, mode: refreshImages ? 'refresh-images' : 'insert', inserted, imagesUpdated,
+      skipped: spots.length - inserted - imagesUpdated, totalSpots: rows.length, coverage };
   });
   console.log(JSON.stringify(result, null, 2));
 }

@@ -244,6 +244,16 @@ URLは現在のローカルアプリ向け。インターネット/LAN公開は�
 - AGENTS.mdのルールに従い、追加のcheck、単体/API統合、E2E、audit、skill inventory、画面目視、独立レビューは未実施。キー発行・失効・権限境界、日付境界、集計SQLの実データ結果、MCPプロトコルの実接続、ChatGPTでの分析結果は未検証。過去の合格範囲へ今回の差分を含めない。
 - 既存のテスト・監査文書、並行して変更された利用者画面・共有編集用ファイルは本コミットへ含めない。ビルド時のワークスペースにはその並行変更も存在した。
 
+## 追加スポット専用画像への変更（2026-11-09）
+
+- 内蔵imagegenで追加10件の専用イラストを1点ずつ生成し、画像自体の主役・色合い・構図を確認した。料理・パフェ・パン・陶器・遊具・カヤック・足湯・展示・土産・テントなどで区別し、大きな青背景の使い回しを解消した。最終プロンプトとファイル対応は `docs/spot-image-prompts.md`。Sharpで960×640 / quality 86のWebPへ変換し、`public/assets/*-v1.webp` 10点（合計2,060,102 bytes）を同梱した。
+- 追加CSVの画像参照・注記と町側の同梱画像選択肢を更新。既存7画像・本人写真は変更していない。`data:refresh-addition-images` は旧初期画像・fixture出所・revision=1・スポットアップロードなしの行だけを更新する。
+- Node 26.13.0 / pnpm 11.25.0でbuildが終了コード0。server TypeScriptとVite SPA（1,587 modules）を生成。追加依存・DB schema・API契約・生成規則の変更なし。
+- 画像移行コマンドの実行結果は `imagesUpdated=10`、`inserted=0`、`skipped=0`、`totalSpots=17`。既存スポットの画像参照だけを更新し、名称・タグ・利用者の履歴・冊子・コメント・本人写真へ更新SQLを発行していない。
+- 3001番のPID 32464をworkspace内Node実体・env-file付きserver entrypoint・待受で同定し、このアプリだけHiddenで1回再起動（PID 20736、作業場所はプロジェクトルート）。プロセス内の公開キャッシュも新しくなった。DB・別アプリは停止していない。
+- 最小HTTP参照は `GET /` と `GET /api/health` が200、healthのok=true、新JSは `/assets/index-D7KfAqJt.js`。新画像1件のHEADが200 / image/webp。ログイン・共有URLの閲覧・表示計測は行っていない。
+- AGENTS.mdに従い追加のcheck、単体/API統合、E2E、audit、skill inventory、アプリ画面目視・操作テスト、独立レビューは未実施。小画面・管理画像変更・移行再実行/編集済み行のスキップ・共有内容の表示は未検証。生成画像の確認やbuildを、アプリ操作テストの合格とは扱わない。
+
 ## 未検証・残存事項
 
 ### 公開URLコピー回数・アクセス数の反映（2026-11-09）

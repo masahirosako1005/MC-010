@@ -38,18 +38,6 @@ export function assignPickupCategories(brochure: { items: BrochureItem[] }, spot
     usedItems.add(item.id);
   }
 
-  for (const item of ordered.filter((entry) => entry.selected && !usedItems.has(entry.id))) {
-    const spot = spotsById.get(item.spotId);
-    if (!spot) continue;
-    const category = EXPERIENCE_CATEGORIES.find((entry) => (
-      !usedCategories.has(entry.id) && spotSupportsExperienceCategory(spot, entry.id)
-    ))?.id;
-    if (!category) continue;
-    assigned.set(item.id, category);
-    usedCategories.add(category);
-    usedItems.add(item.id);
-  }
-
   const missingDefinitions = EXPERIENCE_CATEGORIES
     .filter((definition) => !usedCategories.has(definition.id))
     .map((definition, index) => ({
@@ -64,17 +52,22 @@ export function assignPickupCategories(brochure: { items: BrochureItem[] }, spot
 
   for (const { definition } of missingDefinitions) {
     if (usedCategories.has(definition.id)) continue;
-    const item = ordered.find((entry) => {
-      const spot = spotsById.get(entry.spotId);
-      return !usedItems.has(entry.id) && Boolean(spot && spotSupportsExperienceCategory(spot, definition.id));
-    });
+    const item = ordered
+      .filter((entry) => {
+        const spot = spotsById.get(entry.spotId);
+        return !usedItems.has(entry.id) && Boolean(spot && spotSupportsExperienceCategory(spot, definition.id));
+      })
+      .sort((a, b) => Number(b.selected) - Number(a.selected) || a.order - b.order || a.id.localeCompare(b.id))[0];
     if (!item) continue;
     assigned.set(item.id, definition.id);
     usedCategories.add(definition.id);
     usedItems.add(item.id);
   }
 
-  const selectedIds = ordered.filter((item) => assigned.has(item.id)).map((item) => item.id);
+  const selectedIds = ordered
+    .filter((item) => assigned.has(item.id))
+    .sort((a, b) => Number(b.selected) - Number(a.selected) || a.order - b.order || a.id.localeCompare(b.id))
+    .map((item) => item.id);
   const orderById = new Map(selectedIds.map((id, index) => [id, index]));
   return brochure.items.map((item) => ({
     ...item,

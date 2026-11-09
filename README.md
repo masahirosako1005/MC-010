@@ -99,8 +99,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-db.ps1 -Acti
 元データは読み取り専用です。リポジトリへコピーしません。
 
 ```powershell
-pnpm run data:inspect -- C:\AI-Sprint\sample-data
-pnpm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
+pnpm run data:inspect C:\AI-Sprint\sample-data
+pnpm run data:import C:\AI-Sprint\sample-data --with-demo-aliases
 ```
 
 提供データの全500件のメールはマスク済み同一値のため、メール照合には使用できません。`--with-demo-aliases` を明示すると `sample@example.test`（実績あり）と `sample-empty@example.test`（実績なし）を匿名利用者へ対応付けます。これはデモ用の仮メールであり、実メールや訪問履歴を補完・推測しません。
@@ -133,10 +133,10 @@ pnpm test
 
 開発画面は [http://127.0.0.1:5173](http://127.0.0.1:5173)、APIは3001。5173が使用中なら、空きポートへの自動切替はせず明示エラーになります。別ポートを使う場合はvite設定と `WEB_ORIGIN` の両方を一致させてください。
 
-DB統合テストは一時schemaを作成・破棄します。専用検証DBを推奨します。
+DB統合テストは一時schemaを作成・破棄します。専用検証DBをあらかじめ作成して指定してください。以下の `kondo_test` は通常デモDBと別のDBです。
 
 ```powershell
-$env:TEST_DATABASE_URL = 'postgres://postgres:postgres@127.0.0.1:5432/kondo_anatato'
+$env:TEST_DATABASE_URL = 'postgres://postgres:postgres@127.0.0.1:5432/kondo_test'
 pnpm test
 pnpm exec playwright install chromium
 # build/start済みのアプリを別ターミナルで起動してから実行
@@ -149,7 +149,7 @@ Windowsのブラウザテストはインストール済みMicrosoft Edge、他OS
 
 E2Eはデモ利用者の保存内容を変更します。自分のデモ編集を残す場合は、空の専用検証DBと別の `UPLOAD_DIR` を指定して別ポートで起動してください。DBと保存先を揃えたうえで、`E2E_BASE_URL` をそのURLへ設定します。テスト結果は `test-results` に出力し、Gitへ含めません。依存監査は `pnpm audit`、スキルの同梱ファイル検証は `node scripts/skill-inventory.mjs`。
 
-2026-11-09のpnpm移行前の検証ではNode 26.13.0／PostgreSQL 17.11／Edgeで、単体・DB統合46件とPC・スマホE2E10件、型チェック・buildが合格し、開発依存を含むnpm auditは0件でした。pnpm移行差分の検証範囲は [検証記録](docs/verification.md) に分けて記載しています。Docker構成は未実行です。実機スマホと正式Cloudflare完全監査の未検証範囲も同資料を参照してください。
+2026-11-09の明示依頼による再検証では、Node 26.13.0／pnpm 11.25.0で型チェック・build、専用DBの単体・API統合57件が成功し、依存監査は指摘0件でした。PC/スマホE2Eは既存14件とPNG追加2件が合格。スマホPNGの修正前後の目視結果と、並行更新中に固定した検証対象は [最新の検証記録](docs/verification.md#明示依頼による現在版の再検証2026-11-09) を参照してください。Docker構成、実機スマホ、正式Cloudflare完全監査は今回実施していません。
 
 ## 町側管理画面
 

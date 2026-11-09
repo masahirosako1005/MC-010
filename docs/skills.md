@@ -8,7 +8,15 @@
 |UI UX Pro Max|https://github.com/nextlevelbuilder/ui-ux-pro-max-skill / 4f2dbb67e64969a9a30ab00742f2d55d66ddec2b|.agents/skills/ui-ux-pro-max と公式同梱6関連スキル|
 |Cloudflare Security Audit|https://github.com/cloudflare/security-audit-skill / c1c8a8c1471069fb0e188eeaff69b8e8db6564a8|.agents/skills/security-audit|
 
-計23個のSKILL.md・286ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
+公式導入分は計23個のSKILL.md。プロジェクト固有スキルを含む現在の総数は24個のSKILL.md・292ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
+
+## プロジェクト固有の統合スキル
+
+|スキル|目的|構成・制約|
+|---|---|---|
+|`web-security-audit`|IPA「安全なウェブサイトの作り方」公式11分類と補足観点、およびCloudflare-authored `security-audit` の信頼境界ベースのソース監査を統合する。|動的スキャナーを要件とせず、`preflight` / `source` / `full`を分離。同じ根本原因はframework横断で1件へ統合し、同一データから`REPORT.md`とoffline `REPORT.html`を生成する。Cloudflare account、WAF、DNS、CDN、edge設定は対象外。|
+
+IPAの規範項目は公式ページ <https://www.ipa.go.jp/security/vuln/websecurity/about.html> を基準とする。CORS、ブラウザ分離ヘッダー、秘密情報、ログ、依存関係、deployment/backupは`SUP-*`補足項目として分け、IPA公式11分類であるかのように扱わない。Cloudflare vendorスキルと固定SHAは変更していない。
 
 ## 取得・安全確認
 
@@ -45,7 +53,8 @@ node scripts/skill-inventory.mjs
 - Superpowers: using-superpowers/Codex adaptation、systematic-debugging、verification-before-completionを読了。失敗ログ→原因→最小修正→再検証と完了前の新しい証拠を使用。承認済みデザインを再承認待ちに戻さない。
 - UI UX Pro Max: Codex SKILL全文、quick-reference、pro-rulesを読了。keyboard focus modal / focus not obscured のux検索、form error recovery のReact検索を実行し対象・適合を確認。focus trap/Escape/復帰、濃色focus、scroll padding、写真再試行の重なりを修正。承認済み配色・ラスター素材を維持。ネイティブ専用/Dark modeの勧告はWeb要件に追加しない。
 - Cloudflare: SKILL全文、DATA-ISOLATION-AND-LIFECYCLE.md、CLIENT-SIDE.mdを読了。所有者クエリ、写真の派生物、PNG、logout、browser保存、import/restoreをソース確認。OS強制sandbox条件を満たせないため正式full auditは incomplete / missing_os_enforced_sandbox。通常製品テストと監査証明を混同しない。docs/security-skill-review.md参照。
+- web-security-audit: IPA 1.1〜1.11を省略しないsource checklistと、Cloudflareのsource-first監査を統合。OS強制sandboxがない場合も`source`は継続し、外部・runtime事実を`要確認`または`未実施`として分離する。`full`はOS強制sandbox要件を満たす場合だけ完了とする。
 - imagegen: 内蔵標準モードと共有prompting規約を使用し、承認画面と7枚の架空スポット画像をラスター生成。アプリ実行時に外部AIを使わない。素材・プロンプトはdocs/assets.md。
 
-最終統合時も3つの公式checkoutのHEADを上表のSHAと照合し、inventoryで286ファイル・23スキルが一致した。UIの追加検索 `orphan heading line balance --domain ux` はTypography / Heading Line Balanceを返し、Webの自然な折り返し・寸法確認という適用範囲を確認した。固定改行や改行禁止の追加はしていない。通常製品テストの合格数はスキル準拠完全監査の代用にしない。
+最終統合時も3つの公式checkoutのHEADを上表のSHAと照合した。現在のinventory書き出しはプロジェクト固有スキルを含む292ファイル・24スキル。UIの追加検索 `orphan heading line balance --domain ux` はTypography / Heading Line Balanceを返し、Webの自然な折り返し・寸法確認という適用範囲を確認した。固定改行や改行禁止の追加はしていない。通常製品テストの合格数はスキル準拠完全監査の代用にしない。
 

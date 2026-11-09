@@ -1150,6 +1150,30 @@
       "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
     },
     {
+      "path": ".agents/skills/web-security-audit/assets/report-template.html",
+      "sha256": "ba55333cba6192e6f925bbbbecc5a0fadc64eafb77a673014633eeecfc9d942e"
+    },
+    {
+      "path": ".agents/skills/web-security-audit/assets/report-template.md",
+      "sha256": "0a4449e4efeb2072cf5d7fa685e2dd1c0d7fbf881ad772b644145c30eccb63f5"
+    },
+    {
+      "path": ".agents/skills/web-security-audit/references/ipa-checklist.md",
+      "sha256": "49279e0e7190c3c89472c90d6e5c131e81410f1d2f342c595fa059188aed7d61"
+    },
+    {
+      "path": ".agents/skills/web-security-audit/references/reporting-contract.md",
+      "sha256": "2519c835dcc76a46ba78f02139ae2c036829292c594ca6a6bb93b971aa46309d"
+    },
+    {
+      "path": ".agents/skills/web-security-audit/references/scope-and-profiles.md",
+      "sha256": "3780d7821bf7c2733dbfb395c0d4e8c2ec7991287f400c8f246b79e317b4f0d9"
+    },
+    {
+      "path": ".agents/skills/web-security-audit/SKILL.md",
+      "sha256": "f42587a3a2e237095ccdedfe71776fcaffef791e636aa23cd4c4869632e68d80"
+    },
+    {
       "path": ".agents/skills/writing-plans/SKILL.md",
       "sha256": "a6c67c1900064347c2a329990dd3c555657c51c3ec53b259a08aa01a2c26139a"
     },

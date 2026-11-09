@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@@REPORT_TITLE@@</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5c667a;
+      --line: #d7dce5;
+      --panel: #f7f8fb;
+      --ok: #166534;
+      --ok-bg: #dcfce7;
+      --ng: #991b1b;
+      --ng-bg: #fee2e2;
+      --verify: #854d0e;
+      --verify-bg: #fef3c7;
+      --not-run: #475569;
+      --not-run-bg: #e2e8f0;
+      --out: #1e40af;
+      --out-bg: #dbeafe;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; }
+    header, main, footer { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+    header { padding: 48px 0 24px; border-bottom: 2px solid var(--ink); }
+    main { padding: 16px 0 48px; }
+    footer { padding: 20px 0 36px; color: var(--muted); border-top: 1px solid var(--line); }
+    h1 { margin: 8px 0; font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.15; }
+    h2 { margin-top: 36px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+    h3 { margin-bottom: 6px; }
+    a { color: #164e9a; }
+    a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+    .eyebrow { margin: 0; color: var(--muted); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .summary { max-width: 80ch; color: var(--muted); }
+    .status { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: .25rem .7rem; font-weight: 800; white-space: nowrap; }
+    .status-complete, .status-ok { color: var(--ok); background: var(--ok-bg); }
+    .status-incomplete, .status-ng { color: var(--ng); background: var(--ng-bg); }
+    .status-needs-validation { color: var(--verify); background: var(--verify-bg); }
+    .status-not-run { color: var(--not-run); background: var(--not-run-bg); }
+    .status-out-of-scope { color: var(--out); background: var(--out-bg); }
+    .metadata, .counts { display: grid; gap: 12px; margin: 20px 0; }
+    .metadata { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .metadata div, .count-card, .finding, .empty { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+    dt { color: var(--muted); font-size: .85rem; font-weight: 700; }
+    dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+    .counts { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+    .count-card strong { display: block; font-size: 1.75rem; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    caption { padding: 12px 14px; text-align: left; font-weight: 700; background: var(--panel); }
+    th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+    th { background: var(--panel); font-size: .9rem; }
+    ul { padding-left: 1.4rem; }
+    code { font-family: ui-monospace, "Cascadia Mono", monospace; font-size: .92em; }
+    .note { padding: 12px 14px; border-left: 4px solid var(--out); background: var(--panel); }
+    .stack > * + * { margin-top: 12px; }
+    @media (max-width: 640px) {
+      header { padding-top: 28px; }
+      header, main, footer { width: min(100% - 20px, 1180px); }
+      .metadata, .counts { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { color: #000; font-size: 10pt; }
+      header, main, footer { width: 100%; }
+      .table-wrap { overflow: visible; border: 0; }
+      table { min-width: 0; font-size: 8pt; }
+      tr, .finding { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- TEMPLATE: derive all sections from one canonical data set, HTML-escape every inserted value, replace every token, and remove template comments. -->
+  <header>
+    <p class="eyebrow">IPA + Cloudflare Web Security Audit</p>
+    <h1>@@REPORT_TITLE@@</h1>
+    <p><span class="status @@OVERALL_STATUS_CLASS@@">総合状態: @@OVERALL_STATUS_LABEL@@</span></p>
+    <p class="note"><code>complete/incomplete</code>は監査工程の完了状態であり、脆弱性の有無を表しません。@@PREFLIGHT_NOTICE@@</p>
+    <p class="summary">@@REPORT_SUMMARY@@</p>
+    <dl class="metadata">
+      <div><dt>実行日時</dt><dd>@@GENERATED_AT@@</dd></div>
+      <div><dt>リポジトリ</dt><dd>@@REPOSITORY@@</dd></div>
+      <div><dt>Source ref</dt><dd>@@SOURCE_REF@@</dd></div>
+      <div><dt>Worktree</dt><dd>@@DIRTY_STATE@@</dd></div>
+      <div><dt>プロファイル</dt><dd>@@PROFILE@@</dd></div>
+      <div><dt>実行モード</dt><dd>@@EXECUTION_MODE@@</dd></div>
+      <div><dt>許可された境界</dt><dd>@@AUTHORIZATION_BOUNDARY@@</dd></div>
+      <div><dt>Incomplete reason</dt><dd>@@INCOMPLETE_REASON@@</dd></div>
+    </dl>
+  </header>
+
+  <main>
+    <section aria-labelledby="result-summary">
+      <h2 id="result-summary">判定サマリー</h2>
+      <div class="counts">
+        <div class="count-card"><span>OK</span><strong>@@OK_COUNT@@</strong></div>
+        <div class="count-card"><span>NG</span><strong>@@NG_COUNT@@</strong></div>
+        <div class="count-card"><span>要確認</span><strong>@@NEEDS_VALIDATION_COUNT@@</strong></div>
+        <div class="count-card"><span>未実施</span><strong>@@NOT_RUN_COUNT@@</strong></div>
+        <div class="count-card"><span>対象外</span><strong>@@OUT_OF_SCOPE_COUNT@@</strong></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="components">
+      <h2 id="components">コンポーネント状態</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>要求された監査コンポーネントと完了状態</caption>
+          <thead><tr><th scope="col">コンポーネント</th><th scope="col">要求</th><th scope="col">実行</th><th scope="col">状態</th><th scope="col">対象範囲</th><th scope="col">証拠</th><th scope="col">未検証・gap</th></tr></thead>
+          <tbody>@@COMPONENT_ROWS_HTML@@</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="frameworks">
+      <h2 id="frameworks">フレームワーク対応</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>IPA分類とCloudflare-authored監査手法の対象・状態</caption>
+          <thead><tr><th scope="col">フレームワーク／分類</th><th scope="col">対象項目</th><th scope="col">状態</th><th scope="col">根拠・制約</th></tr></thead>
+          <tbody>@@FRAMEWORK_ROWS_HTML@@</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="audit-items">
+      <h2 id="audit-items">監査項目</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>何を、どの方法で監査し、なぜその判定になったか</caption>
+          <thead><tr><th scope="col">ID</th><th scope="col">Frameworks</th><th scope="col">区分</th><th scope="col">監査対象</th><th scope="col">監査方法</th><th scope="col">実施</th><th scope="col">判定</th><th scope="col">判定理由</th><th scope="col">証拠</th><th scope="col">未検証・gap</th></tr></thead>
+          <tbody>@@AUDIT_ITEM_ROWS_HTML@@</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="ipa-mapping">
+      <h2 id="ipa-mapping">IPA 11項目対応表</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>IPA公式11分類の判定と所見対応</caption>
+          <thead><tr><th scope="col">IPA ID</th><th scope="col">分類</th><th scope="col">判定</th><th scope="col">所見ID</th><th scope="col">証拠</th><th scope="col">判定理由</th></tr></thead>
+          <tbody>@@IPA_MAPPING_ROWS_HTML@@</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="confirmed">
+      <h2 id="confirmed">NG: 確定した問題</h2>
+      <div class="stack">@@CONFIRMED_FINDINGS_HTML@@</div>
+    </section>
+
+    <section aria-labelledby="validation">
+      <h2 id="validation">要確認: 候補と追加確認</h2>
+      <div class="stack">@@NEEDS_VALIDATION_HTML@@</div>
+    </section>
+
+    <section aria-labelledby="limitations">
+      <h2 id="limitations">制約・対象外・未実施</h2>
+      <div class="stack">@@LIMITATIONS_HTML@@</div>
+    </section>
+
+    <section aria-labelledby="artifacts">
+      <h2 id="artifacts">成果物と再現情報</h2>
+      <div class="stack">@@ARTIFACTS_HTML@@</div>
+    </section>
+
+    <section aria-labelledby="provenance">
+      <h2 id="provenance">出所</h2>
+      <div class="stack">@@PROVENANCE_HTML@@</div>
+    </section>
+  </main>
+
+  <footer>
+    <p>生成元: <code>web-security-audit</code> / @@TOOL_VERSIONS@@</p>
+  </footer>
+</body>
+</html>

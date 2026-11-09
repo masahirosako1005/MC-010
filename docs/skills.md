@@ -8,13 +8,14 @@
 |UI UX Pro Max|https://github.com/nextlevelbuilder/ui-ux-pro-max-skill / 4f2dbb67e64969a9a30ab00742f2d55d66ddec2b|.agents/skills/ui-ux-pro-max と公式同梱6関連スキル|
 |Cloudflare Security Audit|https://github.com/cloudflare/security-audit-skill / c1c8a8c1471069fb0e188eeaff69b8e8db6564a8|.agents/skills/security-audit|
 
-公式導入分は計23個のSKILL.md。プロジェクト固有スキルを含む現在の総数は24個のSKILL.md・292ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
+公式導入分は計23個のSKILL.md。プロジェクト固有スキルを含む現在の総数は25個のSKILL.md・295ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
 
 ## プロジェクト固有の統合スキル
 
 |スキル|目的|構成・制約|
 |---|---|---|
 |`web-security-audit`|IPA「安全なウェブサイトの作り方」公式11分類と補足観点、およびCloudflare-authored `security-audit` の信頼境界ベースのソース監査を統合する。|動的スキャナーを要件とせず、`preflight` / `source` / `full`を分離。同じ根本原因はframework横断で1件へ統合し、同一データから`REPORT.md`とoffline `REPORT.html`を生成する。Cloudflare account、WAF、DNS、CDN、edge設定は対象外。|
+|[`project-operations`](../.agents/skills/project-operations/SKILL.md)|本プロジェクトのDBバックアップ・復元とログ確認。|Windows・PostgreSQL・ローカル運用専用。DBと写真を一組で保存し、復元は原則別の空DBへ行う。ログは安全な項目だけを抽出する。詳細は分野別references。自動実行・常時監視・アプリ変更・追加テストは行わない。|
 
 IPAの規範項目は公式ページ <https://www.ipa.go.jp/security/vuln/websecurity/about.html> を基準とする。CORS、ブラウザ分離ヘッダー、秘密情報、ログ、依存関係、deployment/backupは`SUP-*`補足項目として分け、IPA公式11分類であるかのように扱わない。Cloudflare vendorスキルと固定SHAは変更していない。
 
@@ -56,5 +57,13 @@ node scripts/skill-inventory.mjs
 - web-security-audit: IPA 1.1〜1.11を省略しないsource checklistと、Cloudflareのsource-first監査を統合。OS強制sandboxがない場合も`source`は継続し、外部・runtime事実を`要確認`または`未実施`として分離する。`full`はOS強制sandbox要件を満たす場合だけ完了とする。
 - imagegen: 内蔵標準モードと共有prompting規約を使用し、承認画面と7枚の架空スポット画像をラスター生成。アプリ実行時に外部AIを使わない。素材・プロンプトはdocs/assets.md。
 
-最終統合時も3つの公式checkoutのHEADを上表のSHAと照合した。現在のinventory書き出しはプロジェクト固有スキルを含む292ファイル・24スキル。UIの追加検索 `orphan heading line balance --domain ux` はTypography / Heading Line Balanceを返し、Webの自然な折り返し・寸法確認という適用範囲を確認した。固定改行や改行禁止の追加はしていない。通常製品テストの合格数はスキル準拠完全監査の代用にしない。
+最終統合時も3つの公式checkoutのHEADを上表のSHAと照合した。当時のinventory書き出しはプロジェクト固有スキルを含む292ファイル・24スキル。UIの追加検索 `orphan heading line balance --domain ux` はTypography / Heading Line Balanceを返し、Webの自然な折り返し・寸法確認という適用範囲を確認した。固定改行や改行禁止の追加はしていない。通常製品テストの合格数はスキル準拠完全監査の代用にしない。
+
+## 運用スキルの追加（2026-11-09）
+
+ユーザー指定の2機能に絞り、プロジェクト独自の`project-operations`を追加した。入口のSKILL.mdと、DBバックアップ・復元、ログ確認の2手順書を同梱する。公式vendorは変更しない。PostgreSQL 17の公式pg_dump・pg_restore・ログ設定資料を参照し、詳細な出典は各手順書へ記載した。
+
+バックアップの整合性・秘密を含まない実行引数・別DBへの復元・共有やキー状態の巻き戻り・ログの許可リスト抽出・対象期間の欠落を手順化した。スキル追加は運用処理そのものの許可ではないため、今回、DB接続、バックアップ作成、復元、実ログ閲覧、設定変更は行っていない。スキルは手順書のみで、新しい実行スクリプトや定期実行設定は追加していない。
+
+新規3ファイルのSHA256をinventoryへ追加し、既存の登録値は保持する。AGENTS.mdに従い、skill validator、inventory照合、テスト、独立レビューは未実施。アプリのコード変更がないため、ビルドと再起動も行わない。
 

@@ -526,6 +526,18 @@
       "sha256": "8db5a922b242dd4e1bf824cb91c13b3e8d8e8a86d6ceaf7f0774eb9cce909d65"
     },
     {
+      "path": ".agents/skills/project-operations/references/backup-restore.md",
+      "sha256": "4be909fe79fd03f5153f44a27688282a630089c1ccc749c19af743933c2a0f5a"
+    },
+    {
+      "path": ".agents/skills/project-operations/references/log-inspection.md",
+      "sha256": "dbe4e3bd702f8074cc1e093af1a77252a81c7cd4beb91334ab73d3594dc33f55"
+    },
+    {
+      "path": ".agents/skills/project-operations/SKILL.md",
+      "sha256": "703a90c426a29ffb53a980f128e024259747f46870b8eac69e7ddc395a4b0be5"
+    },
+    {
       "path": ".agents/skills/receiving-code-review/SKILL.md",
       "sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
     },

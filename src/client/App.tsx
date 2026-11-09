@@ -48,6 +48,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
 import { SharePanel } from './SharePanel';
 import { spotOverview, spotRecommendation } from '../shared/spot-copy';
+import { mergeBrochureEdits } from '../shared/brochure-merge';
 
 type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -185,12 +186,14 @@ export function App() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [draft, setDraft] = useState<Brochure | null>(null);
   const draftRef = useRef<Brochure | null>(null);
+  const savedRef = useRef<Brochure | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => { draftRef.current = draft; }, [draft]);
 
   const openSession = useCallback(async (data: SessionData) => {
+    savedRef.current = data.brochure;
     setSession(data);
     setStatusMessage('');
     if (data.user.role === 'town_admin') {
@@ -260,6 +263,7 @@ export function App() {
       const result = await api<{ brochure: Brochure }>('/api/brochure', {
         method: 'PUT', body: JSON.stringify(sentPayload),
       });
+      savedRef.current = result.brochure;
       const latest = draftRef.current;
       if (latest && draftSignature(latest) !== draftSignature(sentDraft)) {
         const payloadChangedWhileSaving = payloadSignature(latest) !== payloadSignature(sentDraft);
@@ -279,11 +283,22 @@ export function App() {
       }
     } catch (error) {
       setSaveState('error');
-      setStatusMessage(error instanceof ApiError && error.status === 409
+      setStatusMessage(error instanceof ApiError && error.code === 'revision_conflict'
         ? '別の画面で更新されています。入力は残っています。内容を控えてから再読み込みしてください。'
         : formatError(error));
     }
   }, [draft, saveState, session]);
+
+  const recoverConflict = useCallback(async () => {
+    if (!session || !draftRef.current || !savedRef.current) throw new Error('しおりを開き直してください。');
+    const latest = await api<SessionData>('/api/session');
+    if (latest.user.id !== session.user.id || latest.user.role !== 'visitor' || !latest.brochure) throw new Error('ログイン状態が変わりました。ログインし直してください。');
+    const merged = normalizeBrochureCategories(mergeBrochureEdits(savedRef.current, draftRef.current, latest.brochure), latest.spots);
+    savedRef.current = latest.brochure; draftRef.current = merged;
+    setSession(latest); setDraft(merged);
+    setSaveState(payloadSignature(merged) === payloadSignature(latest.brochure) ? 'clean' : 'dirty');
+    setStatusMessage('最新の保存内容を取り込みました。編集中の内容を確認して保存・再生成してください。');
+  }, [session]);
 
   const logout = useCallback(async () => {
     if (saveState === 'saving') return;
@@ -292,6 +307,7 @@ export function App() {
     catch (error) { if (!(error instanceof ApiError && error.status === 401)) { setStatusMessage(`ログアウトを完了できませんでした。${formatError(error)}`); return; } }
     setSession(null);
     setDraft(null);
+    savedRef.current = null;
     setSaveState('clean');
     setStatusMessage('');
     setScreen('login');
@@ -308,6 +324,7 @@ export function App() {
     onGenerate={async(settings) => {
       setStatusMessage('');
       const result = await withGeneratingScreenDuration(api<{ brochure: Brochure; spots: Spot[] }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) }));
+      savedRef.current = result.brochure;
       const normalized = normalizeBrochureCategories(result.brochure, result.spots);
       draftRef.current = normalized;
       setDraft(normalized);
@@ -328,6 +345,7 @@ export function App() {
       statusMessage={statusMessage}
       onChange={markChanged}
       onReplace={(brochure, message, spots) => {
+        savedRef.current = brochure;
         const normalized = normalizeBrochureCategories(brochure, spots ?? session.spots);
         if (spots) setSession(current => current ? { ...current, spots } : current);
         draftRef.current = normalized;
@@ -336,6 +354,7 @@ export function App() {
         setStatusMessage(message);
       }}
       onSave={save}
+      onRecoverConflict={recoverConflict}
       onLogout={logout}
       onStatus={setStatusMessage}
       onPhotoUpdate={(itemId, photoUrl) => {
@@ -509,13 +528,14 @@ interface EditorProps {
   onChange: (update: (current: Brochure) => Brochure) => void;
   onReplace: (brochure: Brochure, message: string, spots?: Spot[]) => void;
   onSave: () => Promise<void>;
+  onRecoverConflict: () => Promise<void>;
   onLogout: () => Promise<void>;
   onStatus: (message: string) => void;
   onPhotoUpdate: (itemId: string, photoUrl: string | null) => void;
 }
 
 function BrochureEditor(props: EditorProps) {
-  const { session, draft, saveState, statusMessage, onChange, onReplace, onSave, onLogout, onStatus, onPhotoUpdate } = props;
+  const { session, draft, saveState, statusMessage, onChange, onReplace, onSave, onRecoverConflict, onLogout, onStatus, onPhotoUpdate } = props;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewReturnY = useRef(0);
@@ -646,6 +666,7 @@ function BrochureEditor(props: EditorProps) {
   if (settingsOpen) return <TripSettingsScreen
     session={session}
     brochure={draft}
+    onRecoverConflict={onRecoverConflict}
     previewBySpotId={Object.fromEntries(draft.items.filter(item => pendingPhotos[item.id]).map(item => [item.spotId, pendingPhotos[item.id]!.preview]))}
     generatingView={<GeneratingScreen />}
     onCancel={() => {

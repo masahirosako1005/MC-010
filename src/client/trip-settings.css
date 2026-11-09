@@ -7,6 +7,7 @@
   background-size: 5px 7px, 11px 13px;
 }
 .trip-settings-paper { max-width: 850px; margin: auto; }
+.trip-recovery { margin: 16px 0; padding: 16px; border: 2px solid var(--coral); border-radius: 12px; background: var(--yellow-soft); overflow-wrap: anywhere; }.trip-recovery p { line-height: 1.8; }.trip-recovery .trip-form-error { margin: 0; }.trip-recovery .button { white-space: normal; min-height: 48px; }.trip-recovered { padding: 14px; border: 1px solid var(--blue); border-radius: 10px; background: var(--blue-soft); line-height: 1.8; }
 .trip-settings-brand { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; }
 .trip-brand-name { position: relative; font: 900 clamp(1.4rem, 4.8vw, 2.6rem)/1.25 var(--font-rounded); white-space: nowrap; }
 .trip-brand-name::after { position: absolute; content: ''; left: -2px; right: -3px; bottom: -9px; height: 10px; border-bottom: 5px solid var(--orange); border-radius: 0 0 50% 50%; transform: rotate(-3deg); }

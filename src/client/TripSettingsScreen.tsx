@@ -10,6 +10,7 @@ interface Props {
   previewBySpotId?: Record<string, string>;
   onGenerate: (settings: TripSettings, mode: 'all' | 'candidates') => Promise<void>;
   onCancel?: () => void;
+  onRecoverConflict?: () => Promise<void>;
   onLogout?: () => void;
   notice?: string;
   generatingView: ReactNode;
@@ -28,7 +29,7 @@ function shortDescription(description: string, tags: string[]) {
   return points.length > 40 ? `${points.slice(0, 40).join('')}…` : points.join('');
 }
 
-export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, onGenerate, onCancel, onLogout, notice = '', generatingView }: Props) {
+export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, onGenerate, onCancel, onRecoverConflict, onLogout, notice = '', generatingView }: Props) {
   const visited = useMemo(() => {
     const byId = new Map(session.spots.map(spot => [spot.id, spot]));
     const unique = new Map(session.visits.map(visit => [visit.spotId, byId.get(visit.spotId)]));
@@ -42,6 +43,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
     : []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [conflict, setConflict] = useState(false), [recovering, setRecovering] = useState(false), [recovered, setRecovered] = useState('');
   const headingRef = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -64,9 +66,22 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
     setBusy(true);
     try { await onGenerate({ companion, duration, tripStyle, visitedSpotIds }, mode); }
     catch (reason) {
-      setError(reason instanceof Error ? reason.message : '作成できませんでした。選択内容は残っています。もう一度お試しください。');
+      const revisionConflict = reason instanceof Error && (reason as Error & { code?: string }).code === 'revision_conflict';
+      setConflict(revisionConflict);
+      setRecovered('');
+      setError(revisionConflict ? '別の画面でしおりが更新されました。この画面の入力と選択は保持しています。最新情報を取り込んでから、もう一度作成してください。' : reason instanceof Error ? reason.message : '作成できませんでした。選択内容は残っています。もう一度お試しください。');
       setBusy(false);
     }
+  }
+
+  async function recover() {
+    if (!onRecoverConflict || recovering) return;
+    setRecovering(true);
+    try {
+      await onRecoverConflict(); setConflict(false); setError('');
+      setRecovered('最新の保存内容を取り込みました。選択を確認してもう一度作成してください。');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : '最新情報を取得できませんでした。もう一度お試しください。'); }
+    finally { setRecovering(false); }
   }
 
   if (busy) return <>{generatingView}</>;
@@ -85,6 +100,8 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
         <span className="trip-stamp trip-stamp-coral" aria-hidden="true"><TrainFront /></span>
         <p>行きたい場所と旅の条件を選んでください</p>
       </div>
+      {(error || notice) && <section className="trip-recovery"><p ref={errorRef} tabIndex={-1} className="trip-form-error" role="alert">{error || notice}</p>{conflict && onRecoverConflict && <><p>この画面で編集した項目を優先し、変更していない項目は最新の保存内容を取り込みます。</p><button type="button" className="button button-primary" disabled={recovering} onClick={() => void recover()}>{recovering ? '最新情報を取得中' : 'この画面の編集を保持して最新情報を取り込む'}</button></>}</section>}
+      {recovered && <p className="trip-recovered" role="status">{recovered}</p>}
       <WaveDivider ship />
       <form onSubmit={event => { event.preventDefault(); void submit('all'); }}>
         <fieldset className="trip-section trip-visits" aria-describedby="trip-visit-instruction">
@@ -151,8 +168,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
             </label>
           </div>
         </fieldset>
-        {(error || notice) && <p ref={errorRef} tabIndex={-1} className="trip-form-error" role="alert">{error || notice}</p>}
-        <button type="submit" className="trip-create">この内容で次の旅をつくる<ArrowRight aria-hidden="true" /></button>
+        <button type="submit" className="trip-create" disabled={recovering}>この内容で次の旅をつくる<ArrowRight aria-hidden="true" /></button>
         {brochure && <div className="trip-secondary-actions"><button type="button" onClick={onCancel}>キャンセルして戻る</button><button type="button" onClick={() => void submit('candidates')}>候補だけ作り直す</button></div>}
       </form>
       {!brochure && onLogout && <button type="button" className="trip-logout" onClick={onLogout}>ログアウト</button>}

@@ -501,4 +501,163 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect((await adminSpots(town.cookie)).filter(spot => spot.id === requestId)).toHaveLength(1);
     expect((await db.query('SELECT count(*)::int AS count FROM admin_audit_logs WHERE spot_id=$1', [requestId])).rows[0].count).toBe(1);
   });
+
+  async function giftFixture() {
+    const owner = await login(), town = await login('town@example.test');
+    const brochure = (await ensure(owner.cookie)).body.brochure;
+    const spot = (await adminSpots(town.cookie)).find(spot => brochure.items.some(item => item.selected && item.spotId === spot.id))!;
+    expect((await editSpot(town.cookie, spot, { hasGift: true })).response.status).toBe(200);
+    return { owner, town, brochure, spot };
+  }
+  const post = <T>(route: string, cookie?: string, data: unknown = {}) =>
+    api<T>(route, { method: 'POST', cookie, body: JSON.stringify(data) });
+  async function pngForm() {
+    const bytes = await sharp({ create: { width: 20, height: 15, channels: 3, background: '#e0a060' } }).png().toBuffer();
+    const form = new FormData(); form.append('photo', new Blob([new Uint8Array(bytes)], { type: 'image/png' }), 'fixture.png'); return form;
+  }
+
+  it('クーポンは本人の冊子に限定し、表示とキャンセルでは利用を記録しない', async () => {
+    const { owner, town, spot } = await giftFixture(), other = await login('second@example.test');
+    const endpoint = `/api/spots/${spot.id}`;
+    expect((await api(endpoint + '/detail')).response.status).toBe(401);
+    expect((await api(endpoint + '/detail', { cookie: other.cookie })).response.status).toBe(404);
+    expect((await post(endpoint + '/coupon', town.cookie)).response.status).toBe(403);
+    expect((await post(endpoint + '/gift-claim', owner.cookie)).response.status).toBe(409);
+    const details = await api<{ giftClaim: unknown }>(endpoint + '/detail', { cookie: owner.cookie });
+    expect(details.body.giftClaim).toBeNull();
+    const issued = await Promise.all(Array.from({ length: 6 }, () => post<{ couponCode: string }>(endpoint + '/coupon', owner.cookie)));
+    expect(issued.every(result => result.response.status === 200)).toBe(true);
+    expect(issued[0]!.body.couponCode).toMatch(/^[A-Z0-9]{6}$/);
+    expect(new Set(issued.map(result => result.body.couponCode)).size).toBe(1);
+    expect((await db.query('SELECT count(*)::int AS n FROM spot_coupon_codes')).rows[0].n).toBe(1);
+    expect((await db.query('SELECT count(*)::int AS n FROM spot_gift_claims')).rows[0].n).toBe(0);
+    expect((await post(endpoint + '/gift-claim', owner.cookie, { userId: (other.body as SessionData).user.id })).response.status).toBe(400);
+  });
+
+  it('利用を並列・再送しても1件にし、別利用者の利用を混在させない', async () => {
+    const { owner, town, spot } = await giftFixture(), other = await login('second@example.test');
+    await ensure(other.cookie);
+    const endpoint = `/api/spots/${spot.id}`;
+    const a = await post<{ couponCode: string }>(endpoint + '/coupon', owner.cookie);
+    const b = await post<{ couponCode: string }>(endpoint + '/coupon', other.cookie);
+    expect(a.body.couponCode).not.toBe(b.body.couponCode);
+    const results = await Promise.all(Array.from({ length: 8 }, () => post<{ giftClaim: { id: string } }>(endpoint + '/gift-claim', owner.cookie)));
+    expect(results.every(result => result.response.status === 200)).toBe(true);
+    expect(new Set(results.map(result => result.body.giftClaim.id)).size).toBe(1);
+    expect((await api<{ giftClaim: unknown }>(endpoint + '/detail', { cookie: other.cookie })).body.giftClaim).toBeNull();
+    const current = (await adminSpots(town.cookie)).find(value => value.id === spot.id)!;
+    expect(current.giftClaimCount).toBe(1);
+    await editSpot(town.cookie, current, { active: false, hasGift: false });
+    expect((await post(endpoint + '/gift-claim', owner.cookie)).response.status).toBe(200);
+    expect((await post(endpoint + '/gift-claim', other.cookie)).response.status).toBe(409);
+    expect((await post<{ couponCode: unknown }>(endpoint + '/coupon', owner.cookie)).body.couponCode).toBeNull();
+    expect((await db.query('SELECT count(*)::int AS n FROM spot_gift_claims')).rows[0].n).toBe(1);
+  });
+
+  it('利用履歴は町だけが匿名で参照でき、出所/スポットで絞れる', async () => {
+    const { owner, town, spot } = await giftFixture();
+    await post(`/api/spots/${spot.id}/coupon`, owner.cookie);
+    await post(`/api/spots/${spot.id}/gift-claim`, owner.cookie);
+    expect((await api('/api/admin/gift-claims')).response.status).toBe(401);
+    expect((await api('/api/admin/gift-claims', { cookie: owner.cookie })).response.status).toBe(403);
+    const history = await api<{ total: number; users: number; page: number; rows: Record<string, unknown>[] }>(`/api/admin/gift-claims?scope=fixture&spotId=${spot.id}&page=99`, { cookie: town.cookie });
+    expect(history.body).toMatchObject({ total: 1, users: 1, page: 1 });
+    expect(Object.keys(history.body.rows[0]!).sort()).toEqual(['id', 'spotId', 'claimedAt', 'userId', 'source', 'spotName'].sort());
+    expect((await api<{ total: number }>('/api/admin/gift-claims?scope=organizer', { cookie: town.cookie })).body.total).toBe(0);
+    expect((await api('/api/admin/gift-claims?spotId=bad', { cookie: town.cookie })).response.status).toBe(400);
+  });
+
+  it('共有URLは本人が発行し、並列要求でも同じURLと件数を返す', async () => {
+    const owner = await login(), town = await login('town@example.test');
+    expect((await post('/api/brochure/share')).response.status).toBe(401);
+    expect((await post('/api/brochure/share', town.cookie)).response.status).toBe(403);
+    expect((await post('/api/brochure/share', owner.cookie)).response.status).toBe(404);
+    await ensure(owner.cookie);
+    const shares = await Promise.all(Array.from({ length: 6 }, () => post<{ share: { path: string; viewCount: number } }>('/api/brochure/share', owner.cookie)));
+    expect(shares.every(result => result.response.status === 200)).toBe(true);
+    expect(shares[0]!.body.share.path).toMatch(/^\/share\/[a-f0-9]{64}$/);
+    expect(new Set(shares.map(result => result.body.share.path)).size).toBe(1);
+    expect(shares[0]!.body.share.viewCount).toBe(0);
+    expect((await post('/api/brochure/share', owner.cookie, { userId: randomUUID() })).response.status).toBe(400);
+  });
+
+  it('公開本文は掲載/思い出だけに絞り、作成者以外へクーポンや私的情報を返さない', async () => {
+    const { owner, town, brochure, spot } = await giftFixture(), other = await login('second@example.test');
+    await ensure(other.cookie);
+    const hidden = brochure.items.find(item => !item.selected && !item.isMemory)!;
+    await db.query('UPDATE brochure_items SET comment=$1 WHERE id=$2', ['PRIVATE_UNPUBLISHED_NOTE', hidden.id]);
+    const shared = await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie);
+    const endpoint = '/api/shared/' + shared.body.share.path.split('/').at(-1);
+    for (const cookie of [undefined, other.cookie, town.cookie]) {
+      const result = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie });
+      expect(result.response.status).toBe(200);
+      expect(result.body.viewerIsOwner).toBe(false);
+      expect(result.body.spots.every(value => value.hasGift === false)).toBe(true);
+      expect(result.body.brochure.items.every(item => item.selected || (item.kind === 'visited' && item.isMemory))).toBe(true);
+      expect(result.body.brochure.items.some(item => item.id === hidden.id)).toBe(false);
+      expect(JSON.stringify(result.body)).not.toMatch(/PRIVATE_UNPUBLISHED_NOTE|goodPoints|couponCode|giftClaim|displayName|email/);
+      expect(Object.keys(result.body).sort()).toEqual(['brochure', 'spots', 'memoryVisits', 'viewerIsOwner'].sort());
+    }
+    const self = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie: owner.cookie });
+    expect(self.body.viewerIsOwner).toBe(true);
+    expect(self.body.spots.find(value => value.id === spot.id)?.hasGift).toBe(true);
+    expect((await api(endpoint)).response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('共有写真は公開URLと掲載範囲を照合し、非掲載写真を拒否する', async () => {
+    const { owner, town, brochure, spot } = await giftFixture();
+    const visible = brochure.items.find(item => item.spotId === spot.id)!;
+    const hidden = brochure.items.find(item => !item.selected && !item.isMemory)!;
+    const visiblePhoto = await api<{ photoUrl: string }>(`/api/items/${visible.id}/photo`, { method: 'POST', cookie: owner.cookie, body: await pngForm() });
+    const hiddenPhoto = await api<{ photoUrl: string }>(`/api/items/${hidden.id}/photo`, { method: 'POST', cookie: owner.cookie, body: await pngForm() });
+    const current = (await adminSpots(town.cookie)).find(value => value.id === spot.id)!;
+    expect((await api(`/api/admin/spots/${spot.id}/photo`, { method: 'POST', cookie: town.cookie, headers: { 'If-Match': String(current.revision) }, body: await pngForm() })).response.status).toBe(200);
+    const shared = await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie);
+    const base = '/api/shared/' + shared.body.share.path.split('/').at(-1);
+    const body = (await api<import('../src/shared/sharing-types.js').SharedBrochure>(base)).body;
+    const publicPhoto = body.brochure.items.find(item => item.id === visible.id)!.photoUrl!;
+    expect((await fetch(baseUrl + publicPhoto)).status).toBe(200);
+    expect((await fetch(baseUrl + visiblePhoto.body.photoUrl)).status).toBe(401);
+    expect((await fetch(baseUrl + base + '/photos/' + hiddenPhoto.body.photoUrl.split('/').at(-1))).status).toBe(404);
+    expect((await fetch(baseUrl + body.spots.find(value => value.id === spot.id)!.image)).status).toBe(200);
+    expect((await fetch(baseUrl + '/api/shared/' + '0'.repeat(64) + '/photos/' + visiblePhoto.body.photoUrl.split('/').at(-1))).status).toBe(404);
+  });
+
+  it('共有表示をUUIDで一度だけ記録し、公開停止/再開でURLと件数を保持する', async () => {
+    const owner = await login(); await ensure(owner.cookie);
+    const share = (await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie)).body.share;
+    const endpoint = '/api/shared/' + share.path.split('/').at(-1);
+    await api(endpoint); await fetch(baseUrl + endpoint, { method: 'HEAD' });
+    const metadata = () => api<{ share: { path: string; viewCount: number; active: boolean; lastViewedAt: string | null } }>('/api/brochure/share', { cookie: owner.cookie });
+    expect((await metadata()).body.share.viewCount).toBe(0);
+    const requestId = randomUUID();
+    const views = await Promise.all(Array.from({ length: 8 }, () => post(endpoint + '/views', undefined, { requestId })));
+    expect(views.every(value => value.response.status === 200)).toBe(true);
+    expect((await metadata()).body.share.viewCount).toBe(1);
+    await post(endpoint + '/views', undefined, { requestId: randomUUID() });
+    expect((await metadata()).body.share.viewCount).toBe(2);
+    expect((await metadata()).body.share.lastViewedAt).not.toBeNull();
+    expect((await post(endpoint + '/views', undefined, { requestId, userId: randomUUID() })).response.status).toBe(400);
+    expect((await api('/api/brochure/share', { method: 'DELETE', cookie: owner.cookie, body: '{}' })).response.status).toBe(200);
+    expect((await api(endpoint)).response.status).toBe(404);
+    expect((await post(endpoint + '/views', undefined, { requestId: randomUUID() })).response.status).toBe(404);
+    const resumed = (await post<{ share: { path: string; viewCount: number } }>('/api/brochure/share', owner.cookie)).body.share;
+    expect(resumed.path).toBe(share.path); expect(resumed.viewCount).toBe(2);
+    const town = await login('town@example.test');
+    expect((await api('/api/admin/shares', { cookie: owner.cookie })).response.status).toBe(403);
+    const report = await api<import('../src/shared/sharing-types.js').AdminSharePage>('/api/admin/shares?scope=fixture&page=999', { cookie: town.cookie });
+    expect(report.body).toMatchObject({ total: 1, active: 1, totalViews: 2, page: 1 });
+    expect(Object.keys(report.body.rows[0]!).sort()).toEqual(['id', 'userId', 'source', 'active', 'viewCount', 'createdAt', 'lastViewedAt'].sort());
+    expect(JSON.stringify(report.body)).not.toContain(share.path.split('/').at(-1));
+  });
+
+  it('古いrevisionで再生成すると409を返し、保存済み編集を巻き戻さない', async () => {
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const local = payload(brochure), remote = payload(brochure);
+    remote.items[0]!.comment = '別画面で保存したコメント';
+    expect((await api('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(remote) })).response.status).toBe(200);
+    const result = await post<{ error: { code: string } }>('/api/brochure/regenerate', owner.cookie, { draft: local, mode: 'all', settings: { companion: '家族', duration: 'day', tripStyle: 'slow', visitedSpotIds: [brochure.items.find(item => item.kind === 'visited')!.spotId] } });
+    expect(result.response.status).toBe(409); expect(result.body.error.code).toBe('revision_conflict');
+    expect((await api<SessionData>('/api/session', { cookie: owner.cookie })).body.brochure!.items[0]!.comment).toBe(remote.items[0]!.comment);
+  });
 });

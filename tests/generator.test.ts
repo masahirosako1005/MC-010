@@ -155,7 +155,7 @@ describe('makeCopy', () => {
   it('同行者が一人なら招待ではなく旅紹介文として成立する', () => {
     const copy = makeCopy(spots, items, settings({ companion: '一人' }));
 
-    expect(copy.title).toBe('自分のペースで、日帰りの旅');
+    expect(copy.title).toBe('自分のペースで、思い出のその先へ');
     expect(copy.invitation).toContain('計画しています');
     expect(copy.invitation).not.toContain('一緒に行かない？');
     expect(copy.invitation).not.toContain('一人と');

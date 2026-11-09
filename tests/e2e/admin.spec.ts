@@ -12,7 +12,7 @@ test('町ログインから概況・登録一覧・スポット作成編集・�
   await townLogin(page);
   await expect(page.getByText('町管理', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'パンフレット作成済み' })).toBeVisible();
-  await expect(page.getByText('共有状況', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '共有状況', exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('admin-overview.png'), fullPage: true });
   await page.getByRole('button', { name: 'パンフレット登録状況', exact: true }).click();
   await page.getByRole('combobox', { name: '登録状態', exact: true }).selectOption('missing');

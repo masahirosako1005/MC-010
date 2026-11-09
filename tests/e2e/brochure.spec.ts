@@ -10,7 +10,8 @@ async function login(page:Page,email='demo@example.test',create=true) {
   if(create&&result.ok()){
     const data=await result.json();
     if(data.visits.length&&!data.brochure){
-      await page.getByTestId('trip-settings-screen').getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
+      await page.getByTestId('trip-settings-screen').getByRole('checkbox').first().check();
+      await page.getByTestId('trip-settings-screen').getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
     }
   }
 }
@@ -34,7 +35,7 @@ test('初回は条件画面で確定して生成し、次のログインでは�
     expect((await (await page.request.get('/api/session')).json()).brochure).toBeNull();
     const boxes=settings.getByRole('checkbox');
     expect(await boxes.count()).toBe(new Set(before.visits.map((visit:{spotId:string})=>visit.spotId)).size);
-    for(const box of await boxes.all())await box.uncheck();
+    for(const box of await boxes.all())await expect(box).not.toBeChecked();
     await boxes.last().check();
     await settings.getByRole('radio',{name:'家族',exact:true}).check();
     await settings.getByRole('radio',{name:'宿泊 一泊二日',exact:true}).check();
@@ -46,13 +47,13 @@ test('初回は条件画面で確定して生成し、次のログインでは�
     await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
     await page.unroute('**/api/logout');
     await page.route('**/api/brochure/ensure',r=>r.fulfill({status:503,json:{error:{code:'create_test_failure',message:'作成に失敗しました。もう一度お試しください。'}}}));
-    await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
+    await settings.getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
     await expect(settings.getByRole('alert')).toContainText('作成に失敗');
     await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
     await expect(settings.getByRole('radio',{name:'アクティブ',exact:true})).toBeChecked();
     await page.unroute('**/api/brochure/ensure');
     const creation=page.waitForRequest(r=>r.url().endsWith('/api/brochure/ensure')&&r.method()==='POST');
-    await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
+    await settings.getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
     const submitted=(await creation).postDataJSON().settings;
     expect(submitted).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active'});
     await expect(page.getByTestId('brochure')).toBeVisible();
@@ -132,8 +133,8 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   let releaseGeneration!:()=>void;
   const generationGate=new Promise<void>(resolve=>{releaseGeneration=resolve;});
   await page.route('**/api/brochure/regenerate',async route=>{await generationGate;await route.continue();});
-  await dialog.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'旅のパンフレットを準備しています'})).toBeVisible();
+  await dialog.getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'旅の思い出から、次の旅のしおりをつくっています'})).toBeVisible();
   releaseGeneration();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator('.brochure-header h1')).toContainText('自分のペース');
@@ -143,35 +144,32 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   const response=await page.request.get('/api/session');
   const state=await response.json();
   expect(state.brochure.items.some((i:{comment:string;photoUrl:string|null})=>i.comment===comment&&i.photoUrl===photoSrc)).toBeTruthy();
+  const visibleComment=`閲覧用の保存済みコメント-${testInfo.project.name}`;
+  await page.locator('.category-card:not(.category-empty)').first().locator('textarea').fill(visibleComment);
+  await page.locator('button.save-button:visible').first().click();
+  await expect(page.locator('.status-strip')).toContainText('保存しました');
   await page.getByTestId('html-preview').filter({visible:true}).first().click();
   await expect(page.getByTestId('html-preview-toolbar')).toBeVisible();
   await expect(page.getByTestId('survey-disclosure')).toBeHidden();
   await expect(page.locator('.comment-editor').first()).toBeHidden();
-  await expect(page.locator('.comment-static').first()).toBeVisible();
+  await expect(page.locator('.comment-static').filter({hasText:visibleComment})).toBeVisible();
   await page.getByRole('button',{name:'編集画面へ戻る',exact:true}).click();
   await expect(page.getByTestId('html-preview-toolbar')).toBeHidden();
   await context.grantPermissions(['clipboard-read','clipboard-write']);
-  await page.getByRole('button',{name:'招待文をコピー',exact:true}).filter({visible:true}).first().click();
+  await page.getByTestId('html-preview').filter({visible:true}).first().click();
+  await page.getByRole('button',{name:'しおりを共有する',exact:true}).click();
+  await expect(page.locator('.share-panel [role="status"]')).toHaveText('しおりの共有URLをコピーしました。');
   const copied=await page.evaluate(()=>navigator.clipboard.readText());
-  expect(copied).toContain('一泊二日');expect(copied).not.toContain('一緒に行かない');
-  const download=page.waitForEvent('download');
-  await page.getByRole('button',{name:testInfo.project.name==='mobile'?'PNG':'PNGで保存',exact:true}).filter({visible:true}).first().click();
-  const image=await download;
-  await image.saveAs(testInfo.outputPath('brochure.png'));
-  expect(await image.failure()).toBeNull();
-  await expect(page.locator('.status-strip')).toContainText('保存しました');
-  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-  await page.screenshot({path:testInfo.outputPath('brochure-screen.png'),fullPage:true});
+  expect(copied).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/share\/[a-f0-9]{64}$/);
+  await expect(page.locator('.invitation-panel')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^PNG/})).toHaveCount(0);
+  await page.screenshot({path:testInfo.outputPath('booklet-postcard.png'),fullPage:true});
+  await page.getByRole('button',{name:'編集画面へ戻る',exact:true}).click();
   await page.getByRole('combobox',{name:'デザインを変える',exact:true}).selectOption('colorful');
   await page.locator('button.save-button:visible').first().click();
   await expect(page.locator('.status-strip')).toContainText('保存しました');
-  const colorfulDownload=page.waitForEvent('download');
-  await page.getByRole('button',{name:testInfo.project.name==='mobile'?'PNG':'PNGで保存',exact:true}).filter({visible:true}).first().click();
-  await (await colorfulDownload).saveAs(testInfo.outputPath('brochure-colorful.png'));
-  await expect(page.locator('.status-strip')).toContainText('保存しました');
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-  await page.screenshot({path:testInfo.outputPath('brochure-colorful-viewport.png')});
-  await page.screenshot({path:testInfo.outputPath('brochure-colorful-screen.png'),fullPage:true});
+  await page.screenshot({path:testInfo.outputPath('booklet-colorful.png'),fullPage:true});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
   expect(overflow).toBeFalsy();
   expect(externalRequests).toEqual([]);
@@ -198,24 +196,23 @@ test('小画面・横向き・動き軽減で横にはみ出さない',async({pa
   }
 });
 
-test('PNGモードはスマホでも全カテゴリと補足情報を欠けずに配置する',async({page},info)=>{
+test('しおりは概要・推薦理由を表示し、招待文・PNG操作を出さない',async({page},info)=>{
   await login(page);
   await expect(page.getByTestId('brochure')).toBeVisible();
-  const layout=await page.getByTestId('brochure').evaluate(node=>{
-    node.classList.add('png-mode');
-    try {
-      const bounds=node.getBoundingClientRect();
-      const cards=[...node.querySelectorAll('.category-card')].map(card=>card.getBoundingClientRect());
-      const support=node.querySelector('.brochure-support-grid')!;
-      return {count:cards.length,allInside:cards.every(card=>card.left>=bounds.left-1&&card.right<=bounds.right+1),
-        categoryDisplay:getComputedStyle(node.querySelector('.category-grid')!).display,
-        supportColumns:getComputedStyle(support).gridTemplateColumns.split(' ').length};
-    } finally {node.classList.remove('png-mode');}
-  });
-  expect(layout.count).toBe(5);
-  expect(layout.allInside).toBe(true);
-  expect(layout.categoryDisplay).toBe('grid');
-  expect(layout.supportColumns).toBe(info.project.name==='mobile'?1:3);
+  await expect(page.getByRole('heading',{name:'おすすめの訪問順',exact:true})).toBeVisible();
+  await expect(page.locator('.spot-overview').first()).toContainText('場所の概要');
+  await expect(page.locator('.spot-recommendation').first()).toContainText('おすすめの理由');
+  await expect(page.locator('.spot-overview').first()).not.toContainText('架空スポットのデモ用説明');
+  await expect(page.locator('.invitation-panel')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/招待文をコピー|^PNG/})).toHaveCount(0);
+  const columns=await page.locator('.brochure-support-grid').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length);
+  expect(columns).toBe(info.project.name==='mobile'?1:2);
+  if(info.project.name==='mobile')await expect(page.locator('.mobile-share-bar > button')).toHaveCount(2);
+  await page.getByRole('button',{name:'しおりを見る',exact:true}).filter({visible:true}).first().click();
+  await expect(page.getByTestId('html-preview-toolbar').getByText('旅のしおり',{exact:true})).toBeVisible();
+  await expect(page.locator('.share-url-field')).toHaveCount(0);
+  await expect(page.locator('.comment-editor').first()).toBeHidden();
+  await page.screenshot({path:info.outputPath('booklet-readonly.png'),fullPage:true});
 });
 
 test('カテゴリ変更と順序・Unicode200字・写真を保存復元し、外した編集を保持する',async({page},testInfo)=>{
@@ -224,14 +221,14 @@ test('カテゴリ変更と順序・Unicode200字・写真を保存復元し、�
   await page.getByTestId('trip-settings-open').click();
   const settings=page.getByTestId('trip-settings-screen');
   for(const box of await settings.getByRole('checkbox').all())await box.uncheck({force:true});
-  await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
+  await settings.getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
   await expect(settings.getByRole('alert')).toContainText('1つ以上');
   for(const box of await settings.getByRole('checkbox').all())await box.check({force:true});
   await settings.getByRole('radio',{name:'家族',exact:true}).check({force:true});
   await settings.getByRole('radio',{name:'日帰り',exact:true}).check({force:true});
   await settings.getByRole('radio',{name:'ゆっくり',exact:true}).check({force:true});
   const memories=await settings.getByRole('checkbox').count();
-  await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
+  await settings.getByRole('button',{name:'この内容で次の旅をつくる',exact:true}).click();
   await expect(settings).not.toBeVisible();
   await expect(page.getByTestId('memory-slide')).toHaveCount(memories);
   const memory=page.getByTestId('memory-slide').last(), memoryId=await memory.getAttribute('data-memory-item-id');

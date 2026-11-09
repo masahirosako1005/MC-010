@@ -174,7 +174,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   }));
   app.use('/api',(_req,_res,next)=>next(new AppError(404,'not_found','指定された操作はありません。')));
   app.use(express.static(builtWebRoot,{index:'index.html',dotfiles:'deny'}));
-  app.get(/.*/,(_req,res,next)=>{res.sendFile(path.join(builtWebRoot,'index.html'),e=>{if(e)next(new AppError(503,'web_not_built','画面をビルドするか、開発サーバーを起動してください。'));});});
+  app.get(/.*/,(_req,res,next)=>{res.sendFile('index.html',{root:builtWebRoot,dotfiles:'deny'},e=>{if(e)next(new AppError(503,'web_not_built','画面をビルドするか、開発サーバーを起動してください。'));});});
   app.use((error:unknown,_req:Request,res:Response,_next:NextFunction)=>{
     if(res.headersSent)return;
     if(error instanceof AppError)return res.status(error.status).json({error:{code:error.code,message:error.message}});

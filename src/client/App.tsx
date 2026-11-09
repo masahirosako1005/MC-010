@@ -693,7 +693,7 @@ function BrochureEditor(props: EditorProps) {
       <header className="editor-toolbar" data-export-exclude="true">
         <a className="mini-brand" href="#brochure-top" aria-label="パンフレットの先頭へ">今度はあなたと</a>
         <div className="toolbar-actions">
-          <button className="button toolbar-button" data-testid="trip-settings-open" onClick={() => setSettingsOpen(true)}>
+          <button className="button toolbar-button trip-settings-entry" data-testid="trip-settings-open" aria-label="旅の条件を変更" onClick={() => setSettingsOpen(true)}>
             <UsersRound aria-hidden="true" /><span>旅の条件を変更</span><b>{draft.companion}</b>
           </button>
           <TemplateSelect value={draft.template} onChange={(template) => onChange((current) => ({ ...current, template }))} />

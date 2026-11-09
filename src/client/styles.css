@@ -572,6 +572,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .toolbar-actions { flex-wrap: wrap; }
   .mini-brand { margin-top: 11px; }
   .toolbar-button span, .toolbar-actions > .button-outline span, .toolbar-actions > .button-primary span { display: none; }
+  .toolbar-actions .trip-settings-entry span { display: inline; }
   .header-illustration { opacity: .3; }
   .brochure-columns { grid-template-columns: minmax(260px, .7fr) minmax(470px, 1.3fr); }
   .route-item { grid-template-columns: 180px 1fr; }
@@ -596,6 +597,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .editor-toolbar { min-height: 62px; align-items: center; padding: 7px 10px; }
   .mini-brand { margin: 0; font-size: 1rem; }
   .toolbar-actions { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 2px; }
+  .toolbar-actions .trip-settings-entry { flex-shrink: 0; padding-inline: 9px; gap: 5px; font-size: .8rem; white-space: nowrap; }
   .toolbar-actions .save-button, .toolbar-actions > .button-outline, .toolbar-actions > .button-primary { display: none; }
   .template-select select { width: 44px; padding-right: 5px; color: transparent; }
   .template-select option { color: var(--ink); }

@@ -37,7 +37,7 @@ PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_bro
 |GET /photos/:id|本人所有の画像だけ配信。|
 |GET /health|DB疎通。|
 
-エラーは `{error:{code,message}}`、内部パス・SQL・stackを返さない。photoは同一オリジン認可付きURL、公開共有URLは作らない。共有はプレーンテキストとローカルPNGのみ。
+エラーは `{error:{code,message}}`、内部パス・SQL・stackを返さない。photoは同一オリジン認可付きURL。共有はプレーンテキスト・ローカルPNGに加え、後述006の共有URLと対象写真用APIを提供する。
 
 ## 生成と保持
 
@@ -46,6 +46,8 @@ PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_bro
 良かった点のタグはmasterと同じ日本語（自然・景色・海・食・文化・体験）へ正規化する。総合満足度4以上の場合は訪問済みカテゴリに近い候補を加点し、欠損・低評価の場合は同カテゴリだからという加点をしない。利用者全体の評価を個別スポットの評価へ変換しない。
 
 再生成は選択状態・カテゴリ割当・順序・生成理由だけを更新し、全itemのcomment/photo/templateを保持。個別変更は同カテゴリ内でselectedとpickup_categoryを付け替える。印象スポットは本人訪問済みからのみ選ぶ。一人の文面は勧誘表現を使わず旅紹介にする。日時・移動時間・営業情報は推測生成しない。
+
+タイトルはshared/brochure-copy.tsの同行者別定型をcreate/save/regenerateで保存する。既存DBのtitleが従来の「同行者と、日帰り/一泊二日の旅」（一人は「自分のペースで、…」）に完全一致するときだけ、getBrochureの応答で新表現に変換する。任意の異なるタイトルは保持し、GETだけでDB・revisionを更新しない。タイトル以外の写真/コメント/選択状態を一括移行しない。ヘッダーの由来はisMemoryの訪問済みitemとスポット名から描画する。
 
 ## 復旧
 

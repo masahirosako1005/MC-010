@@ -1,5 +1,6 @@
 import type { BrochureItem, Companion, Spot, TripSettings, Visit } from '../shared/types.js';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory, type ExperienceCategory } from '../shared/experience-categories.js';
+import { brochureTitle } from '../shared/brochure-copy.js';
 export interface Survey { satisfaction: number | null; goodPoints: string | null; tags: string[]; previousCompanion: string | null }
 export interface CategoryPick { spotId: string; pickupCategory: ExperienceCategory }
 const keywords: Record<string,string[]> = {
@@ -113,7 +114,7 @@ export function makeCopy(spots: Spot[], items: Pick<BrochureItem,'spotId'|'kind'
   const style=settings.tripStyle==='slow'?'ゆっくり':'アクティブ';
   const duration=settings.duration==='day'?'日帰り':'一泊二日';
   const theme=`${style}楽しむ${duration}の旅`;
-  const title=settings.companion==='一人'?`自分のペースで、${duration}の旅`:`${settings.companion}と、${duration}の旅`;
+  const title=brochureTitle(settings);
   const memories=past.map(i=>names.get(i.spotId)).filter(Boolean).join('、');
   const next=future.map(i=>names.get(i.spotId)).filter(Boolean).join('、');
   const route=chosen.map((i,n)=>`${n+1}. ${names.get(i.spotId)??''}${i.comment?`\n   ${i.kind==='visited'?'前回の感想':'行ってみたい理由'}：${i.comment}`:''}`).join('\n');

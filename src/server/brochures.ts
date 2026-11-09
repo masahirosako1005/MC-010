@@ -4,6 +4,7 @@ import type { Brochure, BrochureItem, SavePayload, SessionData, Spot, TripSettin
 import { spotSupportsExperienceCategory, type ExperienceCategory } from '../shared/experience-categories.js';
 import { AppError } from './errors.js';
 import { candidateReason, makeCopy, selectCategoryPicks, surveyTags, type CategoryPick, type Survey } from './generator.js';
+import { displayBrochureTitle } from '../shared/brochure-copy.js';
 type DB = Pick<pg.PoolClient,'query'>;
 
 export async function getSpots(db:DB):Promise<Spot[]> {
@@ -22,7 +23,7 @@ export async function getBrochure(db:DB,userId:string):Promise<Brochure|null> {
   const r=(await db.query('SELECT * FROM brochures WHERE user_id=$1',[userId])).rows[0];
   if(!r)return null;
   const {rows}=await db.query(`SELECT i.*,p.id AS photo_id FROM brochure_items i LEFT JOIN item_photos p ON p.item_id=i.id WHERE i.brochure_id=$1 ORDER BY i.sort_order,i.id`,[r.id]);
-  return {id:r.id,revision:r.revision,companion:r.companion,duration:r.duration,tripStyle:r.trip_style,template:r.template,title:r.title,theme:r.theme,invitation:r.invitation,updatedAt:r.updated_at.toISOString(),
+  return {id:r.id,revision:r.revision,companion:r.companion,duration:r.duration,tripStyle:r.trip_style,template:r.template,title:displayBrochureTitle(r.title,{companion:r.companion,duration:r.duration}),theme:r.theme,invitation:r.invitation,updatedAt:r.updated_at.toISOString(),
     items:rows.map(i=>({id:i.id,spotId:i.spot_id,kind:i.kind,selected:i.selected,isMemory:i.is_memory,order:i.sort_order,comment:i.comment,photoUrl:i.photo_id?`/api/photos/${i.photo_id}`:null,reason:i.reason,pickupCategory:i.pickup_category??null}))};
 }
 export async function getSessionData(db:DB,userId:string):Promise<SessionData> {

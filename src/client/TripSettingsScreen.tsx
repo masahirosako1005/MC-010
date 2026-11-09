@@ -22,6 +22,12 @@ function WaveDivider({ ship = false }: { ship?: boolean }) {
   </div>;
 }
 
+function shortDescription(description: string, tags: string[]) {
+  const sentence = description.trim().match(/^[^。！？!?]+[。！？!?]?/u)?.[0] ?? '';
+  const points = Array.from(sentence || tags.slice(0, 3).join('・'));
+  return points.length > 40 ? `${points.slice(0, 40).join('')}…` : points.join('');
+}
+
 export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, onGenerate, onCancel, onLogout, notice = '', generatingView }: Props) {
   const visited = useMemo(() => {
     const byId = new Map(session.spots.map(spot => [spot.id, spot]));
@@ -32,8 +38,8 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
   const [duration, setDuration] = useState<Duration>(brochure?.duration ?? 'day');
   const [tripStyle, setTripStyle] = useState<TripStyle>(brochure?.tripStyle ?? 'slow');
   const [visitedSpotIds, setVisitedSpotIds] = useState<string[]>(() => brochure
-    ? brochure.items.filter(item => item.kind === 'visited' && item.selected).map(item => item.spotId)
-    : session.visits[0] ? [session.visits[0].spotId] : []);
+    ? brochure.items.filter(item => item.kind === 'visited' && item.isMemory).map(item => item.spotId)
+    : []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -81,10 +87,10 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
       </div>
       <WaveDivider ship />
       <form onSubmit={event => { event.preventDefault(); void submit('all'); }}>
-        <fieldset className="trip-section trip-visits">
+        <fieldset className="trip-section trip-visits" aria-describedby="trip-visit-instruction">
           <legend className="trip-ribbon"><MapPin aria-hidden="true" /><span>前回の旅の思い出</span></legend>
           <span className="trip-stamp trip-section-stamp" aria-hidden="true"><Landmark /></span>
-          <div className="trip-visit-summary"><strong>訪問済み <b>{visited.length}</b>か所</strong><span>誰かに見せたい場所を選択（複数選択）</span></div>
+          <div className="trip-visit-summary"><strong>訪問済み <b>{visited.length}</b>か所</strong><p className="trip-visit-instruction" id="trip-visit-instruction"><Check aria-hidden="true" />誰かに見せたい場所を選択<small>複数選択できます</small></p></div>
           <div className="trip-spot-list">
             {visited.map(spot => {
               const checked = visitedSpotIds.includes(spot.id);
@@ -95,9 +101,9 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
                   const next = checked ? visitedSpotIds.filter(id => id !== spot.id) : [...visitedSpotIds, spot.id];
                   setVisitedSpotIds(next);
                   if (next.length) setError('');
-                }} aria-label={spot.name} />
+                }} aria-label={spot.name} aria-describedby={`trip-spot-description-${spot.id}`} />
                 <span className="trip-spot-photo"><MapPin aria-hidden="true" /><img src={previewBySpotId[spot.id] || savedPhoto || spot.image} alt="" onError={event => { event.currentTarget.hidden = true; }} /></span>
-                <span className="trip-spot-copy"><strong>{spot.name}</strong><GiftBadge available={spot.hasGift} /><span className="trip-stamp-status"><Stamp aria-hidden="true" />{hasStamp ? 'スタンプ取得' : 'スタンプ未取得'}</span></span>
+                <span className="trip-spot-copy"><strong>{spot.name}</strong><span className="trip-spot-description" id={`trip-spot-description-${spot.id}`}>{shortDescription(spot.description, spot.themeTags)}</span><GiftBadge available={spot.hasGift} /><span className="trip-stamp-status"><Stamp aria-hidden="true" />{hasStamp ? 'スタンプ取得' : 'スタンプ未取得'}</span></span>
                 <span className="trip-checkbox" aria-hidden="true">{checked && <Check />}</span>
               </label>;
             })}
@@ -133,7 +139,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
         </fieldset>
         <WaveDivider />
         <fieldset className="trip-section">
-          <legend className="trip-ribbon"><Flag aria-hidden="true" /><span>テーマ（テンプレート指定）</span></legend>
+          <legend className="trip-ribbon"><Flag aria-hidden="true" /><span>どんな旅にしたい</span></legend>
           <div className="trip-two-options">
             <label className={`trip-large-choice trip-style-choice ${tripStyle === 'slow' ? 'is-selected' : ''}`}>
               <input type="radio" name="trip-style" value="slow" checked={tripStyle === 'slow'} onChange={() => setTripStyle('slow')} />
@@ -146,7 +152,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
           </div>
         </fieldset>
         {(error || notice) && <p ref={errorRef} tabIndex={-1} className="trip-form-error" role="alert">{error || notice}</p>}
-        <button type="submit" className="trip-create" aria-label="選んだ内容で次の旅を作る">OK<ArrowRight aria-hidden="true" /></button>
+        <button type="submit" className="trip-create">この内容で次の旅をつくる<ArrowRight aria-hidden="true" /></button>
         {brochure && <div className="trip-secondary-actions"><button type="button" onClick={onCancel}>キャンセルして戻る</button><button type="button" onClick={() => void submit('candidates')}>候補だけ作り直す</button></div>}
       </form>
       {!brochure && onLogout && <button type="button" className="trip-logout" onClick={onLogout}>ログアウト</button>}

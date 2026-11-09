@@ -422,7 +422,7 @@ function LoginScreen({ onLogin, notice }: { onLogin: (data: SessionData) => Prom
           <p className="brand-kicker">KONDO WA ANATA TO</p>
           <h1 id="login-title" className="brand-title">今度はあなたと</h1>
           <p className="tagline">旅の思い出を、次の約束に。</p>
-          <p className="login-intro">メールアドレスで前回の旅を確認し、次に誰かを誘うパンフレットを開きます。</p>
+          <p className="login-intro">前回の旅の思い出から、誰かと一緒にいく次の旅のしおりを作ります。</p>
           <form className="login-form" onSubmit={submit}>
             <label>
               <span>メールアドレス</span>
@@ -477,15 +477,15 @@ function GeneratingScreen() {
     return () => window.clearInterval(timer);
   }, []);
   const steps = [
-    ['前回の旅を確認', '訪問した場所と感想を読み込んでいます'],
+    ['前回の思い出を確認', '訪問した場所と感想を読み込んでいます'],
     ['次の候補を選定', '同行者と旅の好みに合う場所を組み合わせています'],
-    ['招待メッセージを作成', 'パンフレットを保存しています'],
+    ['しおりを仕上げる', '次の旅のしおりを保存しています'],
   ];
   return (
     <main className="generating-page paper-bg" aria-live="polite" aria-busy="true">
       <section className="open-book">
         <p className="eyebrow">今度はあなたと</p>
-        <h1>旅のパンフレットを準備しています</h1>
+        <h1>旅の思い出から、次の旅のしおりをつくっています</h1>
         <ol className="progress-steps">
           {steps.map(([title, description], index) => (
             <li key={title} className={index < step ? 'complete' : index === step ? 'active' : ''}>
@@ -830,7 +830,7 @@ export function BrochurePaper({ draft, spots, visits, survey, paperRef, pendingP
   const currentInvitation = currentInvitationText(draft, spotsById);
   return (
         <article id="brochure-top" ref={paperRef} data-testid="brochure" className={`brochure template-${draft.template}`}>
-          <BrochureHeader brochure={draft} heroImage={heroImage} />
+          <BrochureHeader brochure={draft} heroImage={heroImage} memoryNames={visitedItems.map(item => spotsById.get(item.spotId)?.name).filter((name): name is string => Boolean(name))} />
           <section className="pickup-section" aria-labelledby="pickup-title">
             <div className="section-heading pickup-heading">
               <Sparkles aria-hidden="true" />
@@ -899,18 +899,19 @@ function TemplateSelect({ value, onChange }: { value: Template; onChange: (value
   );
 }
 
-function BrochureHeader({ brochure, heroImage }: { brochure: Brochure; heroImage?: string }) {
+function BrochureHeader({ brochure, heroImage, memoryNames }: { brochure: Brochure; heroImage?: string; memoryNames: string[] }) {
   return (
     <header className="brochure-header">
       <div className="brochure-hero">
         {heroImage && <img src={heroImage} alt="" />}
         <div className="hero-copy">
-          <p>旅の思い出を、次の約束に。</p>
+          <p>前回の旅の思い出から生まれた、次の旅のしおり</p>
           <h1>{brochure.title}</h1>
           <div className="title-underline" aria-hidden="true" />
         </div>
         <div className="hero-stamp" aria-hidden="true"><Stamp /></div>
       </div>
+      {memoryNames.length > 0 && <p className="brochure-origin"><Stamp aria-hidden="true" /><span><strong>このしおりのきっかけ</strong>{memoryNames.slice(0, 2).join('・')}{memoryNames.length > 2 ? ` ほか${memoryNames.length - 2}か所` : ''}の思い出をもとにつくりました。</span></p>}
       <dl className="trip-meta">
         <div><dt><UsersRound aria-hidden="true" />旅の相手</dt><dd>{brochure.companion}</dd></div>
         <div><dt><Sparkles aria-hidden="true" />旅のテーマ</dt><dd>{brochure.theme}</dd></div>
@@ -950,7 +951,7 @@ function CategoryPickupCard(props: CategoryPickupCardProps) {
       <div className="category-ribbon"><CategoryIcon category={category} /><strong>{label}</strong></div>
       <PhotoEditor item={item} spot={spot} busy={busy} error={error} pendingPhoto={pendingPhoto} onPhoto={onPhoto} onRemove={onRemovePhoto} compact />
       <div className="category-card-copy">
-        <span className="spot-kind">{item.kind === 'visited' ? '前回訪れた場所' : '次の旅の候補'}</span>
+        <span className="spot-kind">{item.kind === 'visited' ? '前回の思い出' : '新しい体験'}</span>
         <h3><button type="button" className="spot-detail-title" aria-label={`${spot.name}の詳細を表示`} onClick={onOpen}>{spot.name}</button></h3>
         <GiftBadge available={spot.hasGift} />
         <p className="spot-description">{spot.description}</p>

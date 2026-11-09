@@ -40,6 +40,8 @@
 .trip-visit-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; margin: 2px 8px 17px; font-size: clamp(.82rem, 2.7vw, 1.12rem); font-weight: 800; }
 .trip-visit-summary > strong { border: 2px solid var(--coral); border-radius: 999px; padding: 4px 15px; color: #a82c29; background: #fffaf6; white-space: nowrap; font-size: 1.18em; }
 .trip-visit-summary b { font-size: 1.3em; color: var(--ink); }
+.trip-visit-instruction { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; flex-basis: 100%; margin: 0; padding: 12px 15px; border-left: 5px solid var(--orange); border-radius: 8px; background: var(--yellow-soft); color: var(--ink); font: 900 clamp(1rem, 3.2vw, 1.5rem)/1.6 var(--font-rounded); }
+.trip-visit-instruction > svg { width: 24px; height: 24px; flex-shrink: 0; }.trip-visit-instruction > small { flex-basis: 100%; font-size: .85rem; font-weight: 700; }
 .trip-spot-list { display: grid; gap: 12px; }
 .trip-spot { position: relative; display: grid; grid-template-columns: minmax(85px, 32%) minmax(0, 1fr) 44px; align-items: center; gap: 20px; padding: 11px 18px 11px 12px; min-height: 112px; border: 1.5px solid #a48c76; border-radius: 17px; cursor: pointer; background: #fffaf3b3; }
 .trip-spot.is-selected { border: 2px solid var(--coral); background: linear-gradient(100deg, #fff0e9, #ffdfdd); }
@@ -51,6 +53,7 @@
 .trip-spot-photo img[hidden] { display: none; }
 .trip-spot-copy { min-width: 0; display: grid; gap: 10px; justify-items: start; }
 .trip-spot-copy > strong { font: 900 clamp(1rem, 4.25vw, 1.85rem)/1.3 var(--font-rounded); overflow-wrap: anywhere; }
+.trip-spot-description { display: block; color: var(--ink-soft); font-size: clamp(.78rem, 1.8vw, .95rem); line-height: 1.7; overflow-wrap: anywhere; }
 .trip-stamp-status { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); padding: 2px 10px 2px 0; font-weight: 800; font-size: clamp(.75rem, 2.9vw, 1.15rem); border-radius: 999px; background: #ffc7ae70; }
 .trip-stamp-status svg { width: 28px; height: 28px; color: #ef6256; fill: #ff9c8f; }
 .trip-checkbox { display: grid; place-items: center; width: 44px; height: 44px; border: 3px solid #9c7d62; border-radius: 11px; background: #fffdf8; }

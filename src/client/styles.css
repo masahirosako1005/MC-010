@@ -362,6 +362,8 @@ img { display: block; max-width: 100%; }
   pointer-events: none;
 }
 .brochure-header { position: relative; padding: 5px 0 25px; }
+.brochure-origin { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0 0; padding: 12px 15px; border: 1px dashed var(--orange); border-radius: 9px; background: var(--yellow-soft); font-size: .9rem; line-height: 1.8; overflow-wrap: anywhere; }
+.brochure-origin > svg { flex-shrink: 0; width: 23px; height: 23px; margin-top: 3px; color: var(--accent-ink); }.brochure-origin strong { display: block; font-weight: 800; }.brochure-origin + .trip-meta { margin-top: 14px; }
 .brochure-header h1 {
   max-width: 950px;
   margin: 4px 0 0;

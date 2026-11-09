@@ -6,6 +6,7 @@
 |---|---|---|
 |画面|React 19 / TypeScript / Vite 8|SPAで直接編集とテンプレート切替。通常のテキスト描画を使用。|
 |API|Node.js 26 / Express 5 / Zod 4|共有型、明示的入力契約、ローカル127.0.0.1のみ。|
+|分析連携|@modelcontextprotocol/sdk 1.32.2|公式SDKのStreamable HTTP。町管理者専用キーで匿名集計を読み取り。外部AI API呼び出しなし。|
 |永続化|PostgreSQL 17 / pg|利用者分離、UNIQUE、行ロック、revision、migration。SQLite等への代替なし。|
 |画像|Multer 2 / Sharp 0.35|MIMEとmagicに加えて実デコード。再変換してmetadataを除去。|
 |CSV|csv-parse 7|BOM・引用符・改行列を扱い、取込前にキーと欠損を検証。|

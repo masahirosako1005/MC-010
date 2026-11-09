@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plus, RefreshCw, Save, Share2, X } from 'lucide-react';
+import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plug, Plus, RefreshCw, Save, Share2, X } from 'lucide-react';
 import { COMPANIONS, type User } from '../shared/types';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared/experience-categories';
 import { SPOT_IMAGES, THEME_TAGS, type AdminOverview, type AdminSpot, type DataScope, type RegistrationPage, type SpotInput, type GiftClaimPage } from '../shared/admin-types';
 import './admin.css';
 import { GiftBadge } from './SpotDetailDialog';
 import type { AdminSharePage } from '../shared/sharing-types';
+import { AdminMcp } from './AdminMcp';
 
 class AdminApiError extends Error {
   constructor(message: string, public code: string) { super(message); }
@@ -23,7 +24,7 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat('ja-JP', 
 const number = (value: number) => value.toLocaleString('ja-JP');
 const scopeLabel = { all: 'すべて', organizer: '提供データ', fixture: 'デモデータ' };
 const sourceLabel = { organizer: '提供データ', fixture: 'デモ', town: '町で登録' };
-type Tab = 'overview' | 'spots' | 'registrations' | 'claims' | 'shares';
+type Tab = 'overview' | 'spots' | 'registrations' | 'claims' | 'shares' | 'mcp';
 
 function useData<T>(url: string) {
   const [data, setData] = useState<T | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ function LoadState({ loading, error, retry }: { loading: boolean; error: string;
 export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogout: () => Promise<void>; notice: string }) {
   const [tab, setTab] = useState<Tab>('overview'), [scope, setScope] = useState<DataScope>('all'), [dirty, setDirty] = useState(false), [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（クーポン利用）', icon: Ticket }, { id: 'shares' as const, label: '共有状況', icon: Share2 }];
+  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（クーポン利用）', icon: Ticket }, { id: 'shares' as const, label: '共有状況', icon: Share2 }, { id: 'mcp' as const, label: 'MCP・分析連携', icon: Plug }];
   useEffect(() => { titleRef.current?.focus({ preventScroll: true }); }, [tab]);
   useEffect(() => {
     if (!dirty) return;
@@ -70,7 +71,7 @@ export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogou
       }}><item.icon aria-hidden="true" />{item.label}</button>)}<p>ローカルデモ専用</p></nav>
       <main id="admin-main" className="admin-main">
         <div className="admin-page-heading"><div><p className="eyebrow">町の運営・管理</p><h1 ref={titleRef} tabIndex={-1}>{tabs.find(item => item.id === tab)?.label}</h1></div>
-          {tab !== 'spots' && <label className="admin-scope">データ範囲<select value={scope} onChange={event => setScope(event.target.value as DataScope)}>{Object.entries(scopeLabel).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>}
+          {tab !== 'spots' && tab !== 'mcp' && <label className="admin-scope">データ範囲<select value={scope} onChange={event => setScope(event.target.value as DataScope)}>{Object.entries(scopeLabel).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>}
         </div>
         {notice && <p className="admin-error" role="alert">{notice}</p>}
         {tab === 'overview' && <Overview scope={scope} />}
@@ -78,6 +79,7 @@ export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogou
         {tab === 'registrations' && <Registrations key={scope} scope={scope} />}
         {tab === 'claims' && <GiftClaims key={scope} scope={scope} />}
         {tab === 'shares' && <Shares key={scope} scope={scope} />}
+        {tab === 'mcp' && <AdminMcp onBusy={setSaving} />}
       </main>
     </div>
   </div>;

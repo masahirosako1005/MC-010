@@ -98,6 +98,19 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 
 画面では「クーポンを表示する」で新APIを呼び、確認画面の「使う」だけで利用用APIを呼ぶ。コードは認証用の秘密や引換用APIトークンとしては扱わず、すべての操作はセッション本人を照合する。コードだけで利用者を指定するAPIはない。詳細GETは読み取りのみ。作成者としてプレビューした場合も、明示的なクーポン表示操作でのみ発行する。コード発行もcatalog共有lockで管理変更と直列化する。管理履歴の件数・人数は従来の履歴表だけを集計し、表示済みの未使用コードを含めない。バックアップには新表も含める。
 
+## 町管理MCP（007_admin_mcp_keys.sql）
+
+`admin_mcp_keys`: id、owner_id（users外部キー）、label（1〜60字）、token_hash（SHA-256 hex64文字、UNIQUE）、created_at / expires_at / last_used_at / revoked_at。実値は32byte乱数と固定プレフィックスを用い、DBへ保存しない。本人のユーザー行ロックで有効5件の上限を直列化する。既存データや冊子を変更しない。
+
+| メソッド・パス | 契約 |
+|---|---|
+| GET /api/admin/mcp/keys | セッション町権限。本人のキーを有効優先・作成降順で30件、endpoint / maxActiveKeys。ハッシュ・実値を返さない。 |
+| POST /api/admin/mcp/keys | セッション町権限。label、days=7/30/90（省略30）。keyメタデータとtokenを201で一度だけ返す。上限409。 |
+| DELETE /api/admin/mcp/keys/:id | セッション町権限、本人のキーだけ失効。再送しても失効日時を維持。対象なし404。 |
+| POST /mcp | 専用Bearer認証。ループバックHost、Origin検証、32KB。stateless Streamable HTTPの初期化・tools/resources/prompts。Cookieだけでは接続不可。GET/DELETEは認証後405。 |
+
+`/mcp` は通常APIのCookie/CSRF系と分離し、専用のHost/Origin制約を持つ。キーの期限・失効・所有者の現在のtown_admin権限を照合し、最終接続だけを更新する。認証失敗401、レート制限429。集計はREPEATABLE READ / READ ONLY・SQLごと8秒。キーで通常の更新APIを操作できない。6ツールと入力・応答・期間定義は [MCP契約](mcp.md)。
+
 ## 共有URL（006_brochure_shares.sql）
 
 `brochure_shares`: id、brochure_id UNIQUE、token（32byte乱数のhex64文字、UNIQUE）、active、view_count（非負整数）、created_at、last_viewed_at。`share_page_views`: share_id + request_id（UUID）の複合主キーとDB時刻のviewed_at。URLは本人へだけ返し、ログ/町側一覧へ出さない。停止・再開してもトークンと件数を維持する。バックアップには両表を含める。

@@ -232,6 +232,16 @@ URLは現在のローカルアプリ向け。インターネット/LAN公開は�
 - 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-DO9kJDg1.js`。`GET /api/health` は200 / `{"ok":true}`。
 - AGENTS.mdに従い追加のcheck、単体/API統合、E2E、audit、skill inventory、画面目視、独立レビューは未実施。追加スポットの初回生成・再生成・保存復元、同行者別の選出、再投入・競合・不正CSV時のrollbackは未検証。過去の合格範囲へ本差分を含めない。
 
+## 町管理MCP・分析連携（2026-11-09）
+
+- 公式MCP SDK 1.32.2を固定依存へ追加し、町管理者の接続キー管理・6分析ツール・指標resource・分析promptと管理画面を追加した。ChatGPTはデスクトップのローカルStreamable HTTP / Bearer接続向け。Web版のトンネル・外部公開・OAuth認証は追加していない。
+- Node.js 26.13.0を明示してpnpm 11.25.0のエントリを起動し、`pnpm run build`相当を実行。server TypeScriptとVite SPAは終了コード0、1,583 modules。配信ファイルは`index-BidVunTr.js` / `index-4YQsl2cw.css`。buildはclientの独立した型チェックを含まない。
+- 同じNode 26のビルド済みDB CLIでmigrationを実行し、終了コード0。007の`admin_mcp_keys`表を追加。元CSVや利用者の保存内容を変更していない。
+- 3001番のPID 24740をworkspace内のNode実体・ビルド済みserver entrypointで同定し、このPIDだけを停止。プロジェクトルート・既存env-fileからHiddenで再起動、PID 15172。DBや別アプリは停止していない。
+- 必要最小限のHTTP参照で `GET /api/health` は200 / `{"ok":true}`、`GET /` は200で本プロジェクトの画面を配信。待受は127.0.0.1:3001。
+- AGENTS.mdのルールに従い、追加のcheck、単体/API統合、E2E、audit、skill inventory、画面目視、独立レビューは未実施。キー発行・失効・権限境界、日付境界、集計SQLの実データ結果、MCPプロトコルの実接続、ChatGPTでの分析結果は未検証。過去の合格範囲へ今回の差分を含めない。
+- 既存のテスト・監査文書、並行して変更された利用者画面・共有編集用ファイルは本コミットへ含めない。ビルド時のワークスペースにはその並行変更も存在した。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

@@ -182,6 +182,27 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect(count.rows[0].count).toBe(0);
   });
 
+  it('初回の確定条件を反映し、空・重複・未訪問の再訪IDを拒否して既存冊子を上書きしない', async()=>{
+    const owner=await login();
+    const data=owner.body as SessionData;
+    const chosen=data.visits.at(-1)!.spotId;
+    const unvisited=CATALOG.find(spot=>!data.visits.some(visit=>visit.spotId===spot.id))!.id;
+    const settings:TripSettings={companion:'家族',duration:'overnight',tripStyle:'active',visitedSpotIds:[chosen]};
+    for(const visitedSpotIds of [[],[chosen,chosen],[unvisited]]){
+      const rejected=await api('/api/brochure/ensure',{method:'POST',cookie:owner.cookie,body:JSON.stringify({settings:{...settings,visitedSpotIds}})});
+      expect(rejected.response.status).toBe(400);
+      expect((await db.query('SELECT count(*)::int AS count FROM brochures')).rows[0].count).toBe(0);
+    }
+    const created=await api<{brochure:Brochure}>('/api/brochure/ensure',{method:'POST',cookie:owner.cookie,body:JSON.stringify({settings})});
+    expect(created.response.status).toBe(200);
+    expect(created.body.brochure).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active',template:'colorful'});
+    expect(created.body.brochure.items.filter(item=>item.selected&&item.kind==='visited').map(item=>item.spotId)).toEqual([chosen]);
+    const repeated=await api<{brochure:Brochure}>('/api/brochure/ensure',{method:'POST',cookie:owner.cookie,body:JSON.stringify({settings:{...settings,companion:'一人',duration:'day'}})});
+    expect(repeated.response.status).toBe(200);
+    expect(repeated.body.brochure).toEqual(created.body.brochure);
+    expect((await db.query('SELECT count(*)::int AS count FROM brochures')).rows[0].count).toBe(1);
+  });
+
   it('初回だけ生成し、ensure再送と再ログインで重複・上書きしない', async () => {
     const session = await login();
     const [first,second] = await Promise.all([ensure(session.cookie),ensure(session.cookie)]);

@@ -3,7 +3,8 @@ import { COMPANIONS } from '../shared/types.js';
 export const uuidSchema=z.string().uuid();
 export const loginSchema=z.object({email:z.string().trim().toLowerCase().email().max(254),code:z.string().regex(/^\d{4}$/)}).strict();
 const base={companion:z.enum(COMPANIONS),duration:z.enum(['day','overnight']),tripStyle:z.enum(['slow','active'])};
-export const settingsSchema=z.object({...base,visitedSpotIds:z.array(uuidSchema).max(100)}).strict();
+export const settingsSchema=z.object({...base,visitedSpotIds:z.array(uuidSchema).min(1).max(100)}).strict();
+export const creationSchema=z.object({settings:settingsSchema.optional()}).strict();
 export const saveSchema=z.object({
   revision:z.number().int().positive(),...base,template:z.enum(['colorful','postcard']),
   items:z.array(z.object({id:uuidSchema,selected:z.boolean(),isMemory:z.boolean(),order:z.number().int().min(0).max(999),

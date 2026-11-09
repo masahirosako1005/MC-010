@@ -30,14 +30,16 @@ export async function getSessionData(db:DB,userId:string):Promise<SessionData> {
   const survey=await getSurvey(db,userId);
   return {user:{id:user.id,displayName:user.display_name,source:user.source},spots:await getSpots(db),visits:await getVisits(db,userId),brochure:await getBrochure(db,userId),survey:survey?{satisfaction:survey.satisfaction,goodPoints:survey.goodPoints,previousCompanion:survey.previousCompanion}:null};
 }
-export async function ensureBrochure(db:DB,userId:string):Promise<Brochure> {
+export async function ensureBrochure(db:DB,userId:string,requestedSettings?:TripSettings):Promise<Brochure> {
   await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[userId]);
   const existing=await getBrochure(db,userId); if(existing)return existing;
   const spots=await getSpots(db),visits=await getVisits(db,userId),survey=await getSurvey(db,userId);
   if(!visits.length)throw new AppError(422,'history_missing','訪問履歴がないため、パンフレットを作れません。スタンプラリーの記録をご確認ください。');
-  const settings:TripSettings={companion:'友人',duration:'day',tripStyle:'slow',visitedSpotIds:[visits[0]!.spotId]};
+  const settings:TripSettings=requestedSettings??{companion:'友人',duration:'day',tripStyle:'slow',visitedSpotIds:[visits[0]!.spotId]};
+  const visited=new Set(visits.map(v=>v.spotId));
+  if(!settings.visitedSpotIds.length||new Set(settings.visitedSpotIds).size!==settings.visitedSpotIds.length||settings.visitedSpotIds.some(id=>!visited.has(id)))throw new AppError(400,'invalid_visits','再訪先は前回の訪問履歴から選んでください。');
   const route=selectRoute(spots,visits,survey,settings);
-  const visited=new Set(visits.map(v=>v.spotId)),id=randomUUID();
+  const id=randomUUID();
   const items:BrochureItem[]=spots.map(s=>({id:randomUUID(),spotId:s.id,kind:visited.has(s.id)?'visited':'candidate',selected:route.includes(s.id),isMemory:s.id===visits[0]!.spotId,order:Math.max(0,route.indexOf(s.id)),comment:'',photoUrl:null,
     reason:visited.has(s.id)?'前回のスタンプラリーで訪れた場所です。':candidateReason(s,settings.companion,settings.tripStyle,surveyTags(survey))}));
   const copy=makeCopy(spots,items,settings);

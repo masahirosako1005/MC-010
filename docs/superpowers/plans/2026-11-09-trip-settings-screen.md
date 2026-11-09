@@ -32,10 +32,10 @@
 
 **Interfaces:** `ensureBrochure(db, userId, settings?: TripSettings): Promise<Brochure>`。body `{settings?: TripSettings}`、既存の `{}` も有効。
 
-- [ ] 指定した家族/一泊二日/active/本人再訪先で生成し、既存冊子を別条件で上書きしないAPIテストを書く。
-- [ ] 空/重複/未訪問IDの拒否と冊子0件をテストし、未実装の失敗を確認する。
-- [ ] strict body、本人ID検証、行ロック下での条件適用を実装する。
-- [ ] Node26＋専用PostgreSQLでAPI/既存テストを実行して合格を確認しcommit。
+- [x] 指定した家族/一泊二日/active/本人再訪先で生成し、既存冊子を別条件で上書きしないAPIテストを書く。
+- [x] 空/重複/未訪問IDの拒否と冊子0件をテストし、未実装の失敗を確認する。
+- [x] strict body、本人ID検証、行ロック下での条件適用を実装する。
+- [x] Node26＋専用PostgreSQLでAPI/既存テストを実行して合格を確認しcommit。
 
 ### Task 2: 独立画面と状態遷移
 

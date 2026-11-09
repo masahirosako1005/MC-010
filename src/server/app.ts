@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { pool, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { ensureBrochure, getSessionData, regenerateBrochure, saveBrochure } from './brochures.js';
-import { loginSchema, regenerationSchema, saveSchema, uuidSchema } from './validation.js';
+import { creationSchema, loginSchema, regenerationSchema, saveSchema, uuidSchema } from './validation.js';
 
 declare global { namespace Express { interface Request { userId?: string } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
@@ -82,7 +82,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   });
   app.get('/api/session',route(async(req,res)=>res.json(await getSessionData(db,req.userId!))));
   app.post('/api/logout',route(async(req,res)=>{await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(req.cookies.kondo_session)]);res.clearCookie('kondo_session',{path:'/',sameSite:'strict',httpOnly:true});res.json({ok:true});}));
-  app.post('/api/brochure/ensure',route(async(req,res)=>{z.object({}).strict().parse(req.body);const brochure=await transaction(c=>ensureBrochure(c,req.userId!),db);res.json({brochure});}));
+  app.post('/api/brochure/ensure',route(async(req,res)=>{const {settings}=creationSchema.parse(req.body);const brochure=await transaction(c=>ensureBrochure(c,req.userId!,settings),db);res.json({brochure});}));
   app.put('/api/brochure',route(async(req,res)=>{const draft=saveSchema.parse(req.body);const brochure=await transaction(c=>saveBrochure(c,req.userId!,draft),db);res.json({brochure});}));
   app.post('/api/brochure/regenerate',route(async(req,res)=>{const {draft,settings,mode}=regenerationSchema.parse(req.body);const brochure=await transaction(c=>regenerateBrochure(c,req.userId!,draft,settings,mode),db);res.json({brochure});}));
   app.post('/api/items/:id/photo',limits.single('photo'),route(async(req,res)=>{

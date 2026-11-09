@@ -71,6 +71,8 @@ async function lockAndCheck(db:DB,userId:string,draft:SavePayload) {
   return current;
 }
 async function applyDraft(db:DB,current:Brochure,draft:SavePayload) {
+  // 冊子内カテゴリUNIQUEを更新途中で踏まないよう、検証後に割当を一度解除する。
+  await db.query('UPDATE brochure_items SET pickup_category=NULL WHERE brochure_id=$1',[current.id]);
   for(const item of draft.items)await db.query('UPDATE brochure_items SET selected=$1,is_memory=$2,sort_order=$3,comment=$4,pickup_category=$5 WHERE id=$6 AND brochure_id=$7',[item.selected,item.isMemory,item.order,item.comment,item.pickupCategory,item.id,current.id]);
   await db.query('UPDATE brochures SET companion=$1,duration=$2,trip_style=$3,template=$4 WHERE id=$5',[draft.companion,draft.duration,draft.tripStyle,draft.template,current.id]);
 }

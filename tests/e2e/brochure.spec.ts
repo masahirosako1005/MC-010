@@ -58,7 +58,7 @@ test('初回は条件画面で確定して生成し、次のログインでは�
     await expect(page.getByTestId('brochure')).toBeVisible();
     const created=(await (await page.request.get('/api/session')).json()).brochure;
     expect(created).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active'});
-    expect(created.items.filter((item:{kind:string;selected:boolean})=>item.kind==='visited'&&item.selected).map((item:{spotId:string})=>item.spotId)).toEqual(submitted.visitedSpotIds);
+    expect(created.items.filter((item:{isMemory:boolean})=>item.isMemory).map((item:{spotId:string})=>item.spotId)).toEqual(submitted.visitedSpotIds);
   }
   await expect(page.getByTestId('brochure')).toBeVisible();
   expect(ensureRequests).toBe(before.brochure?0:2);
@@ -82,11 +82,11 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   await expect(surveyDisclosure).not.toHaveAttribute('open','');
   await surveyDisclosure.getByText('編集確認：前回の旅全体のアンケート',{exact:true}).click();
   await expect(surveyDisclosure).toHaveAttribute('open','');
-  expect(await page.getByTestId('route-item').count()).toBeGreaterThan(0);
-  const route=page.getByTestId('route-item').first();
+  expect(await page.locator('.category-card:not(.category-empty)').count()).toBeGreaterThan(0);
+  const route=page.locator('.category-card:not(.category-empty)').first();
   const comment=`また一緒に歩きたい！${testInfo.project.name}`;
   await route.locator('textarea').fill(comment);
-  await page.getByRole('combobox',{name:'テンプレート',exact:true}).selectOption('postcard');
+  await page.getByRole('combobox',{name:'デザインを変える',exact:true}).selectOption('postcard');
   await page.route('**/api/brochure',async r=>{
     if(r.request().method()==='PUT')await r.fulfill({status:503,json:{error:{code:'test_failure',message:'保存できません。再試行してください。'}}});else await r.continue();
   });
@@ -111,8 +111,8 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   await expect(route.locator('img')).toHaveAttribute('src',photoSrc);
   await page.reload();
   await expect(page.getByTestId('brochure')).toHaveClass(/template-postcard/);
-  await expect(page.getByTestId('route-item').first().locator('textarea')).toHaveValue(comment);
-  await expect(page.getByTestId('route-item').first().locator('img')).toHaveAttribute('src',photoSrc!);
+  await expect(page.locator('.category-card:not(.category-empty)').first().locator('textarea')).toHaveValue(comment);
+  await expect(page.locator('.category-card:not(.category-empty)').first().locator('img')).toHaveAttribute('src',photoSrc!);
   await page.getByTestId('trip-settings-open').click();
   const dialog=page.getByTestId('trip-settings-screen');
   await expect(dialog).toBeVisible();
@@ -162,7 +162,7 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   await expect(page.locator('.status-strip')).toContainText('保存しました');
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
   await page.screenshot({path:testInfo.outputPath('brochure-screen.png'),fullPage:true});
-  await page.getByRole('combobox',{name:'テンプレート',exact:true}).selectOption('colorful');
+  await page.getByRole('combobox',{name:'デザインを変える',exact:true}).selectOption('colorful');
   await page.locator('button.save-button:visible').first().click();
   await expect(page.locator('.status-strip')).toContainText('保存しました');
   const colorfulDownload=page.waitForEvent('download');
@@ -198,100 +198,79 @@ test('小画面・横向き・動き軽減で横にはみ出さない',async({pa
   }
 });
 
-test('条件で選んだ思い出カルーセル・200字・候補の追加除外変更と順序を保存する',async({page},testInfo)=>{
+test('PNGモードはスマホでも全カテゴリと補足情報を欠けずに配置する',async({page},info)=>{
+  await login(page);
+  await expect(page.getByTestId('brochure')).toBeVisible();
+  const layout=await page.getByTestId('brochure').evaluate(node=>{
+    node.classList.add('png-mode');
+    try {
+      const bounds=node.getBoundingClientRect();
+      const cards=[...node.querySelectorAll('.category-card')].map(card=>card.getBoundingClientRect());
+      const support=node.querySelector('.brochure-support-grid')!;
+      return {count:cards.length,allInside:cards.every(card=>card.left>=bounds.left-1&&card.right<=bounds.right+1),
+        categoryDisplay:getComputedStyle(node.querySelector('.category-grid')!).display,
+        supportColumns:getComputedStyle(support).gridTemplateColumns.split(' ').length};
+    } finally {node.classList.remove('png-mode');}
+  });
+  expect(layout.count).toBe(5);
+  expect(layout.allInside).toBe(true);
+  expect(layout.categoryDisplay).toBe('grid');
+  expect(layout.supportColumns).toBe(info.project.name==='mobile'?1:3);
+});
+
+test('カテゴリ変更と順序・Unicode200字・写真を保存復元し、外した編集を保持する',async({page},testInfo)=>{
   await login(page,'second@example.test');
   await expect(page.getByTestId('brochure')).toBeVisible();
   await page.getByTestId('trip-settings-open').click();
   const settings=page.getByTestId('trip-settings-screen');
-  const revisit=settings.getByRole('checkbox');
-  for(const box of await revisit.all())await box.uncheck({force:true});
+  for(const box of await settings.getByRole('checkbox').all())await box.uncheck({force:true});
   await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(settings.getByRole('alert')).toContainText('1つ以上');
-  for(const box of await revisit.all())await box.check({force:true});
-  await expect(settings.getByRole('alert')).toHaveCount(0);
-  await settings.getByLabel('家族',{exact:true}).check({force:true});
-  await settings.getByLabel('日帰り',{exact:true}).check({force:true});
-  await settings.getByLabel('ゆっくり',{exact:true}).check({force:true});
-  const selectedMemoryCount=await revisit.count();
-  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-  await page.screenshot({path:testInfo.outputPath('trip-settings-full.png'),fullPage:true});
+  for(const box of await settings.getByRole('checkbox').all())await box.check({force:true});
+  await settings.getByRole('radio',{name:'家族',exact:true}).check({force:true});
+  await settings.getByRole('radio',{name:'日帰り',exact:true}).check({force:true});
+  await settings.getByRole('radio',{name:'ゆっくり',exact:true}).check({force:true});
+  const memories=await settings.getByRole('checkbox').count();
   await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(settings).not.toBeVisible();
-  await expect(page.locator('.trip-meta')).toContainText('家族');
-  await expect(page.locator('.trip-meta')).toContainText('日帰り・ゆっくり');
-  const memoryCarousel=page.getByTestId('memory-carousel');
-  const memorySlides=page.getByTestId('memory-slide');
-  expect(await memorySlides.count()).toBe(selectedMemoryCount);
-  expect(await memoryCarousel.evaluate(element=>element.scrollWidth>element.clientWidth)).toBeTruthy();
-  const memory=memorySlides.last();
-  const memoryId=await memory.getAttribute('data-memory-item-id');
+  await expect(page.getByTestId('memory-slide')).toHaveCount(memories);
+  const memory=page.getByTestId('memory-slide').last(), memoryId=await memory.getAttribute('data-memory-item-id');
   const boundary='あ'.repeat(199)+'😀';
   await memory.locator('textarea').fill(boundary+'い');
   await expect(memory.locator('textarea')).toHaveValue(boundary);
   await expect(memory.locator('.comment-editor small')).toHaveText('200/200');
-  const candidate=page.getByTestId('route-item').filter({has:page.locator('.spot-kind',{hasText:'新しい候補'})}).first();
-  const originalName=(await candidate.locator('h3').innerText()).trim();
-  const retained='外しても、写真と一緒に残したい旅のメモ。';
-  await candidate.locator('textarea').fill(retained);
-  await page.route('**/api/items/*/photo',r=>r.fulfill({status:503,json:{error:{code:'photo_test_failure',message:'写真の保存に失敗しました。'}}}));
-  await candidate.locator('input[type=file]').setInputFiles(path.resolve('public/assets/coast.png'));
-  await expect(candidate.getByRole('alert')).toContainText('写真の保存に失敗');
-  const pendingPreview=await candidate.locator('img').getAttribute('src');
-  expect(pendingPreview).toMatch(/^blob:/);
-  await candidate.getByRole('button',{name:'候補を外す',exact:true}).click();
-  await expect(page.getByTestId('route-item').getByRole('heading',{name:originalName,exact:true})).toHaveCount(0);
-  await page.getByTestId('add-spot').click();
+  const card=page.locator('.category-see');
+  const originalName=await card.locator('h3').innerText();
+  await card.locator('textarea').fill('候補を外しても保持する感想');
+  await page.route('**/api/items/*/photo',route=>route.fulfill({status:503,json:{error:{code:'photo_test',message:'写真の保存に失敗しました。'}}}));
+  await card.locator('input[type=file]').setInputFiles(path.resolve('public/assets/coast.png'));
+  await expect(card.getByRole('alert')).toContainText('写真の保存に失敗');
+  const preview=await card.locator('img').getAttribute('src');
+  await card.getByRole('button',{name:'みるを変更',exact:true}).click();
+  await page.getByRole('dialog').locator('.replace-option').first().click();
+  await card.getByRole('button',{name:'みるを変更',exact:true}).click();
   await page.getByRole('dialog').getByRole('button',{name:new RegExp(originalName)}).click();
-  const restored=page.getByTestId('route-item').filter({has:page.getByRole('heading',{name:originalName,exact:true})});
-  await expect(restored.locator('textarea')).toHaveValue(retained);
-  await expect(restored.locator('img')).toHaveAttribute('src',pendingPreview!);
-  await page.getByTestId('trip-settings-open').click();
-  await page.getByTestId('trip-settings-screen').getByRole('button',{name:'パンフレットへ戻る'}).click();
-  await expect(restored.locator('img')).toHaveAttribute('src',pendingPreview!);
-  await expect(restored.locator('textarea')).toHaveValue(retained);
-  await page.getByTestId('trip-settings-open').click();
-  await page.getByTestId('trip-settings-screen').getByRole('button',{name:'候補だけ作り直す'}).click();
-  await expect(page.getByTestId('trip-settings-screen')).not.toBeVisible();
-  if(await restored.count()===0){
-    await page.getByTestId('add-spot').click();
-    await page.getByRole('dialog').getByRole('button',{name:new RegExp(originalName)}).click();
-  }
-  await expect(restored.locator('img')).toHaveAttribute('src',pendingPreview!);
-  await expect(restored.locator('textarea')).toHaveValue(retained);
+  await expect(card.locator('textarea')).toHaveValue('候補を外しても保持する感想');
+  await expect(card.locator('img')).toHaveAttribute('src',preview!);
   await page.unroute('**/api/items/*/photo');
-  const photoResponse=page.waitForResponse(r=>r.url().includes('/photo')&&r.request().method()==='POST');
-  await restored.getByRole('button',{name:'写真の保存を再試行'}).click();
-  const uploadedPhoto=await photoResponse;
-  expect(uploadedPhoto.status()).toBe(200);
-  const photoUrl=(await uploadedPhoto.json()).photoUrl as string;
-  await expect(restored.locator('img')).toHaveAttribute('src',photoUrl);
-  const previousIndex=(await page.getByTestId('route-item').locator('h3').allTextContents()).indexOf(originalName);
-  await restored.getByRole('button',{name:`${originalName}を前へ`,exact:true}).click();
-  const orderBeforeReplace=await page.getByTestId('route-item').locator('h3').allTextContents();
-  expect(orderBeforeReplace[previousIndex-1]).toBe(originalName);
-  await restored.getByRole('button',{name:'この候補を変更',exact:true}).click();
-  const replacement=page.getByRole('dialog').locator('.replace-option').first();
-  const replacementName=await replacement.locator('strong').innerText();
-  await replacement.click();
-  const replacementItem=page.getByTestId('route-item').filter({has:page.getByRole('heading',{name:replacementName,exact:true})});
-  await replacementItem.getByRole('button',{name:'この候補を変更',exact:true}).click();
-  await page.getByRole('dialog').getByRole('button',{name:new RegExp(originalName)}).click();
-  await expect(restored.locator('textarea')).toHaveValue(retained);
-  const expectedOrder=await page.getByTestId('route-item').locator('h3').allTextContents();
+  await card.getByRole('button',{name:'写真の保存を再試行'}).click();
+  await expect(card.locator('img')).toHaveAttribute('src',/^\/api\/photos\//);
+  const photoUrl=await card.locator('img').getAttribute('src');
+  const plan=page.locator('.model-plan-list');
+  const first=await plan.locator('strong').first().innerText();
+  await plan.getByRole('button',{name:first+'を後へ',exact:true}).click();
+  const order=await plan.locator('strong').allTextContents();
   await page.locator('button.save-button:visible').first().click();
   await expect(page.locator('.status-strip')).toContainText('保存しました');
   await page.reload();
   await expect(page.getByTestId('brochure')).toBeVisible();
-  expect(await page.getByTestId('route-item').locator('h3').allTextContents()).toEqual(expectedOrder);
-  await expect(page.locator(`[data-memory-item-id="${memoryId}"] textarea`)).toHaveValue(boundary);
-  await expect(restored.locator('textarea')).toHaveValue(retained);
-  await expect(restored.locator('img')).toHaveAttribute('src',photoUrl);
-  const deleted=page.waitForResponse(r=>r.url().includes('/photo')&&r.request().method()==='DELETE');
-  await restored.getByRole('button',{name:`${originalName}の追加写真を削除`,exact:true}).click();
-  expect((await deleted).status()).toBe(200);
-  await expect(restored.locator('img')).not.toHaveAttribute('src',photoUrl);
-  await page.reload();
-  await expect(restored.locator('img')).not.toHaveAttribute('src',photoUrl);
+  expect(await plan.locator('strong').allTextContents()).toEqual(order);
+  await expect(page.locator('[data-memory-item-id="'+memoryId+'"] textarea')).toHaveValue(boundary);
+  await expect(card.locator('textarea')).toHaveValue('候補を外しても保持する感想');
+  await expect(card.locator('img')).toHaveAttribute('src',photoUrl!);
+  await page.screenshot({path:testInfo.outputPath('category-editor.png'),fullPage:true});
+  await card.getByRole('button',{name:originalName+'の追加写真を削除',exact:true}).click();
+  await expect(card.locator('img')).not.toHaveAttribute('src',photoUrl!);
 });
 
 test('未知メール・不正コード・履歴なしを案内する',async({page},testInfo)=>{

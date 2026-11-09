@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Server } from 'node:http';
@@ -6,10 +6,11 @@ import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import sharp from 'sharp';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/server/app.js';
 import { CATALOG, stableId } from '../src/server/catalog.js';
 import type { Brochure, SavePayload, SessionData, TripSettings } from '../src/shared/types.js';
+import type { AdminOverview, AdminSpot, RegistrationPage, SpotInput } from '../src/shared/admin-types.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const databaseDescribe = testDatabaseUrl ? describe : describe.skip;
@@ -71,8 +72,8 @@ databaseDescribe('PostgreSQL API integration', () => {
     duration: brochure.duration,
     tripStyle: brochure.tripStyle,
     template: brochure.template,
-    items: brochure.items.map(({ id, selected, isMemory, order, comment }) => ({
-      id, selected, isMemory, order, comment,
+    items: brochure.items.map(({ id, selected, isMemory, order, comment, pickupCategory }) => ({
+      id, selected, isMemory, order, comment, pickupCategory,
     })),
   });
 
@@ -111,6 +112,8 @@ databaseDescribe('PostgreSQL API integration', () => {
           key === 'demo' ? ['海', '散歩', '食'] : ['文化', '体験']],
       );
     }
+    await db.query(`INSERT INTO users(id,external_id,email,display_name,source,account_role)
+      VALUES($1,'fixture:town-admin','town@example.test','町管理者','fixture','town_admin')`, [stableId('fixture-user:town-admin')]);
   }
 
   beforeAll(async () => {
@@ -121,8 +124,17 @@ databaseDescribe('PostgreSQL API integration', () => {
       max: 4,
       options: `-c search_path=${schema}`,
     });
-    await db.query(await readFile(path.resolve('db/migrations/001_initial.sql'), 'utf8'));
+    for (const file of (await readdir(path.resolve('db/migrations'))).filter(file => file.endsWith('.sql')).sort()) {
+      await db.query(await readFile(path.resolve('db/migrations', file), 'utf8'));
+    }
     uploadDir = await mkdtemp(path.join(tmpdir(), 'kondo-api-'));
+  });
+
+  beforeEach(async () => {
+    await db.query(
+      'TRUNCATE item_photos, brochure_items, brochures, sessions, surveys, visits, auth_aliases, users, spots CASCADE',
+    );
+    await seedFixtures();
     server = createApp(db, uploadDir).listen(0, '127.0.0.1');
     await new Promise<void>((resolve, reject) => {
       server.once('listening', resolve);
@@ -132,15 +144,11 @@ databaseDescribe('PostgreSQL API integration', () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
   });
 
-  beforeEach(async () => {
-    await db.query(
-      'TRUNCATE item_photos, brochure_items, brochures, sessions, surveys, visits, auth_aliases, users, spots CASCADE',
-    );
-    await seedFixtures();
+  afterEach(async () => {
+    if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
   afterAll(async () => {
-    if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     if (db) await db.end();
     if (admin) {
       await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
@@ -196,7 +204,8 @@ databaseDescribe('PostgreSQL API integration', () => {
     const created=await api<{brochure:Brochure}>('/api/brochure/ensure',{method:'POST',cookie:owner.cookie,body:JSON.stringify({settings})});
     expect(created.response.status).toBe(200);
     expect(created.body.brochure).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active',template:'colorful'});
-    expect(created.body.brochure.items.filter(item=>item.selected&&item.kind==='visited').map(item=>item.spotId)).toEqual([chosen]);
+    expect(created.body.brochure.items.filter(item=>item.isMemory).map(item=>item.spotId)).toEqual([chosen]);
+    expect(created.body.brochure.items.filter(item=>item.selected&&item.kind==='visited').every(item=>item.spotId===chosen)).toBe(true);
     const repeated=await api<{brochure:Brochure}>('/api/brochure/ensure',{method:'POST',cookie:owner.cookie,body:JSON.stringify({settings:{...settings,companion:'一人',duration:'day'}})});
     expect(repeated.response.status).toBe(200);
     expect(repeated.body.brochure).toEqual(created.body.brochure);
@@ -349,5 +358,147 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect(saved.response.headers.get('x-content-type-options')).toBe('nosniff');
     expect(saved.response.headers.get('content-security-policy')).toContain("object-src 'none'");
     expect(saved.response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  const spotInput = (spot?: AdminSpot): SpotInput => ({
+    name: spot?.name ?? '検証用スポット', category: spot?.category ?? '景色',
+    description: spot?.description ?? '検証用の紹介文', image: spot?.image ?? '/assets/lake.png',
+    themeTags: spot?.themeTags ?? ['景色'], companionTags: (spot?.companionTags ?? ['友人']) as SpotInput['companionTags'], active: spot?.active ?? true,
+  });
+  async function adminSpots(cookie: string) { return (await api<{ spots: AdminSpot[] }>('/api/admin/spots', { cookie })).body.spots; }
+  async function editSpot(cookie: string, spot: AdminSpot, changes: Partial<SpotInput> = {}) {
+    return api<{ spot: AdminSpot }>(`/api/admin/spots/${spot.id}`, { method: 'PUT', cookie, body: JSON.stringify({ ...spotInput(spot), ...changes, revision: spot.revision }) });
+  }
+
+  it('町権限を出所と分離し、未認証・利用者・町側の境界と権限失効を強制する', async () => {
+    expect((await api('/api/admin/overview')).response.status).toBe(401);
+    const owner = await login();
+    await db.query("UPDATE users SET source='organizer' WHERE email='demo@example.test'");
+    expect((await api('/api/admin/spots', { cookie: owner.cookie })).response.status).toBe(403);
+    const town = await login('town@example.test');
+    expect(town.response.status).toBe(200);
+    expect(town.body).toMatchObject({ user: { role: 'town_admin' }, visits: [], spots: [], brochure: null });
+    expect((await api('/api/admin/overview', { cookie: town.cookie })).response.status).toBe(200);
+    expect((await ensure(town.cookie)).response.status).toBe(403);
+    const noCsrf = await fetch(`${baseUrl}/api/admin/spots`, { method: 'POST', headers: { Cookie: town.cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(spotInput()) });
+    expect(noCsrf.status).toBe(403);
+    await db.query("UPDATE users SET account_role='visitor' WHERE email='town@example.test'");
+    expect((await api('/api/admin/overview', { cookie: town.cookie })).response.status).toBe(403);
+  });
+
+  it('スポットを追加・編集・公開停止・再開し、revisionと監査記録を維持する', async () => {
+    const town = await login('town@example.test');
+    const created = await api<{ spot: AdminSpot }>('/api/admin/spots', { method: 'POST', cookie: town.cookie, body: JSON.stringify(spotInput()) });
+    expect(created.response.status).toBe(201);
+    expect(created.body.spot).toMatchObject({ source: 'town', active: true, revision: 1, visitCount: 0 });
+    const stopped = await editSpot(town.cookie, created.body.spot, { name: '<script>データとして表示</script>', active: false });
+    expect(stopped.response.status).toBe(200);
+    expect(stopped.body.spot).toMatchObject({ active: false, revision: 2 });
+    expect((await editSpot(town.cookie, created.body.spot)).response.status).toBe(409);
+    const reopened = await editSpot(town.cookie, stopped.body.spot, { active: true });
+    expect(reopened.body.spot.revision).toBe(3);
+    const audit = await db.query('SELECT action FROM admin_audit_logs WHERE spot_id=$1 ORDER BY created_at', [created.body.spot.id]);
+    expect(audit.rows.map(row => row.action)).toEqual(['create', 'update_stopped', 'update']);
+    for (const invalid of [{ image: '../../outside.png' }, { themeTags: [] }, { name: ' ' }, { account_role: 'town_admin' }]) {
+      expect((await api('/api/admin/spots', { method: 'POST', cookie: town.cookie, body: JSON.stringify({ ...spotInput(), ...invalid }) })).response.status).toBe(400);
+    }
+  });
+
+  it('匿名の登録一覧と集計は町側を母数から除き、出所・作成・履歴・ページを正しく絞る', async () => {
+    const owner = await login(); const brochure = (await ensure(owner.cookie)).body.brochure;
+    const draft = payload(brochure); draft.items.find(item => item.selected)!.comment = '一覧に本文を出さない';
+    expect((await api('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(draft) })).response.status).toBe(200);
+    await db.query("UPDATE users SET source='organizer' WHERE email='second@example.test'");
+    const town = await login('town@example.test');
+    const summary = await api<AdminOverview>('/api/admin/overview', { cookie: town.cookie });
+    expect(summary.response.status).toBe(200);
+    expect(summary.body).toMatchObject({ users: 3, usersWithVisits: 2, brochures: 1, eligibleBrochures: 1, activeSpots: 7, stoppedSpots: 0 });
+    expect(summary.body.categories.reduce((n, row) => n + row.count, 0)).toBe(brochure.items.filter(item => item.selected).length);
+    const list = await api<RegistrationPage>('/api/admin/registrations?status=created&history=yes&scope=fixture', { cookie: town.cookie });
+    expect(list.response.status).toBe(200); expect(list.body.total).toBe(1);
+    expect(list.body.rows[0]).toMatchObject({ userId: (owner.body as SessionData).user.id, comments: 1 });
+    expect(Object.keys(list.body.rows[0]!).sort()).toEqual(['userId', 'source', 'visits', 'brochureId', 'createdAt', 'updatedAt', 'selectedSpots', 'photos', 'comments'].sort());
+    expect((await api<RegistrationPage>('/api/admin/registrations?scope=organizer&status=missing&history=yes', { cookie: town.cookie })).body.total).toBe(1);
+    for (let i = 0; i < 30; i++) await db.query("INSERT INTO users(id,external_id,display_name,source) VALUES($1,$2,'検証用匿名利用者','fixture')", [randomUUID(), `pagination:${i}`]);
+    const first = (await api<RegistrationPage>('/api/admin/registrations?page=1', { cookie: town.cookie })).body;
+    const last = (await api<RegistrationPage>('/api/admin/registrations?page=999', { cookie: town.cookie })).body;
+    expect(first.rows).toHaveLength(25); expect(last).toMatchObject({ total: 33, page: 2, pageSize: 25 }); expect(last.rows).toHaveLength(8);
+    expect(new Set([...first.rows, ...last.rows].map(row => row.userId)).size).toBe(33);
+    expect((await api('/api/admin/registrations?page=-1', { cookie: town.cookie })).response.status).toBe(400);
+  });
+
+  it('使用中タグ削除を拒否し、公開停止でも保存済み掲載と個人編集を保持する', async () => {
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const town = await login('town@example.test'), spots = await adminSpots(town.cookie);
+    const selected = brochure.items.find(item => item.pickupCategory === 'see')!;
+    const spot = spots.find(spot => spot.id === selected.spotId)!;
+    const rejected = await editSpot(town.cookie, spot, { themeTags: ['食'] });
+    expect(rejected.response.status).toBe(409);
+    const stopped = await editSpot(town.cookie, spot, { active: false }); expect(stopped.response.status).toBe(200);
+    const draft = payload(brochure); draft.items.find(item => item.id === selected.id)!.comment = '公開停止後も残す';
+    expect((await api('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(draft) })).response.status).toBe(200);
+    const restored = (await api<SessionData>('/api/session', { cookie: owner.cookie })).body.brochure!;
+    expect(restored.items.find(item => item.id === selected.id)).toMatchObject({ selected: true, comment: '公開停止後も残す' });
+    const settings: TripSettings = { companion: '友人', duration: 'day', tripStyle: 'slow', visitedSpotIds: [(owner.body as SessionData).visits[0]!.spotId] };
+    const regenerated = await api<{ brochure: Brochure }>('/api/brochure/regenerate', { method: 'POST', cookie: owner.cookie, body: JSON.stringify({ draft: payload(restored), settings, mode: 'all' }) });
+    expect(regenerated.response.status).toBe(200);
+    expect(regenerated.body.brochure.items.find(item => item.id === selected.id)).toMatchObject({ selected: false, comment: '公開停止後も残す' });
+  });
+
+  it('新スポットを再生成時に追加し、全既存itemのコメントと写真を保持する', async () => {
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const draft = payload(brochure); draft.items.forEach(item => item.comment = '保持する検証メモ');
+    const form = new FormData(); form.append('photo', new Blob([await sharp({ create: { width: 8, height: 8, channels: 3, background: '#334455' } }).png().toBuffer()], { type: 'image/png' }), 'fixture.png');
+    const uploaded = await api<{ photoUrl: string }>(`/api/items/${brochure.items[0]!.id}/photo`, { method: 'POST', cookie: owner.cookie, body: form });
+    const town = await login('town@example.test');
+    const created = await api<{ spot: AdminSpot }>('/api/admin/spots', { method: 'POST', cookie: town.cookie, body: JSON.stringify(spotInput()) });
+    const settings: TripSettings = { companion: '友人', duration: 'day', tripStyle: 'slow', visitedSpotIds: [(owner.body as SessionData).visits[0]!.spotId] };
+    const result = await api<{ brochure: Brochure; spots: AdminSpot[] }>('/api/brochure/regenerate', { method: 'POST', cookie: owner.cookie, body: JSON.stringify({ draft, settings, mode: 'all' }) });
+    expect(result.response.status).toBe(200); expect(result.body.spots.some(spot => spot.id === created.body.spot.id)).toBe(true);
+    expect(result.body.brochure.items).toHaveLength(brochure.items.length + 1);
+    for (const item of brochure.items) expect(result.body.brochure.items.find(next => next.id === item.id)?.comment).toBe('保持する検証メモ');
+    expect(result.body.brochure.items.find(item => item.id === brochure.items[0]!.id)?.photoUrl).toBe(uploaded.body.photoUrl);
+  });
+
+  it('町の公式画像は認証・revision・画像検証を要求し、個人写真を町側へ開放しない', async () => {
+    const town = await login('town@example.test'), spot = (await adminSpots(town.cookie))[0]!;
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#889900' } }).png().toBuffer();
+    const form = () => { const data = new FormData(); data.append('photo', new Blob([png], { type: 'image/png' }), '../../fixture.png'); return data; };
+    const route = `/api/admin/spots/${spot.id}/photo`;
+    expect((await api(route, { method: 'POST', cookie: owner.cookie, body: form(), headers: { 'If-Match': String(spot.revision) } })).response.status).toBe(403);
+    expect((await api(route, { method: 'POST', cookie: town.cookie, body: form() })).response.status).toBe(400);
+    const uploaded = await api<{ image: string; revision: number }>(route, { method: 'POST', cookie: town.cookie, body: form(), headers: { 'If-Match': String(spot.revision) } });
+    expect(uploaded.response.status).toBe(200); expect(uploaded.body.revision).toBe(spot.revision + 1);
+    expect((await fetch(baseUrl + uploaded.body.image)).status).toBe(401);
+    const official = await fetch(baseUrl + uploaded.body.image, { headers: { Cookie: owner.cookie } });
+    expect(official.status).toBe(200); expect(official.headers.get('content-type')).toContain('image/webp');
+    expect((await api(route, { method: 'POST', cookie: town.cookie, body: form(), headers: { 'If-Match': String(spot.revision) } })).response.status).toBe(409);
+    const privatePhoto = await api<{ photoUrl: string }>(`/api/items/${brochure.items[0]!.id}/photo`, { method: 'POST', cookie: owner.cookie, body: form() });
+    expect((await fetch(baseUrl + privatePhoto.body.photoUrl, { headers: { Cookie: town.cookie } })).status).toBe(403);
+  });
+
+  it('個別候補変更は更新順にかかわらずカテゴリを一意に付け替えて保存できる', async () => {
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const draft = payload(brochure);
+    const current = draft.items.find(item => item.pickupCategory === 'see')!;
+    const replacement = draft.items.find(item => !item.selected && CATALOG.find(spot => spot.id === brochure.items.find(i => i.id === item.id)!.spotId)?.themeTags.includes('景色'))!;
+    expect(replacement).toBeDefined();
+    replacement.selected = true; replacement.pickupCategory = current.pickupCategory; replacement.order = current.order;
+    current.selected = false; current.pickupCategory = null; current.comment = '外しても保持';
+    draft.items = [replacement, ...draft.items.filter(item => item.id !== replacement.id)];
+    const saved = await api<{ brochure: Brochure }>('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(draft) });
+    expect(saved.response.status).toBe(200);
+    expect(saved.body.brochure.items.find(item => item.id === current.id)).toMatchObject({ selected: false, comment: '外しても保持', pickupCategory: null });
+  });
+
+  it('新規スポットの応答を受け取れなくても同じ操作IDの再送で重複登録しない', async () => {
+    const town = await login('town@example.test'), requestId = randomUUID();
+    const create = () => api<{ spot: AdminSpot }>('/api/admin/spots', { method: 'POST', cookie: town.cookie, body: JSON.stringify({ ...spotInput(), requestId }) });
+    const [first, retry] = await Promise.all([create(), create()]);
+    expect(first.response.status).toBe(201); expect(retry.response.status).toBe(201);
+    expect(first.body.spot.id).toBe(retry.body.spot.id);
+    expect((await adminSpots(town.cookie)).filter(spot => spot.id === requestId)).toHaveLength(1);
+    expect((await db.query('SELECT count(*)::int AS count FROM admin_audit_logs WHERE spot_id=$1', [requestId])).rows[0].count).toBe(1);
   });
 });

@@ -62,9 +62,11 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 | GET /api/admin/overview?scope=all | scope: all/organizer/fixture、匿名集計。公開スポット件数は常に全件。 |
 | GET /api/admin/registrations | scope、status=all/created/missing、history=all/yes/no、page=1以上。25件/ページ。件数と一覧は同一read-only snapshot。 |
 | GET /api/admin/spots | 全スポットと訪問件数・訪問人数・選択中掲載冊数。 |
-| POST /api/admin/spots | name/category/description/themeTags/companionTags/image/active。画像は同梱画像から選択、登録後に写真追加可。 |
+| POST /api/admin/spots | name/category/description/themeTags/companionTags/image/activeと任意requestId（UUID）。同一操作者・操作IDの再送は既存スポットを返しreplayed=true、新規はfalse。画像は同梱画像から選択、登録後に写真追加可。 |
 | PUT /api/admin/spots/:id | 上記とrevision。競合409、使用中pickup_categoryのタグ不適合409。削除APIなし。 |
 | POST /api/admin/spots/:id/photo | multipart photo、If-Matchにrevision整数。画像正規化・行ロック・参照交換・監査ログ。 |
 | GET /api/spot-photos/:id | ログイン済みの利用者・町アカウント向け公式画像。利用者個人写真の認可は変更しない。 |
 
 管理APIは認証401／町権限なし403。利用者専用APIへ町アカウントからアクセスした場合も403。既存Origin/X-Requested-With制約を維持。POST ensure/regenerateはbrochureに加えspotsも返す。catalog変更の排他advisory lockと冊子更新の共有advisory lockでタグ変更と生成・保存を直列化する。新規スポットitemの追加は再生成transaction内のみで行い、GETや再ログインで既存編集を変更しない。
+
+保存時のカテゴリ付替は、入力全体の検証後、同一transaction内でpickup_categoryを一度NULLにしてから再割当する。配列中の新旧itemの順番によってUNIQUE制約が途中衝突しない。再送された新規登録は監査create行も重複させず、他操作者の操作ID流用は409にする。

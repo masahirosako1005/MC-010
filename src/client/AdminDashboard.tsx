@@ -5,13 +5,16 @@ import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared
 import { SPOT_IMAGES, THEME_TAGS, type AdminOverview, type AdminSpot, type DataScope, type RegistrationPage, type SpotInput } from '../shared/admin-types';
 import './admin.css';
 
+class AdminApiError extends Error {
+  constructor(message: string, public code: string) { super(message); }
+}
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(url, { credentials: 'same-origin', ...init, headers: {
     ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(init.method ? { 'X-Requested-With': 'kondo' } : {}), ...init.headers,
   } });
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(body?.error?.message ?? '読み込みに失敗しました。接続を確認して再試行してください。');
+  if (!response.ok) throw new AdminApiError(body?.error?.message ?? '読み込みに失敗しました。接続を確認して再試行してください。', body?.error?.code ?? 'unknown');
   return body as T;
 }
 const date = (value: string | null) => value ? new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
@@ -160,6 +163,8 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
   const [saved, setSaved] = useState(spot), [form, setForm] = useState<SpotInput>(() => spot ? inputFrom(spot) : { ...blankSpot });
   const [photo, setPhoto] = useState<File | null>(null), [preview, setPreview] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
+  const [requestId] = useState(() => crypto.randomUUID());
+  const [conflict, setConflict] = useState(false), [latest, setLatest] = useState<AdminSpot | null>(null);
   const heading = useRef<HTMLHeadingElement>(null), errorRef = useRef<HTMLParagraphElement>(null), fileRef = useRef<HTMLInputElement>(null);
   const metadataDirty = JSON.stringify(form) !== JSON.stringify(saved ? inputFrom(saved) : blankSpot);
   const dirty = metadataDirty || photo !== null;
@@ -170,6 +175,26 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
   useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
   useEffect(() => { if (!photo) { setPreview(''); return; } const url = URL.createObjectURL(photo); setPreview(url); return () => URL.revokeObjectURL(url); }, [photo]);
   const update = <K extends keyof SpotInput>(key: K, value: SpotInput[K]) => { setForm(current => ({ ...current, [key]: value })); setMessage(''); };
+  async function loadLatest() {
+    setBusy(true); onBusy(true);
+    try {
+      const response = await request<{ spots: AdminSpot[] }>('/api/admin/spots');
+      const current = response.spots.find(item => item.id === (saved?.id ?? requestId));
+      if (!current) throw new Error('登録済みのスポットが見つかりません。一覧から確認してください。');
+      setLatest(current);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : '最新情報を読み込めませんでした。'); }
+    finally { setBusy(false); onBusy(false); }
+  }
+  function reconcileLatest() {
+    if (!latest) return;
+    const previous = saved ? inputFrom(saved) : blankSpot, remote = inputFrom(latest);
+    // 変更していない欄は他画面の更新を採用し、自分の入力とFileは保持する。
+    setForm(current => Object.fromEntries(Object.entries(current).map(([key, value]) => [key,
+      JSON.stringify(value) === JSON.stringify(previous[key as keyof SpotInput]) ? remote[key as keyof SpotInput] : value,
+    ])) as unknown as SpotInput);
+    setSaved(latest); setLatest(null); setConflict(false); setError('');
+    setMessage('最新の保存内容を取り込みました。入力と写真を確認して保存してください。');
+  }
   async function submit(event: FormEvent) {
     event.preventDefault(); if (busy) return;
     setBusy(true); onBusy(true); setError(''); setMessage('');
@@ -177,7 +202,11 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
     let metadataSaved = !metadataDirty && Boolean(saved);
     try {
       if (!current || metadataDirty) {
-        const result = await request<{ spot: AdminSpot }>(current ? `/api/admin/spots/${current.id}` : '/api/admin/spots', { method: current ? 'PUT' : 'POST', body: JSON.stringify({ ...form, ...(current ? { revision: current.revision } : {}) }) });
+        const result = await request<{ spot: AdminSpot; replayed?: boolean }>(current ? `/api/admin/spots/${current.id}` : '/api/admin/spots', { method: current ? 'PUT' : 'POST', body: JSON.stringify({ ...form, ...(current ? { revision: current.revision } : { requestId }) }) });
+        if (result.replayed) {
+          setLatest(result.spot); setConflict(true); onSaved();
+          throw new Error('前回の登録は完了しています。保存済みの内容を確認し、入力と写真を保持して編集を続けてください。');
+        }
         current = result.spot; metadataSaved = true; setSaved(current); setForm(inputFrom(current)); onSaved();
       }
       if (photo && current) {
@@ -188,7 +217,10 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
         onSaved();
       }
       setMessage('スポットを保存しました。'); onDirty(false);
-    } catch (reason) { setError(`${metadataSaved && photo ? 'スポット情報は保存済みです。写真はこの画面に残っています。' : ''}${reason instanceof Error ? reason.message : '保存できませんでした。入力を確認して再試行してください。'}`); }
+    } catch (reason) {
+      if (reason instanceof AdminApiError && reason.code === 'revision_conflict') { setConflict(true); setLatest(null); }
+      setError(`${metadataSaved && photo ? 'スポット情報は保存済みです。写真はこの画面に残っています。' : ''}${reason instanceof Error ? reason.message : '保存できませんでした。入力を確認して再試行してください。'}`);
+    }
     finally { setBusy(false); onBusy(false); }
   }
   return <section className="admin-panel admin-editor" aria-labelledby="spot-editor-heading">
@@ -208,6 +240,9 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
         <label className="admin-publish"><input type="checkbox" checked={form.active} onChange={event => update('active', event.target.checked)} /><span>公開する<small>オフにすると新規・再生成の候補から除外します。既存の掲載は残ります。</small></span></label>
       </fieldset>
       {error && <p className="admin-error" tabIndex={-1} ref={errorRef} role="alert">{error}</p>}
+      {conflict && <section className="admin-conflict" aria-label="保存の競合を解消"><p>入力と選択した写真はこの画面に残っています。最新の保存内容と照合してから再試行できます。</p><button className="button" type="button" disabled={busy} onClick={() => void loadLatest()}>最新の保存内容を確認</button>
+        {latest && <><dl><div><dt>保存済み名称</dt><dd>{latest.name}</dd></div><div><dt>保存済み紹介文</dt><dd>{latest.description}</dd></div><div><dt>保存済みタグ</dt><dd>{latest.themeTags.join('・')}</dd></div><div><dt>同行者</dt><dd>{latest.companionTags.join('・')}</dd></div><div><dt>公開状態</dt><dd>{latest.active ? '公開中' : '公開停止'}</dd></div><div><dt>最終更新</dt><dd>{date(latest.updatedAt)}</dd></div></dl><button className="button button-outline" type="button" onClick={reconcileLatest}>入力と写真を保持して編集を続ける</button></>}
+      </section>}
       <div className="admin-editor-actions"><button className="button button-primary" type="submit" disabled={busy || (!dirty && Boolean(saved))}>{busy ? <LoaderCircle className="spin" aria-hidden="true" /> : <Save aria-hidden="true" />}{busy ? '保存中' : '保存する'}</button><button className="button" type="button" disabled={busy} onClick={onClose}>閉じる</button><span role="status" aria-live="polite">{message ? <><Check aria-hidden="true" />{message}</> : dirty ? '未保存の変更があります' : saved ? '保存済み' : '新規登録'}</span></div>
     </form>
   </section>;

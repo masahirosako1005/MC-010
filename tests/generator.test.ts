@@ -165,6 +165,7 @@ describe('makeCopy', () => {
 describe('ensureBrochure', () => {
   it('利用者に訪問履歴がなければパンフレットを挿入しない', async () => {
     const query = vi.fn(async (sql: string) => {
+      if (sql.includes('pg_advisory_xact_lock_shared')) return { rows: [] };
       if (sql.includes('FROM brochures')) return { rows: [] };
       if (sql.includes('FROM spots')) return { rows: [] };
       if (sql.includes('FROM visits')) return { rows: [] };

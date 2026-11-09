@@ -921,3 +921,11 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .brochure-support-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .brochure-support-grid .invitation-panel { grid-column: auto; }
 }
+
+/* 端末内PNGではスワイプ領域を縦に展開し、全カテゴリを省略しない。 */
+@media screen and (max-width: 820px) {
+  .png-mode .category-grid { display: grid; grid-template-columns: minmax(0, 1fr); overflow: visible; margin-inline: 0; padding: 0; scroll-snap-type: none; }
+  .png-mode .category-card { flex: initial; min-width: 0; width: auto; scroll-snap-align: none; }
+  .png-mode .brochure-support-grid { grid-template-columns: minmax(0, 1fr); }
+  .png-mode .brochure-support-grid .invitation-panel { grid-column: auto; }
+}

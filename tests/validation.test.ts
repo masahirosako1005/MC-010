@@ -16,7 +16,7 @@ const validSave = (comment = '') => ({
   duration: 'day' as const,
   tripStyle: 'slow' as const,
   template: 'colorful' as const,
-  items: [{ id: itemId, selected: true, isMemory: false, order: 0, comment }],
+  items: [{ id: itemId, selected: true, isMemory: false, order: 0, comment, pickupCategory: 'see' }],
 });
 
 describe('loginSchema', () => {

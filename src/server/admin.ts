@@ -22,8 +22,8 @@ const spotFields = {
   companionTags: z.array(z.enum(COMPANIONS)).min(1).max(COMPANIONS.length).refine(a => new Set(a).size === a.length),
   image: z.string().refine(value => SPOT_IMAGES.some(image => image.value === value) || /^\/api\/spot-photos\/[a-f0-9-]{36}$/.test(value)),
 };
-const createSchema = z.object(spotFields).strict();
-const updateSchema = createSchema.extend({ revision: z.number().int().positive() }).strict();
+const createSchema = z.object({ ...spotFields, requestId: uuidSchema.optional() }).strict();
+const updateSchema = z.object({ ...spotFields, revision: z.number().int().positive() }).strict();
 const parseSpot = <T>(schema: z.ZodType<T>, body: unknown): T => {
   const result = schema.safeParse(body);
   if (!result.success) throw new AppError(400, 'invalid_spot', '名称・分類・説明・画像・タグ・同行者を確認してください。');
@@ -110,14 +110,20 @@ export function createAdminRouter(db: pg.Pool) {
   router.post('/spots', async (req, res) => {
     const input = parseSpot(createSchema, req.body);
     if (!SPOT_IMAGES.some(image => image.value === input.image)) throw new AppError(400, 'invalid_image', '新規登録時は同梱画像を選び、登録後に写真を追加してください。');
-    const id = randomUUID();
-    await transaction(async client => {
+    const id = input.requestId ?? randomUUID();
+    const replayed = await transaction(async client => {
       await client.query('SELECT pg_advisory_xact_lock(6821452)');
+      if ((await client.query('SELECT 1 FROM spots WHERE id=$1', [id])).rowCount) {
+        const createdByActor = await client.query("SELECT 1 FROM admin_audit_logs WHERE spot_id=$1 AND actor_id=$2 AND action='create'", [id, req.userId]);
+        if (!createdByActor.rowCount) throw new AppError(409, 'operation_conflict', '登録操作が競合しました。一覧から登録状況を確認してください。');
+        return true;
+      }
       await client.query(`INSERT INTO spots(id,external_id,name,category,description,companion_tags,theme_tags,image,source,active)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,'town',$9)`, [id, `town:${id}`, input.name, input.category, input.description, input.companionTags, input.themeTags, input.image, input.active]);
       await auditSpot(client, req.userId!, id, 'create');
+      return false;
     }, db);
-    res.status(201).json({ spot: (await getAdminSpots(db)).find(s => s.id === id) });
+    res.status(201).json({ spot: (await getAdminSpots(db)).find(s => s.id === id), replayed });
   });
   router.put('/spots/:id', async (req, res) => {
     const id = uuidSchema.parse(req.params.id), input = parseSpot(updateSchema, req.body);

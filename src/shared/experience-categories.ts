@@ -24,6 +24,14 @@ export function spotSupportsExperienceCategory(
 
 export function assignPickupCategories(brochure: { items: BrochureItem[] }, spots: Spot[]): BrochureItem[] {
   const spotsById = new Map(spots.map((spot) => [spot.id, spot]));
+  const selected = brochure.items.filter(item => item.selected);
+  if (selected.length && selected.every(item => {
+    const spot = spotsById.get(item.spotId);
+    return Boolean(item.pickupCategory && spot && spotSupportsExperienceCategory(spot, item.pickupCategory));
+  }) && new Set(selected.map(item => item.pickupCategory)).size === selected.length) {
+    // 新方式の保存済み冊子は、意図的な空カテゴリや順番をログイン時に変更しない。
+    return brochure.items.map(item => ({ ...item }));
+  }
   const usedCategories = new Set<ExperienceCategory>();
   const usedItems = new Set<string>();
   const assigned = new Map<string, ExperienceCategory>();

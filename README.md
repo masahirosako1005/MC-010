@@ -159,6 +159,8 @@ E2Eはデモ利用者の保存内容を変更します。自分のデモ編集�
 
 登録状況は匿名IDと件数・日時だけを表示し、利用者のメール・氏名・写真実体・コメント本文は表示しません。「共有状況」は保留で、記録も集計も追加していません。固定コードは町側もローカルデモ専用です。
 
+町側のテスト・レビュー後の修正では、専用DBの単体・API統合57件、PC/スマホE2E16件が合格しました。写真競合後の復旧、登録再送の冪等性、カテゴリ保存・復元、スマホPNGの欠けを修正済みです。[町側の最終検証結果と範囲](docs/town-admin-verification.md)を参照してください。
+
 ## 資料
 
 [仕様](docs/spec.md) / [デザイン](docs/design.md) / [DB・API](docs/database.md) / [取り込み](docs/data-import.md) / [技術](docs/technology.md) / [画像素材](docs/assets.md) / [指定スキル](docs/skills.md) / [セキュリティ](docs/security.md) / [検証](docs/verification.md) / [評価対応](docs/evaluation.md)

@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import sharp from 'sharp';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import type pg from 'pg';
@@ -16,6 +17,7 @@ declare global { namespace Express { interface Request { userId?: string } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
 const route=(fn:(req:Request,res:Response)=>Promise<unknown>)=>(req:Request,res:Response,next:NextFunction)=>{void fn(req,res).catch(next);};
 const limits=multer({storage:multer.memoryStorage(),limits:{fileSize:5*1024*1024,files:1,fields:0,parts:2}});
+const builtWebRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../web');
 export function imageMagic(buffer:Buffer):string|null {
   if(buffer.length>=8&&buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'image/png';
   if(buffer.length>=3&&buffer[0]===255&&buffer[1]===216&&buffer[2]===255)return 'image/jpeg';
@@ -123,8 +125,8 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
     res.type('image/webp').send(bytes);
   }));
   app.use('/api',(_req,_res,next)=>next(new AppError(404,'not_found','指定された操作はありません。')));
-  app.use(express.static(path.resolve('dist/web'),{index:false,dotfiles:'deny'}));
-  app.get(/.*/,(_req,res,next)=>{res.sendFile(path.resolve('dist/web/index.html'),e=>{if(e)next(new AppError(503,'web_not_built','画面をビルドするか、開発サーバーを起動してください。'));});});
+  app.use(express.static(builtWebRoot,{index:'index.html',dotfiles:'deny'}));
+  app.get(/.*/,(_req,res,next)=>{res.sendFile(path.join(builtWebRoot,'index.html'),e=>{if(e)next(new AppError(503,'web_not_built','画面をビルドするか、開発サーバーを起動してください。'));});});
   app.use((error:unknown,_req:Request,res:Response,_next:NextFunction)=>{
     if(res.headersSent)return;
     if(error instanceof AppError)return res.status(error.status).json({error:{code:error.code,message:error.message}});

@@ -112,6 +112,32 @@ function formatError(error: unknown) {
   return '通信できませんでした。入力はこの画面に残っています。接続を確認して再試行してください。';
 }
 
+function useDialogFocus(onClose: () => void, canClose = true) {
+  const ref = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  const canCloseRef = useRef(canClose);
+  closeRef.current = onClose;
+  canCloseRef.current = canClose;
+  useEffect(() => {
+    const dialog = ref.current;
+    const previous = document.activeElement as HTMLElement | null;
+    if (!dialog) return;
+    const controls = () => Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')).filter(el => el.offsetParent !== null);
+    (controls()[0] ?? dialog).focus();
+    function keydown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && canCloseRef.current) { event.preventDefault(); closeRef.current(); }
+      if (event.key !== 'Tab') return;
+      const nodes = controls(), first = nodes[0], last = nodes[nodes.length - 1];
+      if (!first || !last) { event.preventDefault(); dialog!.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || !dialog!.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !dialog!.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    }
+    document.addEventListener('keydown', keydown);
+    return () => { document.removeEventListener('keydown', keydown); if (previous?.isConnected) previous.focus(); };
+  }, []);
+  return ref;
+}
+
 function currentInvitationText(brochure: Brochure, spotsById: globalThis.Map<string, Spot>) {
   const selected = brochure.items.filter((item) => item.selected).sort((a, b) => a.order - b.order);
   const names = selected.map((item) => spotsById.get(item.spotId)?.name).filter(Boolean) as string[];
@@ -125,7 +151,8 @@ function currentInvitationText(brochure: Brochure, spotsById: globalThis.Map<str
   if (brochure.companion === '一人') {
     return `${memoryLead}次は${destination}をめぐる、${duration}で${pace}旅を計画しています。`;
   }
-  return `${memoryLead}今度は${brochure.companion}と一緒に、${destination}をめぐりませんか？${duration}で${pace}旅にしたいです。`;
+  const who = brochure.companion === '友人' ? '一緒に' : brochure.companion === 'パートナー' ? '二人で' : brochure.companion === '家族' ? '家族で' : `${brochure.companion}と一緒に`;
+  return `${memoryName ? `前回行った${memoryName}、よかったよ。` : '前回の旅、よかったよ。'}次は${who}${destination}をめぐらない？${duration}で${pace}旅にしよう。`;
 }
 
 function formatVisitDate(value: string) {
@@ -249,7 +276,8 @@ export function App() {
   const logout = useCallback(async () => {
     if (saveState === 'saving') return;
     if ((saveState === 'dirty' || saveState === 'error') && !window.confirm('未保存の変更があります。保存せずログアウトしますか？')) return;
-    try { await api<{ ok: true }>('/api/logout', { method: 'POST', body: '{}' }); } catch { /* local logout */ }
+    try { await api<{ ok: true }>('/api/logout', { method: 'POST', body: '{}' }); }
+    catch (error) { if (!(error instanceof ApiError && error.status === 401)) { setStatusMessage(`ログアウトを完了できませんでした。${formatError(error)}`); return; } }
     setSession(null);
     setDraft(null);
     setSaveState('clean');
@@ -355,7 +383,7 @@ function LoginScreen({ onLogin, notice }: { onLogin: (data: SessionData) => Prom
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="demo@example.jp"
+                placeholder="demo@example.test"
               />
             </label>
             <label>
@@ -588,12 +616,17 @@ function BrochureEditor(props: EditorProps) {
 
   async function exportPng() {
     if (!brochureRef.current) return;
+    const node = brochureRef.current;
     setSharing('png');
     onStatus('パンフレット画像を作成しています。');
     try {
-      const dataUrl = await toPng(brochureRef.current, {
+      node.classList.add('png-mode');
+      await document.fonts.ready;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const pixelRatio = Math.min(2, window.devicePixelRatio || 1, Math.sqrt(16_000_000 / (node.scrollWidth * node.scrollHeight)));
+      const dataUrl = await toPng(node, {
         cacheBust: true,
-        pixelRatio: Math.min(2, window.devicePixelRatio || 1),
+        pixelRatio,
         backgroundColor: draft.template === 'postcard' ? '#fffaf0' : '#fff7e9',
         filter: (node) => !(node instanceof HTMLElement && node.dataset.exportExclude === 'true'),
       });
@@ -604,7 +637,7 @@ function BrochureEditor(props: EditorProps) {
       onStatus('PNG画像を端末へ保存しました。外部には送信していません。');
     } catch {
       onStatus('PNG画像を作れませんでした。写真の読み込みを確認して、もう一度お試しください。');
-    } finally { setSharing(null); }
+    } finally { node.classList.remove('png-mode'); setSharing(null); }
   }
 
   const saveLabel = saveState === 'saving' ? '保存中' : saveState === 'error' ? '保存を再試行' : saveState === 'dirty' ? '変更を保存' : '保存済み';
@@ -834,7 +867,7 @@ function MemoryPanel(props: MemoryProps) {
           )}
           <CommentEditor label="前回の感想" value={item.comment} placeholder="印象に残ったことを自由に書けます" onChange={(comment) => onComment(item.id, comment)} />
           {hasSurvey && survey && (
-            <aside className="survey-note" aria-label="前回の旅全体のアンケート">
+            <aside className="survey-note" aria-label="前回の旅全体のアンケート" data-export-exclude="true">
               <strong>前回の旅全体のアンケート</strong>
               <dl>
                 {survey.satisfaction !== null && <div><dt>総合満足度</dt><dd>{survey.satisfaction}/5</dd></div>}
@@ -906,8 +939,13 @@ function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = fal
   item: BrochureItem; spot: Spot; busy: boolean; error?: string; onPhoto: (file: File) => void; onRemove: () => void; compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingFile = useRef<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const src = item.photoUrl || spot.image;
+  const baseSrc = item.photoUrl || spot.image;
+  const src = preview || baseSrc;
+  useEffect(() => { setPreview(null); pendingFile.current = null; }, [baseSrc]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
   useEffect(() => setFailed(false), [src]);
   return (
     <div className={`photo-editor ${compact ? 'compact' : ''}`}>
@@ -922,7 +960,12 @@ function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = fal
           accept="image/jpeg,image/png,image/webp"
           onChange={(event) => {
             const file = event.target.files?.[0];
-            if (file) onPhoto(file);
+            if (file) {
+              const valid = ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 5 * 1024 * 1024;
+              pendingFile.current = valid ? file : null;
+              setPreview(valid ? URL.createObjectURL(file) : null);
+              onPhoto(file);
+            }
             event.target.value = '';
           }}
         />
@@ -932,15 +975,17 @@ function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = fal
         </button>
         {item.photoUrl && <button className="icon-button danger" disabled={busy} aria-label={`${spot.name}の追加写真を削除`} title="追加写真を削除" onClick={onRemove}><Trash2 aria-hidden="true" /></button>}
       </div>
-      {error && <p className="photo-error" role="alert">{error}</p>}
+      {error && <div data-export-exclude="true"><p className="photo-error" role="alert">{error}</p>{pendingFile.current && <button className="button photo-retry" disabled={busy} onClick={() => { if (pendingFile.current) onPhoto(pendingFile.current); }}>写真の保存を再試行</button>}</div>}
     </div>
   );
 }
 
 function CommentEditor({ label, value, placeholder, onChange }: { label: string; value: string; placeholder: string; onChange: (value: string) => void }) {
   const count = codePointLength(value);
+  const printedText = value || (label === '行ってみたい理由' ? placeholder : '');
   return (
-    <label className="comment-editor">
+    <div className="comment-block">
+    <label className="comment-editor" data-export-exclude="true">
       <span className="comment-label">{label}</span>
       <textarea
         rows={3}
@@ -950,6 +995,8 @@ function CommentEditor({ label, value, placeholder, onChange }: { label: string;
       />
       <small className={count >= 190 ? 'near-limit' : ''}>{count}/200</small>
     </label>
+    {printedText && <div className="comment-static"><span className="comment-label">{label}</span><p>{printedText}</p></div>}
+    </div>
   );
 }
 
@@ -978,6 +1025,7 @@ function TripSettingsDialog({ session, draft, onClose, onRegenerated }: {
   const [visitedSpotIds, setVisitedSpotIds] = useState<string[]>(initialVisited);
   const [busy, setBusy] = useState<'all' | 'candidates' | null>(null);
   const [error, setError] = useState('');
+  const dialogRef = useDialogFocus(onClose, !busy);
   const visitedSpots = Array.from(new globalThis.Map(
     session.visits
       .map((visit) => session.spots.find((spot) => spot.id === visit.spotId))
@@ -1006,12 +1054,12 @@ function TripSettingsDialog({ session, draft, onClose, onRegenerated }: {
 
   return (
     <div className="dialog-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) onClose(); }}>
-      <section className="dialog settings-dialog" data-testid="trip-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <section ref={dialogRef} tabIndex={-1} className="dialog settings-dialog" data-testid="trip-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <button className="icon-button dialog-close" aria-label="旅の条件を閉じる" disabled={Boolean(busy)} onClick={onClose}><X aria-hidden="true" /></button>
         <p className="eyebrow">旅の条件</p>
         <h2 id="settings-title">次はどんな旅にする？</h2>
         <p className="dialog-intro">選んだ条件でテーマ・候補・招待文を作り直します。写真とコメントは可能な限り引き継ぎます。</p>
-        <fieldset>
+        <fieldset disabled={Boolean(busy)}>
           <legend><MapPin aria-hidden="true" />もう一度訪れたい場所</legend>
           <div className="choice-grid spot-choices">
             {visitedSpots.map((spot) => {
@@ -1027,21 +1075,21 @@ function TripSettingsDialog({ session, draft, onClose, onRegenerated }: {
             })}
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset disabled={Boolean(busy)}>
           <legend><UsersRound aria-hidden="true" />次は誰と行きたい？</legend>
           <div className="choice-grid companion-choices">
             {COMPANIONS.map((value) => <RadioChoice key={value} name="companion" value={value} current={companion} onChange={() => setCompanion(value)}>{value}</RadioChoice>)}
           </div>
         </fieldset>
         <div className="settings-pair">
-          <fieldset>
+          <fieldset disabled={Boolean(busy)}>
             <legend><MapIcon aria-hidden="true" />日程</legend>
             <div className="segmented">
               <RadioChoice name="duration" value="day" current={duration} onChange={() => setDuration('day')}>日帰り</RadioChoice>
               <RadioChoice name="duration" value="overnight" current={duration} onChange={() => setDuration('overnight')}>一泊二日</RadioChoice>
             </div>
           </fieldset>
-          <fieldset>
+          <fieldset disabled={Boolean(busy)}>
             <legend><Sparkles aria-hidden="true" />過ごし方</legend>
             <div className="segmented">
               <RadioChoice name="style" value="slow" current={tripStyle} onChange={() => setTripStyle('slow')}>ゆっくり</RadioChoice>
@@ -1076,10 +1124,11 @@ function SpotReplaceDialog({ mode, itemId, brochure, spotsById, onClose, onChoos
   mode: 'add' | 'replace'; itemId?: string; brochure: Brochure; spotsById: Map<string, Spot>; onClose: () => void; onChoose: (id: string) => void;
 }) {
   const current = itemId ? brochure.items.find((item) => item.id === itemId) : undefined;
+  const dialogRef = useDialogFocus(onClose);
   const choices = brochure.items.filter((item) => !item.selected && item.kind === 'candidate');
   return (
     <div className="dialog-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
-      <section className="dialog replace-dialog" role="dialog" aria-modal="true" aria-labelledby="replace-title">
+      <section ref={dialogRef} tabIndex={-1} className="dialog replace-dialog" role="dialog" aria-modal="true" aria-labelledby="replace-title">
         <button className="icon-button dialog-close" aria-label={mode === 'add' ? '候補追加を閉じる' : '候補変更を閉じる'} onClick={onClose}><X aria-hidden="true" /></button>
         <p className="eyebrow">SPOT CHANGE</p>
         <h2 id="replace-title">{mode === 'add' ? '候補を追加' : 'この候補を変更'}</h2>

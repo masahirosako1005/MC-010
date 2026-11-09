@@ -9,8 +9,11 @@ uploads/
 test-results/
 playwright-report/
 coverage/
+__pycache__/
 *.log
 Password*
 *.csv
 !data/templates/*.csv
+!.agents/skills/**/*.csv
+
 

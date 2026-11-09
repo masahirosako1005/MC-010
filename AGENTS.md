@@ -20,3 +20,7 @@ UI担当: 合意したAPI契約で画面・CSSのみ。
 データ担当: 元CSVの読み取り分析。必要に応じて取り込みコードの限定担当。
 QA担当: 独立したセキュリティレビューと検証。修正はメインへ根拠付きで報告。
 
+## 導入済みスキル
+
+`.agents/skills` に固定版を同梱。Superpowersの完了前検証・原因調査と、UI UX Pro MaxのWeb/React向けガイドを使用する。承認済みデザインと明示指示を一般例より優先する。Cloudflareのfull auditはOS強制sandbox要件を満たす場合だけ完了とし、ソース監査・通常製品テストと区別する。vendorは直接改変せず、更新時は公式SHA・inventoryを更新して検証する。出所・再現・例外は `docs/skills.md`。
+

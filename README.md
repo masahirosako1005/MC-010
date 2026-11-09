@@ -74,8 +74,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-db.ps1 -Acti
 |用途|メール|コード|
 |---|---|---|
 |通常デモ|`demo@example.test`|`1111`|
+|初回のパンフレット作成から試すdemo01|`demo01@example.test`|`1111`|
 |別利用者・混在防止の確認|`second@example.test`|`1111`|
 |訪問履歴なし|`no-history@example.test`|`1111`|
+
+`demo01` は `db:seed` でデモ訪問履歴を用意し、パンフレットは作成しません。初回ログインで生成から始まり、2回目以降は保存済みの内容を復元します。`db:seed` を再実行しても作成済みの冊子や編集はリセットしません。
 
 1. 通常デモでログイン。生成ボタンを押さずに、初回だけパンフレットを生成・保存します。
 2. 「前回の思い出」と番号付き訪問候補を確認。感想を入力し、写真を追加します。
@@ -143,7 +146,7 @@ Windowsのブラウザテストはインストール済みMicrosoft Edge、他OS
 
 E2Eはデモ利用者の保存内容を変更します。自分のデモ編集を残す場合は、空の専用検証DBと別の `UPLOAD_DIR` を指定して別ポートで起動してください。DBと保存先を揃えたうえで、`E2E_BASE_URL` をそのURLへ設定します。テスト結果は `test-results` に出力し、Gitへ含めません。依存監査は `npm audit`、スキルの同梱ファイル検証は `node scripts/skill-inventory.mjs`。
 
-2026-11-09の検証ではNode 26.13.0／PostgreSQL 17.11／Edgeで、単体・DB統合46件とPC・スマホE2E8件、型チェック・buildが合格し、開発依存を含むnpm auditは0件でした。Docker構成は未実行です。実機スマホと正式Cloudflare完全監査の未検証範囲は [検証記録](docs/verification.md) を参照してください。
+2026-11-09の検証ではNode 26.13.0／PostgreSQL 17.11／Edgeで、単体・DB統合46件とPC・スマホE2E10件、型チェック・buildが合格し、開発依存を含むnpm auditは0件でした。Docker構成は未実行です。実機スマホと正式Cloudflare完全監査の未検証範囲は [検証記録](docs/verification.md) を参照してください。
 
 ## 資料
 

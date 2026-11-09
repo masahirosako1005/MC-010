@@ -6,6 +6,31 @@ async function login(page:Page,email='demo@example.test') {
   await page.getByTestId('login-email').fill(email);
   await page.getByTestId('login-submit').click();
 }
+test('demo01は未作成ならログイン後に生成し、次のログインでは復元する',async({page},testInfo)=>{
+  const origin=new URL(testInfo.project.use.baseURL??'http://127.0.0.1:3001').origin;
+  const headers={Origin:origin,'X-Requested-With':'kondo'};
+  const initial=await page.request.post('/api/login',{headers,data:{email:'demo01@example.test',code:'1111'}});
+  expect(initial.status()).toBe(200);
+  const before=await initial.json();
+  expect(before.user.displayName).toBe('demo01');
+  expect(before.visits.length).toBeGreaterThan(0);
+  expect((await page.request.post('/api/logout',{headers,data:{}})).status()).toBe(200);
+  let ensureRequests=0;
+  page.on('request',request=>{if(request.url().endsWith('/api/brochure/ensure')&&request.method()==='POST')ensureRequests++;});
+  await login(page,'demo01@example.test');
+  await expect(page.getByTestId('brochure')).toBeVisible();
+  expect(ensureRequests).toBe(before.brochure?0:1);
+  const first=(await (await page.request.get('/api/session')).json()).brochure;
+  expect(first.items.some((item:{selected:boolean})=>item.selected)).toBeTruthy();
+  if(before.brochure)expect(first.id).toBe(before.brochure.id);
+  await page.getByRole('button',{name:'ログアウト',exact:true}).filter({visible:true}).first().click();
+  await expect(page.getByTestId('login-email')).toBeVisible();
+  await login(page,'demo01@example.test');
+  await expect(page.getByTestId('brochure')).toBeVisible();
+  const restored=(await (await page.request.get('/api/session')).json()).brochure;
+  expect(restored.id).toBe(first.id);
+  expect(restored.revision).toBe(first.revision);
+});
 test('ログインから編集・保存復元・再生成・共有まで',async({page,context},testInfo)=>{
   const externalRequests:string[]=[];
   page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith(new URL(testInfo.project.use.baseURL??'http://127.0.0.1:3001').origin))externalRequests.push(r.url());});

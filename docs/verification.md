@@ -1,6 +1,6 @@
 # 最終検証記録
 
-実施日: 2026-11-09（Asia/Tokyo）。アプリ・検証スクリプトの確認版: `86e99a9`（取込 `8cb8b25`、UI `7f9d1de`、Windows起動 `126e6de`、Vite制限 `0757fb4`、レビュー修正 `b9ff878` を含む）。資料・証跡の追加後に最終差分も確認する。
+実施日: 2026-11-09（Asia/Tokyo）。基礎統合の確認版: `86e99a9`（取込 `8cb8b25`、UI `7f9d1de`、Windows起動 `126e6de`、Vite制限 `0757fb4`、レビュー修正 `b9ff878` を含む）。demo01追加後の追試も以下に記録する。
 
 ## 実行した検証
 
@@ -10,11 +10,11 @@
 |型|`npm run check` 成功。client/sharedとserverをTypeScriptで検査。|
 |ビルド|`npm run build` 成功。サーバーJSとSPAを生成し、`npm start` から配信。|
 |単体・DB統合|`TEST_DATABASE_URL` 指定の `npm test`。4ファイル・46件合格、skipなし。API10件を含む。|
-|ブラウザ|`E2E_BASE_URL=http://127.0.0.1:3003 npm run test:e2e`。PC4件＋スマホ4件、計8件合格、最終33.3秒。初回空DBの実行も8件合格。|
+|ブラウザ|`E2E_BASE_URL=http://127.0.0.1:3003 npm run test:e2e`。demo01追加後はPC5件＋スマホ5件、計10件合格、36.4秒。基礎版の初回空DB実行は8件合格。|
 |依存監査|`npm audit --json`。prod/devを含み計0件。将来の脆弱性がない保証ではない。|
 |固定スキル|`node scripts/skill-inventory.mjs`。286ファイル・23スキルのSHA256一致。公式3checkoutのHEADも固定SHAと一致。|
 |依存再現|空の `.local/dependency-verify-final` にpackage/lockだけをコピーし、Node26で `npm ci --ignore-scripts`。SharpのPNG生成・デコード確認。|
-|Windows DB起動|別の空クラスタで同梱windows-db.ps1のinit/start/status→migration/seed→stopが成功。fixture3人・4訪問を確認。|
+|Windows DB起動|別の空クラスタで同梱windows-db.ps1のinit/start/status→migration/seed→stopが成功。demo01追加以前のfixture3人・4訪問を確認。追加後のseedは4人・6訪問。|
 |開発サーバー|実Viteで画面とclient moduleを200、非秘密fixtureの.localとスキル領域を403と確認。ローカル専用領域をwatch対象から除外。|
 |取込再現|空の専用DBでmigration→seed→inspect→import→再import→data:verify。件数・冪等性・欠損動作を確認。|
 
@@ -89,6 +89,12 @@ Windows PowerShell 5.1では、実行ポリシーによる停止と、UTF-8 BOM�
 [カラフルPNG・PC](verification/export-colorful-desktop.png) / [ポストカードPNG・スマホ](verification/export-postcard-mobile.png)
 
 長いPNGは端末幅に応じた縦長の書き出し。UIの全画面キャプチャと出力PNGは別資料で、後者には操作部品を含めない。元の承認案は `docs/design-mockups` に保存している。
+
+## demo01追加の追試
+
+`demo01@example.test`（表示名demo01、コード1111）をfixtureへ追加。テスト追加直後は未登録404で失敗することを確認し、seed修正後に訪問2件・冊子0件から初回自動生成を確認した。PC/スマホとも再ログインで同一冊子ID・revisionを維持し、全10 E2Eが合格した。型チェック・build・46単体/DB統合・npm audit 0件・スキルinventoryも再実行した。
+
+専用検証DBでseed再実行前後のdemo01冊子が同一であることを確認。通常デモDBにも追加し、認証成功・訪問2件・冊子未作成をAPIで確認後にログアウトした。通常デモ側ではensureを呼ばず、利用者が初回作成から試せる状態を残した。fixture全体は4人・6訪問で、主催者CSVの履歴とは分離している。
 
 ## 未検証・残存事項
 

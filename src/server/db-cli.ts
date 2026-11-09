@@ -27,15 +27,16 @@ export async function seedCatalog() {
 export async function seed() {
   await migrate();
   await transaction(async c => {
-    for (const [key,email,label] of [['demo','demo@example.test','デモ利用者'],['second','second@example.test','デモ利用者2'],['empty','no-history@example.test','履歴なしデモ利用者']]) {
+    for (const [key,email,label] of [['demo','demo@example.test','デモ利用者'],['demo01','demo01@example.test','demo01'],['second','second@example.test','デモ利用者2'],['empty','no-history@example.test','履歴なしデモ利用者']]) {
       const id=stableId(`fixture-user:${key}`);
       await c.query(`INSERT INTO users(id,external_id,email,display_name,source) VALUES($1,$2,$3,$4,'fixture') ON CONFLICT(external_id) DO NOTHING`,[id,`fixture:${key}`,email,label]);
       if(key==='empty')continue;
-      const indices=key==='demo'?[0,3]:[2,4];
+      const scenicDemo=key==='demo'||key==='demo01';
+      const indices=scenicDemo?[0,3]:[2,4];
       for(const i of indices) await c.query(`INSERT INTO visits(id,user_id,spot_id,visited_at,stamp,source_key) VALUES($1,$2,$3,$4,true,$5) ON CONFLICT(source_key) DO NOTHING`,
         [stableId(`fixture-visit:${key}:${i}`),id,CATALOG[i]!.id,'2026-05-03T10:00:00+09:00',`fixture:${key}:${i}`]);
       await c.query(`INSERT INTO surveys(user_id,satisfaction,good_points,tags,previous_companion) VALUES($1,5,$2,$3,'友人') ON CONFLICT(user_id) DO NOTHING`,
-        [id,key==='demo'?'景色と散歩を楽しめた（デモ回答）':'文化体験が楽しかった（デモ回答）',key==='demo'?['海','散歩','食']:['文化','体験']]);
+        [id,scenicDemo?'景色と散歩を楽しめた（デモ回答）':'文化体験が楽しかった（デモ回答）',scenicDemo?['海','散歩','食']:['文化','体験']]);
     }
   });
 }

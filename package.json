@@ -14,7 +14,8 @@
     "db:migrate": "tsx --env-file-if-exists=.env src/server/db-cli.ts migrate",
     "db:seed": "tsx --env-file-if-exists=.env src/server/db-cli.ts seed",
     "data:inspect": "tsx src/server/import-cli.ts inspect",
-    "data:import": "tsx --env-file-if-exists=.env src/server/import-cli.ts import"
+    "data:import": "tsx --env-file-if-exists=.env src/server/import-cli.ts import",
+    "data:verify": "node --env-file-if-exists=.env scripts/verify-sample.mjs"
   },
   "dependencies": {
     "cookie-parser": "1.4.7",

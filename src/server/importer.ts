@@ -214,10 +214,12 @@ export function parseTokyoTimestamp(value: string): string {
 
 function deriveTags(goodPoints: string): string[] {
   const rules: Array<[string, RegExp]> = [
-    ["nature", /自然|景色|海|湖|山|花|風/u],
-    ["food", /食|料理|グルメ|カフェ|甘味/u],
-    ["culture", /歴史|文化|街|建物|石畳/u],
-    ["event", /音楽|祭|イベント|夜市/u],
+    ["自然", /自然|湖|山|花/u],
+    ["景色", /景色|風景|眺め/u],
+    ["海", /海|潮|灯台/u],
+    ["食", /食|料理|グルメ|カフェ|甘味/u],
+    ["文化", /歴史|文化|街|建物|石畳|音楽/u],
+    ["体験", /体験|祭|イベント|夜市/u],
   ];
   return rules.filter(([, pattern]) => pattern.test(goodPoints)).map(([tag]) => tag);
 }
@@ -395,6 +397,7 @@ export async function loadAndValidateSampleData(
   };
 
   const sourceHash = createHash("sha256");
+  sourceHash.update("kondo-import-v2\0");
   for (const entry of entries.sort((a, b) => a.file.localeCompare(b.file, "ja"))) {
     sourceHash.update(entry.file, "utf8");
     sourceHash.update(Buffer.from([0]));

@@ -21,7 +21,7 @@ export function selectRoute(spots: Spot[], visits: Visit[], survey: Survey | nul
   const historicalCategories=new Set(spots.filter(s=>visited.has(s.id)).map(s=>s.category));
   const scored=spots.filter(s=>!visited.has(s.id)).map(s=>({spot:s,score:
     (s.companionTags.includes(settings.companion)?4:0)+s.themeTags.filter(t=>tags.includes(t)).length*3+
-    s.themeTags.filter(t=>preferred.includes(t)).length*2+(historicalCategories.has(s.category)?1:0)
+    s.themeTags.filter(t=>preferred.includes(t)).length*2+((survey?.satisfaction??3)>=4&&historicalCategories.has(s.category)?2:0)
   })).sort((a,b)=>b.score-a.score||a.spot.id.localeCompare(b.spot.id));
   // 上位候補から順番に回し、毎回の選び直しを決定的・説明可能にする。
   const offset=scored.length?rotation%scored.length:0;

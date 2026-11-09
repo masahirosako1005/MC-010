@@ -94,7 +94,7 @@ describe("sample CSV validation", () => {
     expect(data.users[0]).toMatchObject({ email: null });
     expect(data.users[0]?.externalId).not.toContain("u1");
     expect(data.visits[0]).toMatchObject({ spotExternalId: "sample-spot-1" });
-    expect(data.surveys[0]).toMatchObject({ satisfaction: 5, tags: ["nature", "food"] });
+    expect(data.surveys[0]).toMatchObject({ satisfaction: 5, tags: ["景色", "海", "食"] });
   });
 
   it("rejects missing required headers", async () => {

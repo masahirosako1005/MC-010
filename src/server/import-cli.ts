@@ -21,8 +21,11 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "import") {
-    const result = await importSampleData(sourceDirectory, withDemoAliases);
-    console.log(JSON.stringify(result, null, 2));
+    const { pool } = await import("./db.js");
+    try {
+      const result = await importSampleData(sourceDirectory, withDemoAliases);
+      console.log(JSON.stringify(result, null, 2));
+    } finally { await pool.end(); }
     return;
   }
   throw new ImportValidationError("使用方法: import-cli.ts inspect|import [source-directory] [--with-demo-aliases]");

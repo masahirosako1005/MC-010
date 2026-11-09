@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+!.env.example
+.local/
+.tools/
+.skill-sources/
+uploads/
+test-results/
+playwright-report/
+coverage/
+*.log
+Password*
+*.csv
+!data/templates/*.csv
+

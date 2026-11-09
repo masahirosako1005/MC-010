@@ -1,0 +1,17 @@
+各スポットへの変更ボタン追加
+生成方法: 内蔵 imagegen による画像編集 / ラスターPNG
+入力: ユーザー添付のスマホ版パンフレット編集画面
+確認: 海辺の遊歩道、町なかの商店街の両方に「スポットを変更」ボタンを追加。既存の「写真を変更」を保持。
+
+最終編集プロンプト:
+Use case: precise-object-edit
+Asset type: edited Japanese mobile app UI mockup, raster PNG.
+Input image: the attached portrait screenshot is the EDIT TARGET.
+Primary request: add a clearly labeled individual spot replacement button to EACH of the two visible spot sections in this exact screenshot. Add exactly TWO new buttons, one for 「海辺の遊歩道」 and one for 「町なかの商店街」.
+Precise modification:
+- Inside the TOP LEFT of the seaside photograph in the first spot, add a rounded pale sunshine-yellow button with a thin warm orange outline, a small dark circular-swap arrow pictogram, and dark-brown Japanese text exactly 「スポットを変更」.
+- Inside the TOP LEFT of the shopping-street photograph in the second spot, add the IDENTICAL button: same size, padding, typography, pale-yellow fill, orange outline, dark swap pictogram, and exact text 「スポットを変更」.
+- Both new buttons should align with the existing white 「写真を変更」 buttons on the TOP RIGHT of each image, creating an unambiguous two-button row across the top edge of each photo. Leave clear space between the new left button and the existing right button; do not overlap either label or crop the controls. Keep the photograph visible below them.
+- Make the new buttons approximately the same height as the existing 「写真を変更」 buttons, sized generously enough for the full Japanese text, readable and clearly tappable on a phone.
+Critical invariants: preserve the exact portrait image dimensions and composition. Keep EVERYTHING ELSE as close as possible to the input: app name, saved status, travel title, header coastal illustration, companion selector, global 「候補を選び直す」 button, template selector, trip theme, all existing pencils, route numbers, badges, photograph content and proportions, 「写真を変更」 buttons, comments, pastel section backgrounds, paper texture, and sticky invitation/PNG action bar. Do not replace the photo buttons or pencil controls. Do not change existing Japanese wording, colors, typography, or layout. Add no new spots and no extra UI sections.
+No redesign, no phone hardware mockup, no montage, no watermark. Output ONE edited portrait screen.

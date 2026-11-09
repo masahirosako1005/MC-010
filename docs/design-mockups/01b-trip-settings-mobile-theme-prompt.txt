@@ -1,0 +1,23 @@
+生成前の情報編集画面：テーマ（テンプレート指定）の追加
+生成方法: 内蔵 imagegen による画像編集 / ラスターPNG
+追加内容: 旅の日数の下に、ゆっくり／アクティブの単一選択。ゆっくり選択状態の画面例。
+アプリ実装は再開せず、画像とプロンプト記録のみ追加。
+
+最終編集プロンプト:
+Use case: precise-object-edit
+Asset type: edited Japanese portrait mobile web app UI screenshot, raster PNG.
+Input image: the provided image is the EDIT TARGET.
+Primary request: add a theme/template selection section with exactly two options 「ゆっくり」 and 「アクティブ」.
+Placement and layout:
+- Insert ONE new section immediately BELOW the existing 「旅の日数は？」 day-trip/overnight choices and ABOVE the final coral 「この内容でパンフレットを作る」 button.
+- Extend the portrait canvas DOWNWARD as needed, keeping the SAME WIDTH and preserving readable existing font sizes and touch targets. This is a naturally scrolling mobile page. Do not squeeze all the existing content, do not remove any sections, and do not crop the final button.
+- Add a sky-blue hand-drawn wave divider above the new section, consistent with the existing section dividers.
+- New section heading, exact text: 「テーマ（テンプレート指定）」, in dark brown rounded Japanese type on a yellow paper ribbon matching the existing headings. A small dark suitcase or flag pictogram is acceptable, but keep the heading legible and uncluttered.
+- Below that heading, show TWO generously sized rounded selection controls SIDE BY SIDE, equal width and height, matching the existing day-trip/overnight radio controls.
+- LEFT option exact text 「ゆっくり」, with a small simple orange coffee-cup pictogram. Show this option SELECTED: coral outline, pale sunshine-yellow background, and a filled dark/coral radio circle.
+- RIGHT option exact text 「アクティブ」, with a small simple orange walking-shoe pictogram. Show it UNSELECTED: ivory background, thin warm-brown outline and an empty radio circle.
+- All text on these controls must be DARK BROWN, high contrast. Selection is mutually exclusive and unambiguous. No other theme options, no additional descriptions or slogans.
+- Move the original final coral generation button BELOW this new section, with the SAME exact label 「この内容でパンフレットを作る」, same right arrow, dark brown lettering and comfortable bottom padding.
+Critical invariants:
+Preserve EVERY existing section and its content: app name 「今度はあなたと」, local demo badge, 3-step indicator, title and introduction, previous stamp rally list with all THREE photographs and names, selected coastal promenade and cafe checkboxes, unchecked shopping street, stamp-earned labels, selected count, sample-history note, all six companion choices with 「友人」 selected, and duration choices with 「日帰り」 selected and 「宿泊」「一泊二日」 unselected. Keep the existing paper texture, coral/orange/yellow/bright-blue palette, ornaments, stamps, rounded heading style, and vertical alignment. Do not change existing selections or text.
+No redesign, no phone hardware frame, no montage, no watermark. No green/mint/teal UI, no glow or blur. Output ONE complete tall portrait screen including the new theme section and the bottom generation button.

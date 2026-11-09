@@ -1,0 +1,47 @@
+スマホ縦長UIイメージ：生成プロンプト記録
+生成方法: 内蔵 imagegen。ラスターPNG。既存デスクトップ画像をスタイル参照として生成。
+アプリ実装の再開は行わず、画像アセットとこのプロンプト記録のみ追加。
+
+=== 01-login-mobile ===
+Reference: C:\AI-Sprint\workspace\MC-010\docs\design-mockups\01-login.png
+Use case: ui-mockup.
+Asset type: Japanese mobile web app high-fidelity raster screen, portrait 9:19.5 aspect ratio, approximately 1024 by 2224 pixels. Show ONE screen edge-to-edge, straight-on; no phone hardware frame, no desktop landscape canvas, no multi-screen montage.
+Primary request: adapt the supplied desktop reference into a convincing narrow smartphone layout for the travel brochure app 「今度はあなたと」.
+Input image: style and content reference only. Preserve the reference's app name, warm ivory printed-paper feel, friendly rounded Japanese headings, coral pink, orange, yellow, bright sky blue and dark brown ink.
+Composition: single vertical column with mobile-appropriate line wrapping, readable body text, comfortable margins, touch targets at least 44 logical pixels, consistent typography. Recompose deliberately rather than squeezing the desktop layout.
+Constraints: keep the travel brochure as the main experience. Dark ink text on all light and bright backgrounds; no white text on bright backgrounds. Avoid green, mint, teal, aqua, dark SaaS, excessive gradients, glow, blur, huge whitespace and dashboard card grids. Small stamp, tape and route decorations may reinforce the reference. No watermark. Japanese text must be accurate and naturally wrapped.
+Screen: top/login. Top: compact travel stamp and large app name 「今度はあなたと」, followed by the exact tagline 「旅の思い出を、次の約束に。」 wrapped over two short lines if necessary. Middle: two overlapping travel photo prints, a blue coastal town and an autumn castle, keeping the source's cheerful collage. Below: full-width vertically stacked email and verification code inputs with visible labels; then one large coral button. Bottom: clear local demo notice. Form is the focus and entirely visible.
+Text (verbatim): 「今度はあなたと」, 「旅の思い出を、次の約束に。」, 「メールアドレス」, 「認証コード」, 「旅のパンフレットを見る」, 「ローカルデモ専用」, 「認証コードは1111です」.
+Do not add slogans or explanatory prose. Use rounded input borders and dark text on the coral button.
+
+=== 02-generating-mobile ===
+Reference: C:\AI-Sprint\workspace\MC-010\docs\design-mockups\02-generating.png
+Use case: ui-mockup.
+Asset type: Japanese mobile web app high-fidelity raster screen, portrait 9:19.5 aspect ratio, approximately 1024 by 2224 pixels. Show ONE screen edge-to-edge, straight-on; no phone hardware frame, no desktop landscape canvas, no multi-screen montage.
+Primary request: adapt the supplied desktop reference into a convincing narrow smartphone layout for the travel brochure app 「今度はあなたと」.
+Input image: style and content reference only. Preserve the reference's app name, warm ivory printed-paper feel, friendly rounded Japanese headings, coral pink, orange, yellow, bright sky blue and dark brown ink.
+Composition: single vertical column with mobile-appropriate line wrapping, readable body text, comfortable margins, touch targets at least 44 logical pixels, consistent typography. Recompose deliberately rather than squeezing the desktop layout.
+Constraints: keep the travel brochure as the main experience. Dark ink text on all light and bright backgrounds; no white text on bright backgrounds. Avoid green, mint, teal, aqua, dark SaaS, excessive gradients, glow, blur, huge whitespace and dashboard card grids. Small stamp, tape and route decorations may reinforce the reference. No watermark. Japanese text must be accurate and naturally wrapped.
+Screen: brochure generation in progress immediately after login. Top: compact app name. Then a bold headline, wrapped legibly: 「旅のパンフレットを準備しています」. A small travel photo collage sits above a VERTICAL three-step progress list connected by an orange line. The first two steps have yellow check circles and the third has an orange active ring. Each step has a simple map, route, or envelope pictogram and its own large label. Below the steps, a horizontal orange progress bar labeled 「2 / 3」 and status 「招待メッセージを作成中」. Bottom: a readable two-to-three-line note about opening saved brochures without overwriting them. Small ticket and route decoration, restrained.
+Text (verbatim): 「今度はあなたと」, 「旅のパンフレットを準備しています」, 「前回の旅を確認」, 「次の候補を選定」, 「招待メッセージを作成」, 「招待メッセージを作成中」, 「保存済みのパンフレットがある場合は、そのまま開きます」.
+No percentage pretending to be real timing; no action button or additional user input; no landscape open-book spanning two columns.
+
+=== 03-brochure-editor-mobile ===
+Reference: C:\AI-Sprint\workspace\MC-010\docs\design-mockups\03-brochure-editor.png
+Use case: ui-mockup.
+Asset type: Japanese mobile web app high-fidelity raster screen, portrait 9:19.5 aspect ratio, approximately 1024 by 2224 pixels. Show ONE screen edge-to-edge, straight-on; no phone hardware frame, no desktop landscape canvas, no multi-screen montage.
+Primary request: adapt the supplied desktop reference into a convincing narrow smartphone layout for the travel brochure app 「今度はあなたと」.
+Input image: style and content reference only. Preserve the reference's app name, warm ivory printed-paper feel, friendly rounded Japanese headings, coral pink, orange, yellow, bright sky blue and dark brown ink.
+Composition: single vertical column with mobile-appropriate line wrapping, readable body text, comfortable margins, touch targets at least 44 logical pixels, consistent typography. Recompose deliberately rather than squeezing the desktop layout.
+Constraints: keep the travel brochure as the main experience. Dark ink text on all light and bright backgrounds; no white text on bright backgrounds. Avoid green, mint, teal, aqua, dark SaaS, excessive gradients, glow, blur, huge whitespace and dashboard card grids. Small stamp, tape and route decorations may reinforce the reference. No watermark. Japanese text must be accurate and naturally wrapped.
+Screen: brochure view and direct editing, mobile FIRST VIEW with natural vertical continuation.
+Top: compact app name and a small 「保存済み」 status. Below: the bold travel title 「友人と、海と町をめぐる旅」 wrapped to two lines beside a small coastal illustration. A full-width labeled companion selector 「次は誰と行きたい？」 set to 「友人」. On next row, compact controls 「候補を選び直す」 and 「テンプレート」.
+The brochure body is a SINGLE COLUMN: section heading 「次の旅の候補」 and a narrow connected numbered route along the left. Stop 1 is 「海辺の遊歩道」 with a small 「訪問済み」 badge, large landscape coastal photograph above its own editable text area labeled 「前回の感想」. Comment: 「海の風が気持ちよかった。また一緒に歩きたい！」. An unobtrusive 「写真を変更」 control sits on the image. Stop 2 begins below, titled 「町なかの商店街」 with badge 「新しい候補」, a street photograph and label 「行ってみたい理由」; its content continues naturally beneath the viewport. Do NOT compress a full desktop brochure into a single screen.
+At bottom of viewport a clearly separated sticky action bar has two large tappable controls 「招待文をコピー」 and 「PNGで保存」 with dark text on yellow and coral. The toolbar must not obscure the first stop's editable fields; content can scroll behind it. No need to show every stop at once. Preserve the reference's paper, route, photos and color system while making text truly mobile-sized.
+All photo and comment content is inline-editable, with clear pencil affordances. No extra poetic copy or unsupported dates/travel times.
+
+=== 02-generating-mobile-final: final contrast correction ===
+Use case: precise-object-edit. Input image is the edit target. This is a portrait Japanese smartphone UI mockup. Make one targeted accessibility correction: change ONLY the white Japanese headline lettering on the coral-pink banner to very dark brown ink (#30241F). The exact headline is 「旅のパンフレットを準備しています」. Keep its size, line wrapping, position and pink banner unchanged. Keep every other pixel's design as close as possible: same portrait dimensions and aspect ratio, paper texture, app name 「今度はあなたと」, photos, stamps, vertical three-step progress list, 2 / 3 progress bar, status wording and footer. No redesign, no new elements, no extra text, no white lettering left in the main pink headline. Output one full portrait screen.
+
+=== 03-brochure-editor-mobile-final: final contrast correction ===
+Use case: precise-object-edit. Input image is the edit target. This is a portrait Japanese smartphone UI mockup. Make one targeted accessibility correction: convert all small WHITE interface words on bright coral-pink or orange backgrounds into very dark brown ink (#30241F), specifically 「次は誰と行きたい？」, 「前回の感想」, and 「行ってみたい理由」. Preserve the exact Japanese words. Also turn the white human pictogram next to the companion label, white PNG pictogram, and white number glyphs 1 and 2 into the same dark brown ink. Keep all bright colored backgrounds unchanged. Keep EVERYTHING else: same portrait aspect ratio and dimensions, paper texture, layout, app name 「今度はあなたと」, title, companion selector, template selector, buttons, coastal illustration, numbered route, photos, photo-change labels, comment areas, sticky bottom invitation/PNG action bar, and natural bottom viewport crop. No redesign, no new text or elements, no shrinking. Output one full portrait screen.

@@ -1,0 +1,25 @@
+パンフレット生成前の情報編集画面（スマホ縦長）
+生成方法: 内蔵 imagegen / ラスターPNG
+想定画面順: ログイン → 旅の内容を選ぶ → 生成準備 → パンフレット表示・編集
+ユーザー指定: 前回の訪問先を一覧から複数選択、次回同行者、日帰りまたは宿泊（一泊二日）。
+画像のみの追加で、アプリ実装は再開していない。
+
+最終プロンプト:
+Use case: ui-mockup
+Asset type: ONE high-fidelity portrait smartphone web app screen, approximately 1024 x 2224 pixels, edge-to-edge UI, no physical phone frame, no montage.
+Primary request: create the NEW pre-generation information editing screen for the Japanese travel brochure app 「今度はあなたと」. This screen appears after login and BEFORE the existing brochure-generation progress screen. It lets users choose places from the previous stamp rally, choose their next companion, and choose a day trip or a one-night/two-day trip, then start brochure generation.
+Input images: Image 1 is a style reference for the login screen. Image 2 is a style reference for the brochure editing screen. Preserve their coherent warm ivory paper, bright coral, orange, yellow, sky blue, dark brown ink and friendly rounded Japanese typography. This is a NEW screen, not a modification of those references.
+Composition: designed for a narrow 390-logical-pixel phone width. SINGLE COLUMN. Show all three required input sections and the final CTA within one tall screen with readable mobile typography and comfortable 44px minimum touch targets. Content-dense but clean, with simple paper section dividers rather than a dashboard. Small travel stamps and restrained tape motifs, no giant decorative hero photo. Clear compact app header and a small step indicator.
+Top header: app name 「今度はあなたと」 with a small orange underline, and a small 「ローカルデモ」 badge. Three-step indicator reading 「内容を選ぶ → 生成 → パンフレット」 with the first step active. Main title 「旅の内容を選ぶ」. One short introductory line 「行きたい場所と旅の条件を選んでください」.
+SECTION 1, heading 「前回のスタンプラリー」:
+A small results summary 「訪問済み 3か所」 and helper 「また行きたい場所を選択（複数選択）」.
+A compact VERTICAL LIST of three previously visited destinations, not a multi-column card grid. Each row has a small travel photo thumbnail at left, place name and a small stamp-earned marker in the middle, and a LARGE CHECKBOX at right. All rows are explicitly previous visit results. Row 1: 「海辺の遊歩道」 with blue seaside promenade photo and label 「スタンプ取得」, checked. Row 2: 「町なかの商店街」 with traditional shopping street photo and label 「スタンプ取得」, UNCHECKED. Row 3: 「海の見えるカフェ」 with seaside cafe photo and label 「スタンプ取得」, checked.
+Checked rows use a very light coral tint, coral border, and a clearly visible dark-brown checkmark; unchecked row uses ivory background and empty checkbox. Small text below: 「2か所を選択中」. Tiny note 「訪問履歴はサンプルです」 for clarity. Do not invent real dates or travel times.
+SECTION 2, heading 「次は誰と行きたい？」:
+Six large rounded selectable chips in 3 columns x 2 rows, labels exactly 「家族」, 「子ども」, 「パートナー」, 「友人」, 「親」, 「一人」. Select 「友人」 only, with coral fill or coral border, dark text, and a small check. Other chips remain light ivory. Selection must be unambiguous.
+SECTION 3, heading 「旅の日数は？」:
+Two LARGE mutually exclusive radio options side by side. Left option 「日帰り」 with a small sun pictogram, SELECTED. Right option 「宿泊」 with a small suitcase pictogram and a clear secondary line 「一泊二日」, UNSELECTED. Use dark text on pale yellow/ivory and a strong selected outline. Do not offer any other trip duration.
+BOTTOM:
+One very prominent full-width CORAL button with DARK BROWN text reading exactly 「この内容でパンフレットを作る」 and a small right arrow. No secondary competing CTA. Place it fully visible below the duration controls with safe bottom padding. It proceeds to the existing generation progress screen.
+Text fidelity: render all quoted Japanese exactly, in natural readable line breaks. Bold rounded headings, plain legible body labels.
+Constraints: portrait, one screen, no desktop layout, no duplicate labels or controls, no giant imagery, no extra features or poetic slogans. Dark brown lettering on ALL bright backgrounds, including CTA and selected chips. No white text on coral/yellow/orange. No green, mint, teal or aqua as UI colors. No gradients, glow, blur, glassmorphism, dark SaaS styling, or watermark. Preserve the bright printed travel-brochure character of the references while making the editing choices unmistakable.

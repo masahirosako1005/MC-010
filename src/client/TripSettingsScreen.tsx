@@ -70,20 +70,20 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
         <span className="trip-demo-badge"><TrainFront aria-hidden="true" />ローカルデモ</span>
       </header>
       <ol className="trip-progress" aria-label="パンフレット作成の手順">
-        <li aria-current="step">内容を選ぶ</li><li>生成</li><li>パンフレット</li>
+        <li aria-current="step">次の旅を描く</li><li>生成</li><li>パンフレット</li>
       </ol>
       {onCancel && <button type="button" className="trip-back" onClick={onCancel}><ArrowLeft aria-hidden="true" />パンフレットへ戻る</button>}
       <div className="trip-settings-title">
-        <h1 ref={headingRef} tabIndex={-1}>旅の内容を選ぶ</h1>
+        <h1 ref={headingRef} tabIndex={-1}>次の旅のきっかけを選ぶ</h1>
         <span className="trip-stamp trip-stamp-coral" aria-hidden="true"><TrainFront /></span>
         <p>行きたい場所と旅の条件を選んでください</p>
       </div>
       <WaveDivider ship />
       <form onSubmit={event => { event.preventDefault(); void submit('all'); }}>
         <fieldset className="trip-section trip-visits">
-          <legend className="trip-ribbon"><MapPin aria-hidden="true" /><span>前回のスタンプラリー</span></legend>
+          <legend className="trip-ribbon"><MapPin aria-hidden="true" /><span>前回の旅の思い出</span></legend>
           <span className="trip-stamp trip-section-stamp" aria-hidden="true"><Landmark /></span>
-          <div className="trip-visit-summary"><strong>訪問済み <b>{visited.length}</b>か所</strong><span>また行きたい場所を選択（複数選択）</span></div>
+          <div className="trip-visit-summary"><strong>訪問済み <b>{visited.length}</b>か所</strong><span>誰かに見せたい場所を選択（複数選択）</span></div>
           <div className="trip-spot-list">
             {visited.map(spot => {
               const checked = visitedSpotIds.includes(spot.id);
@@ -145,7 +145,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
           </div>
         </fieldset>
         {(error || notice) && <p ref={errorRef} tabIndex={-1} className="trip-form-error" role="alert">{error || notice}</p>}
-        <button type="submit" className="trip-create">この内容でパンフレットを作る<ArrowRight aria-hidden="true" /></button>
+        <button type="submit" className="trip-create" aria-label="選んだ内容で次の旅を作る">OK<ArrowRight aria-hidden="true" /></button>
         {brochure && <div className="trip-secondary-actions"><button type="button" onClick={onCancel}>キャンセルして戻る</button><button type="button" onClick={() => void submit('candidates')}>候補だけ作り直す</button></div>}
       </form>
       {!brochure && onLogout && <button type="button" className="trip-logout" onClick={onLogout}>ログアウト</button>}

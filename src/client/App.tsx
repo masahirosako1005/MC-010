@@ -400,7 +400,7 @@ function LoginScreen({ onLogin, notice }: { onLogin: (data: SessionData) => Prom
             </label>
             <button className="button button-primary login-submit" data-testid="login-submit" disabled={submitting}>
               {submitting ? <LoaderCircle className="spin" aria-hidden="true" /> : <MapIcon aria-hidden="true" />}
-              {submitting ? '旅の記録を確認中' : '旅のパンフレットを見る'}
+              {submitting ? '旅の記録を確認中' : '次の旅をつくる'}
             </button>
           </form>
           <div className="demo-note">

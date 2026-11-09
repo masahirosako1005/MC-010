@@ -10,7 +10,7 @@ async function login(page:Page,email='demo@example.test',create=true) {
   if(create&&result.ok()){
     const data=await result.json();
     if(data.visits.length&&!data.brochure){
-      await page.getByTestId('trip-settings-screen').getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+      await page.getByTestId('trip-settings-screen').getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
     }
   }
 }
@@ -29,7 +29,7 @@ test('初回は条件画面で確定して生成し、次のログインでは�
   if(!before.brochure){
     const settings=page.getByTestId('trip-settings-screen');
     await expect(settings).toBeVisible();
-    await expect(settings.getByRole('heading',{name:'旅の内容を選ぶ'})).toBeFocused();
+    await expect(settings.getByRole('heading',{name:'次の旅のきっかけを選ぶ'})).toBeFocused();
     expect(ensureRequests).toBe(0);
     expect((await (await page.request.get('/api/session')).json()).brochure).toBeNull();
     const boxes=settings.getByRole('checkbox');
@@ -46,13 +46,13 @@ test('初回は条件画面で確定して生成し、次のログインでは�
     await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
     await page.unroute('**/api/logout');
     await page.route('**/api/brochure/ensure',r=>r.fulfill({status:503,json:{error:{code:'create_test_failure',message:'作成に失敗しました。もう一度お試しください。'}}}));
-    await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+    await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
     await expect(settings.getByRole('alert')).toContainText('作成に失敗');
     await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
     await expect(settings.getByRole('radio',{name:'アクティブ',exact:true})).toBeChecked();
     await page.unroute('**/api/brochure/ensure');
     const creation=page.waitForRequest(r=>r.url().endsWith('/api/brochure/ensure')&&r.method()==='POST');
-    await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+    await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
     const submitted=(await creation).postDataJSON().settings;
     expect(submitted).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active'});
     await expect(page.getByTestId('brochure')).toBeVisible();
@@ -112,7 +112,7 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   await page.getByTestId('trip-settings-open').click();
   const dialog=page.getByTestId('trip-settings-screen');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('heading',{name:'旅の内容を選ぶ'})).toBeFocused();
+  await expect(dialog.getByRole('heading',{name:'次の旅のきっかけを選ぶ'})).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(dialog.getByRole('checkbox').first()).toBeFocused();
   const originalCompanion=(await (await page.request.get('/api/session')).json()).brochure.companion;
@@ -128,7 +128,7 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   let releaseGeneration!:()=>void;
   const generationGate=new Promise<void>(resolve=>{releaseGeneration=resolve;});
   await page.route('**/api/brochure/regenerate',async route=>{await generationGate;await route.continue();});
-  await dialog.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+  await dialog.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(page.getByRole('heading',{name:'旅のパンフレットを準備しています'})).toBeVisible();
   releaseGeneration();
   await expect(dialog).not.toBeVisible();
@@ -194,7 +194,7 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   const settings=page.getByTestId('trip-settings-screen');
   const revisit=settings.getByRole('checkbox');
   for(const box of await revisit.all())await box.uncheck({force:true});
-  await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+  await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(settings.getByRole('alert')).toContainText('1つ以上');
   for(const box of await revisit.all())await box.check({force:true});
   await expect(settings.getByRole('alert')).toHaveCount(0);
@@ -203,7 +203,7 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   await settings.getByLabel('ゆっくり',{exact:true}).check({force:true});
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
   await page.screenshot({path:testInfo.outputPath('trip-settings-full.png'),fullPage:true});
-  await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+  await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(settings).not.toBeVisible();
   await expect(page.locator('.trip-meta')).toContainText('家族');
   await expect(page.locator('.trip-meta')).toContainText('日帰り・ゆっくり');

@@ -13,6 +13,8 @@
 .spot-detail-gift { margin-top: 22px; padding-top: 18px; border-top: 2px dashed var(--line); }.gift-claim-button { min-height: 48px; width: 100%; }
 .gift-claimed { display: flex; align-items: flex-start; gap: 10px; padding: 16px; border: 1px solid #82b2c7; background: var(--blue-soft); border-radius: 9px; }.gift-claimed > svg { width: 24px; flex-shrink: 0; }.gift-claimed p { margin: 7px 0; font-size: .85rem; }.gift-claimed small { line-height: 1.8; }
 .gift-confirm-icon { width: 44px; height: 44px; color: var(--accent-ink); }.gift-confirm-warning { border: 2px solid var(--orange); padding: 16px; border-radius: 10px; background: var(--yellow-soft); line-height: 1.8; font-weight: 800; }
+.coupon-code-card { margin: 20px 0; padding: 18px; border: 2px dashed var(--orange); border-radius: 12px; background: var(--paper-deep); text-align: center; }
+.coupon-code-card p { margin: 0 0 10px; font-size: .85rem; font-weight: 800; }.coupon-code-card code { display: block; color: var(--ink); font-family: ui-monospace, monospace; font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 800; line-height: 1.4; letter-spacing: .18em; }
 .spot-detail-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }.spot-detail-actions .button { min-height: 48px; min-width: 110px; }
 .category-card:has(.spot-detail-title) > .photo-editor > img { cursor: pointer; }
 .png-mode .spot-detail-title { text-decoration: none; cursor: default; }

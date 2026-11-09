@@ -84,3 +84,14 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 管理スポットGETへhasGiftとgiftClaimCount（全出所の受取件数）を追加。登録・更新は任意hasGiftを受け付け、登録省略時false、更新省略時は既存値を維持する。通常利用者のスポット返却もhasGiftを含む。受取transactionはcatalog共有advisory lockを取り、管理変更の排他lockと直列化する。INSERT ON CONFLICT DO NOTHINGと既存行の再取得により同時要求・再送で履歴を増やさない。本人ID・日時をpayloadへ指定できない。確認後の本人のPOSTだけで受取を記録し、GETや町の参照APIは履歴を変更しない。既存Origin/X-Requested-With、認証・役割境界を維持する。
 
 この履歴は本人申告の受取であり、`visits` / `surveys` / 冊子の編集内容は変更しない。DBと写真のバックアップ時には新表も含める。
+
+## クーポン表示への変更（005_spot_coupon_codes.sql）
+
+最新のユーザー指示で画面上のプレゼント/受取をクーポン/利用へ変更した。上記004の物理名・APIパス・返却キーは互換性と既存設定/履歴維持のため変更しない。新表`spot_coupon_codes`はuser_id・spot_idの複合主キー、code（英大文字・数字6文字、UNIQUEとCHECK）、created_at（DB時刻）。表示したときに乱数で発行し、同一利用者・スポットには既存コードを返す。コード重複時は再生成、同時発行時は既存行を取得する。既存使用済みデータへのコードの後付けは行わない。
+
+| メソッド・パス | 現在の契約 |
+|---|---|
+| POST /api/spots/:id/coupon | 空JSON `{}`。利用者専用、本人の冊子所属・公開・提供状態を確認。couponCode（文字列）とgiftClaim=null。既に使用済みならcouponCode=nullと既存giftClaim。コード発行は利用件数へ加算しない。 |
+| POST /api/spots/:id/gift-claim | 空JSON `{}`。既存の本人・提供状態・一度限りの検証に加え、発行済みコードの存在を確認する。未発行409 coupon_not_displayed。既存履歴の再送は発行状態にかかわらず同じ履歴を返す。 |
+
+画面では「クーポンを表示する」で新APIを呼び、確認画面の「使う」だけで利用用APIを呼ぶ。コードは認証用の秘密や引換用APIトークンとしては扱わず、すべての操作はセッション本人を照合する。コードだけで利用者を指定するAPIはない。詳細GETは読み取りのみ、プレビューはコード発行APIを呼ばない。コード発行もcatalog共有lockで管理変更と直列化する。管理履歴の件数・人数は従来の履歴表だけを集計し、表示済みの未使用コードを含めない。バックアップには新表も含める。

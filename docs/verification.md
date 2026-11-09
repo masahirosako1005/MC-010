@@ -179,6 +179,16 @@ READMEに残っていた `pnpm run data:inspect -- ...` の区切りはpnpm 11�
 - 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-C6A3z194.js`。`GET /api/health` は200 / `{"ok":true}`。
 - AGENTS.mdの明示依頼限定ルールに従い、この追加差分のcheck、単体/API統合、E2E、audit、skill inventory、画面目視・操作テスト、独立レビューは未実施。直前の57件/16件の合格を本機能へ流用しない。受取の権限境界・並列要求・再送・設定変更との競合、モーダル操作・プレビュー・PNGは今後の検証対象。
 
+## クーポン表記・6桁コード表示への変更（2026-11-09）
+
+ユーザーのブラウザ注釈に従い、利用者画面と町側設定・履歴の表記をクーポンへ統一した。「クーポンを表示する」で英数字6桁のコードを発行・表示し、確認画面「クーポンをつかう」の「使う」だけで既存の一度限りの履歴を記録する。表示・キャンセルは利用件数へ含めない。既存の提供設定・使用済み記録を維持し、新表へ未使用コードを保存する。
+
+- Node 26.13.0 / pnpm 11.25.0の `build` が終了コード0。server TypeScriptとVite SPA（1,585 modules）を生成。追加依存なし。
+- 通常デモDB `kondo_anatato`（127.0.0.1:55432）への `db:migrate` が終了コード0。追加は `005_spot_coupon_codes.sql`。CSV再投入・データ初期化・利用操作は行っていない。
+- 3001番PID 14400のNode実体・server entrypoint・待受ポートを同定して、そのPIDのみ停止。既存のenv-fileを使用してHidden起動（PID 29968）。PostgreSQLや別アプリは停止していない。
+- 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-Dxgwv2Rm.js`。`GET /api/health` は200 / `{"ok":true}`。
+- AGENTS.mdに従い、この変更のcheck、単体/API統合、E2E、audit、skill inventory、画面目視・操作テスト、独立レビューは未実施。コードの再表示・同時発行・重複再生成、使用済み保持、表示と利用の計測分離、モーダル操作は未検証。前回の57件/16件の合格範囲へ含めない。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

@@ -35,5 +35,6 @@ export interface RegistrationRow {
 export interface RegistrationPage { rows: RegistrationRow[]; total: number; page: number; pageSize: number }
 export interface GiftClaim { id: string; spotId: string; claimedAt: string }
 export interface SpotDetail { spot: Spot; giftClaim: GiftClaim | null }
+export interface CouponDisplay { couponCode: string | null; giftClaim: GiftClaim | null }
 export interface GiftClaimRecord extends GiftClaim { spotName: string; userId: string; source: 'fixture' | 'organizer' }
 export interface GiftClaimPage { rows: GiftClaimRecord[]; total: number; users: number; page: number; pageSize: number }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Gift, LoaderCircle, LogOut, MapPin, PencilLine, Plus, RefreshCw, Save, X } from 'lucide-react';
+import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plus, RefreshCw, Save, X } from 'lucide-react';
 import { COMPANIONS, type User } from '../shared/types';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared/experience-categories';
 import { SPOT_IMAGES, THEME_TAGS, type AdminOverview, type AdminSpot, type DataScope, type RegistrationPage, type SpotInput, type GiftClaimPage } from '../shared/admin-types';
@@ -48,7 +48,7 @@ function LoadState({ loading, error, retry }: { loading: boolean; error: string;
 export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogout: () => Promise<void>; notice: string }) {
   const [tab, setTab] = useState<Tab>('overview'), [scope, setScope] = useState<DataScope>('all'), [dirty, setDirty] = useState(false), [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（プレゼント受取）', icon: Gift }];
+  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（クーポン利用）', icon: Ticket }];
   useEffect(() => { titleRef.current?.focus({ preventScroll: true }); }, [tab]);
   useEffect(() => {
     if (!dirty) return;
@@ -150,9 +150,9 @@ function Spots({ onDirty, onBusy }: { onDirty: (dirty: boolean) => void; onBusy:
     <div className="admin-filters"><label>スポットを検索<input type="search" placeholder="名称・分類" value={search} onChange={event => setSearch(event.target.value)} /></label><label>公開状態<select value={status} onChange={event => setStatus(event.target.value)}><option value="all">すべて</option><option value="active">公開中</option><option value="stopped">公開停止</option></select></label><button className="button" disabled={loading} onClick={reload}><RefreshCw aria-hidden="true" />一覧を更新</button></div>
     <LoadState loading={loading} error={error} retry={reload} />
     {data && <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>スポット一覧</h2><span>{spots.length}件</span></div>
-      {spots.length ? <div className="admin-table-scroll" role="region" aria-label="スポット一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table admin-spots-table"><thead><tr><th scope="col">スポット</th><th scope="col">体験カテゴリ</th><th scope="col">状態</th><th scope="col">訪問 / 人数 / 掲載</th><th scope="col">プレゼント受取</th><th scope="col">操作</th></tr></thead><tbody>{spots.map(spot => <tr key={spot.id}><th scope="row"><div className="admin-spot-cell"><img src={spot.image} alt="" loading="lazy" /><span>{spot.name}<small>{spot.category} · {sourceLabel[spot.source]}</small><GiftBadge available={spot.hasGift} /></span></div></th><td><div className="admin-tags">{EXPERIENCE_CATEGORIES.filter(c => spotSupportsExperienceCategory(spot, c.id)).map(c => <span key={c.id}>{c.label}</span>)}</div></td><td><span className={`admin-badge ${spot.active ? 'is-active' : ''}`}>{spot.active ? '公開中' : '公開停止'}</span></td><td>{spot.visitCount}件 / {spot.visitorCount}人 / {spot.brochureCount}冊</td><td>{spot.giftClaimCount}件</td><td><button className="button button-outline" aria-label={`${spot.name}を編集`} onClick={() => select(spot)}><PencilLine aria-hidden="true" />編集</button></td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件に合うスポットはありません。</p>}
+      {spots.length ? <div className="admin-table-scroll" role="region" aria-label="スポット一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table admin-spots-table"><thead><tr><th scope="col">スポット</th><th scope="col">体験カテゴリ</th><th scope="col">状態</th><th scope="col">訪問 / 人数 / 掲載</th><th scope="col">クーポン利用</th><th scope="col">操作</th></tr></thead><tbody>{spots.map(spot => <tr key={spot.id}><th scope="row"><div className="admin-spot-cell"><img src={spot.image} alt="" loading="lazy" /><span>{spot.name}<small>{spot.category} · {sourceLabel[spot.source]}</small><GiftBadge available={spot.hasGift} /></span></div></th><td><div className="admin-tags">{EXPERIENCE_CATEGORIES.filter(c => spotSupportsExperienceCategory(spot, c.id)).map(c => <span key={c.id}>{c.label}</span>)}</div></td><td><span className={`admin-badge ${spot.active ? 'is-active' : ''}`}>{spot.active ? '公開中' : '公開停止'}</span></td><td>{spot.visitCount}件 / {spot.visitorCount}人 / {spot.brochureCount}冊</td><td>{spot.giftClaimCount}件</td><td><button className="button button-outline" aria-label={`${spot.name}を編集`} onClick={() => select(spot)}><PencilLine aria-hidden="true" />編集</button></td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件に合うスポットはありません。</p>}
     </section>}
-    <p className="admin-muted">訪問はCSV由来の履歴、プレゼント受取は利用者の確認操作による申告件数です。件数は提供・デモデータの合計です。新しく登録したスポットは、利用者がパンフレットを再生成すると候補に加わります。</p>
+    <p className="admin-muted">訪問はCSV由来の履歴、クーポン利用は利用者の確認操作による申告件数です。件数は提供・デモデータの合計です。新しく登録したスポットは、利用者がパンフレットを再生成すると候補に加わります。</p>
   </>;
 }
 
@@ -240,7 +240,7 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
           {photo && <button type="button" className="button" onClick={() => { setPhoto(null); if (fileRef.current) fileRef.current.value = ''; }}>選択した写真を取り消す</button>}
         </div></div>
         <label className="admin-publish"><input type="checkbox" checked={form.active} onChange={event => update('active', event.target.checked)} /><span>公開する<small>オフにすると新規・再生成の候補から除外します。既存の掲載は残ります。</small></span></label>
-        <label className="admin-publish"><input type="checkbox" checked={Boolean(form.hasGift)} onChange={event => update('hasGift', event.target.checked)} /><span>プレゼントあり<small>オンにするとスポット詳細に受取ボタンを表示します。利用者1人につき、このスポットで1回だけ受け取れます。オフにしても受取済みの履歴は残ります。</small></span></label>
+        <label className="admin-publish"><input type="checkbox" checked={Boolean(form.hasGift)} onChange={event => update('hasGift', event.target.checked)} /><span>クーポンあり<small>オンにするとスポット詳細にクーポン表示ボタンを表示します。利用者1人につき、このスポットで1回だけ使えます。オフにしても使用済みの履歴は残ります。</small></span></label>
       </fieldset>
       {error && <p className="admin-error" tabIndex={-1} ref={errorRef} role="alert">{error}</p>}
       {conflict && <section className="admin-conflict" aria-label="保存の競合を解消"><p>入力と選択した写真はこの画面に残っています。最新の保存内容と照合してから再試行できます。</p><button className="button" type="button" disabled={busy} onClick={() => void loadLatest()}>最新の保存内容を確認</button>
@@ -256,14 +256,14 @@ function GiftClaims({ scope }: { scope: DataScope }) {
   const spots = useData<{ spots: AdminSpot[] }>('/api/admin/spots');
   const { data, loading, error, reload } = useData<GiftClaimPage>(`/api/admin/gift-claims?scope=${scope}&page=${page}${spotId ? `&spotId=${encodeURIComponent(spotId)}` : ''}`);
   return <>
-    <p className="admin-description">利用者がスポット詳細でプレゼントの受け取りを確定した記録です。1利用者・1スポットにつき1件で、CSVのスタンプ履歴には加算しません。実際の位置や現地訪問を検証するものではありません。</p>
+    <p className="admin-description">利用者がスポット詳細でクーポンの「使う」を確定した記録です。表示・キャンセルだけでは計測しません。1利用者・1スポットにつき1件で、CSVのスタンプ履歴には加算しません。実際の位置や現地訪問を検証するものではありません。</p>
     <div className="admin-filters"><label>スポット<select value={spotId} onChange={event => { setSpotId(event.target.value); setPage(1); }}><option value="">すべてのスポット</option>{spots.data?.spots.map(spot => <option value={spot.id} key={spot.id}>{spot.name}</option>)}</select></label><button className="button" disabled={loading} onClick={() => { reload(); spots.reload(); }}><RefreshCw aria-hidden="true" />更新</button></div>
     {spots.error && <LoadState loading={false} error={spots.error} retry={spots.reload} />}
     <LoadState loading={loading} error={error} retry={reload} />
     {data && <>
-      <div className="admin-metrics gift-claim-metrics"><Metric label="プレゼント受取件数" value={number(data.total)} unit="件" detail="選択したデータ範囲・スポットで集計" /><Metric label="受け取った利用者" value={number(data.users)} unit="人" detail="複数スポットで受け取った同一利用者は1人" /></div>
-      <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>来訪履歴（プレゼント受取）</h2><span>{number(data.total)}件</span></div>
-        {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="プレゼント受取履歴（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">受取日時</th><th scope="col">スポット</th><th scope="col">匿名利用者ID</th><th scope="col">出所</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><td>{date(row.claimedAt)}</td><th scope="row">{row.spotName}</th><td><code className="admin-anon-id">{row.userId}</code></td><td>{sourceLabel[row.source]}</td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件での受取記録はまだありません。</p>}
+      <div className="admin-metrics gift-claim-metrics"><Metric label="クーポン利用件数" value={number(data.total)} unit="件" detail="選択したデータ範囲・スポットで集計" /><Metric label="利用した利用者" value={number(data.users)} unit="人" detail="複数スポットで利用した同一利用者は1人" /></div>
+      <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>来訪履歴（クーポン利用）</h2><span>{number(data.total)}件</span></div>
+        {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="クーポン利用履歴（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">利用日時</th><th scope="col">スポット</th><th scope="col">匿名利用者ID</th><th scope="col">出所</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><td>{date(row.claimedAt)}</td><th scope="row">{row.spotName}</th><td><code className="admin-anon-id">{row.userId}</code></td><td>{sourceLabel[row.source]}</td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件での利用記録はまだありません。</p>}
         <div className="admin-pagination"><span role="status">{data.page} / {Math.max(1, Math.ceil(data.total / data.pageSize))}ページ</span><button className="button" disabled={data.page <= 1 || loading} onClick={() => setPage(data.page - 1)}><ChevronLeft aria-hidden="true" />前へ</button><button className="button" disabled={data.page * data.pageSize >= data.total || loading} onClick={() => setPage(data.page + 1)}>次へ<ChevronRight aria-hidden="true" /></button></div>
       </section>
     </>}

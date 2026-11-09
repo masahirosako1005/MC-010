@@ -26,3 +26,7 @@ Universal execution safetyは「Run target-controlled builds, tests ... only ins
 
 通常の製品検証・独立レビュー・残存リスクは `docs/security.md` と `docs/verification.md` に別記する。
 
+最終統合の対象はコア実装 `19e589f` と取込/UI修正 `8cb8b25`・`7f9d1de`。資料のソースレビューは上記状態を維持し、通常の46件・PC/スマホ8件の製品テスト成功によって `incomplete` を `complete` へ変更しない。正式なcoverage ledgerや6段階成果物を作成・検証したとは主張しない。
+
+通常の独立コードレビューで見つかった失敗写真のライフサイクル保持、履歴なし画面の通信失敗通知、資料の環境名露出は `b9ff878` と最終資料で対応。これらの製品修正・回帰検証も正式full auditの代用ではない。
+

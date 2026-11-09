@@ -24,3 +24,12 @@ QA担当: 独立したセキュリティレビューと検証。修正はメイ�
 
 `.agents/skills` に固定版を同梱。Superpowersの完了前検証・原因調査と、UI UX Pro MaxのWeb/React向けガイドを使用する。承認済みデザインと明示指示を一般例より優先する。Cloudflareのfull auditはOS強制sandbox要件を満たす場合だけ完了とし、ソース監査・通常製品テストと区別する。vendorは直接改変せず、更新時は公式SHA・inventoryを更新して検証する。出所・再現・例外は `docs/skills.md`。
 
+## 完了前の確認
+
+- Node 26で `npm run check`、`npm run build`、`npm audit`、`node scripts/skill-inventory.mjs`。
+- 専用PostgreSQL DBを `TEST_DATABASE_URL` に指定して `npm test`。DBテストがskipの場合は統合合格としない。
+- 専用DB・画像保存先でアプリを起動し、`E2E_BASE_URL` を指定して `npm run test:e2e`。デモ利用者の編集が変わるため、利用中DBを安易にテストへ流用しない。
+- CSV取込は読み取り専用の元ファイルから別の空DBで再現。件数・冪等性・履歴なしを `npm run data:verify` で確認。
+- 画面とPNGを目視確認し、編集UI除外、PC/スマホ、写真保存失敗からの再試行を確認。READMEと `docs/verification.md` を更新する。
+- commit前にステージ内容・ファイル一覧を確認。秘密、元CSV、ユーザー写真、ローカルDB、ツール実体を含めない。ユーザー所有の削除を復元しない。
+

@@ -19,8 +19,8 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 }
 const when = (value: string) => new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-export function SpotDetailDialog({ spot, photoUrl, comment, canClaim, onClose }: {
-  spot: Spot; photoUrl?: string | null; comment?: string; canClaim: boolean; onClose: () => void;
+export function SpotDetailDialog({ spot, photoUrl, comment, canClaim, readOnly = false, onClose }: {
+  spot: Spot; photoUrl?: string | null; comment?: string; canClaim: boolean; readOnly?: boolean; onClose: () => void;
 }) {
   const [detail, setDetail] = useState<SpotDetail | null>(null), [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false), [confirm, setConfirm] = useState(false), [error, setError] = useState('');
@@ -29,13 +29,14 @@ export function SpotDetailDialog({ spot, photoUrl, comment, canClaim, onClose }:
   const dialog = useRef<HTMLElement>(null), cancel = useRef<HTMLButtonElement>(null), heading = useRef<HTMLHeadingElement>(null);
   const state = useRef({ busy, confirm, onClose }); state.current = { busy, confirm, onClose };
   useEffect(() => {
+    if (readOnly) { setDetail({ spot, giftClaim: null }); setLoading(false); return; }
     const controller = new AbortController(); setLoading(true); setError('');
     request<SpotDetail>(`/api/spots/${encodeURIComponent(spot.id)}/detail`, { signal: controller.signal })
       .then(value => { if (!controller.signal.aborted) setDetail(value); })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '詳細を読み込めませんでした。'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [spot.id, version]);
+  }, [spot, version, readOnly]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const controls = () => [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),[tabindex="0"]') ?? [])].filter(node => node.offsetParent !== null);
@@ -86,7 +87,7 @@ export function SpotDetailDialog({ spot, photoUrl, comment, canClaim, onClose }:
         <div className="spot-detail-actions"><button ref={cancel} type="button" className="button" disabled={busy} onClick={() => { setConfirm(false); setError(''); }}>キャンセル</button><button type="button" className="button button-primary" aria-label="クーポンを使う" disabled={busy || !couponCode} onClick={() => void claim()}>{busy ? <><LoaderCircle className="spin" aria-hidden="true" />記録中</> : '使う'}</button></div>
       </> : <>
         <p className="eyebrow">スポット詳細</p><h2 ref={heading} tabIndex={-1} id="spot-detail-title">{current.name}</h2>
-        <GiftBadge available={current.hasGift} />
+        <GiftBadge available={canClaim && current.hasGift} />
         <img className="spot-detail-image" src={photoUrl || current.image} alt={`${current.name}の写真`} />
         <p className="spot-detail-description">{current.description}</p>
         <dl className="spot-detail-facts"><div><dt>分類</dt><dd>{current.category}</dd></div><div><dt>楽しみ方</dt><dd>{EXPERIENCE_CATEGORIES.filter(c => spotSupportsExperienceCategory(current, c.id)).map(c => c.label).join('・') || '—'}</dd></div><div><dt>おすすめの同行者</dt><dd>{current.companionTags.join('・')}</dd></div></dl>

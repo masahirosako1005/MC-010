@@ -14,6 +14,7 @@ import { ensureBrochure, getSessionData, getSpots, regenerateBrochure, saveBroch
 import { creationSchema, loginSchema, regenerationSchema, saveSchema, uuidSchema } from './validation.js';
 import { auditSpot, createAdminRouter } from './admin.js';
 import { createGiftAdminRouter, createGiftRouter } from './gifts.js';
+import { createOwnerShareRouter, createPublicShareRouter, createShareAdminRouter } from './sharing.js';
 
 declare global { namespace Express { interface Request { userId?: string; accountRole?: 'visitor' | 'town_admin' } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
@@ -77,6 +78,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
     res.cookie('kondo_session',token,{httpOnly:true,sameSite:'strict',secure:false,maxAge:12*60*60*1000,path:'/'});
     res.json(await getSessionData(db,userId));
   }));
+  app.use('/api',createPublicShareRouter(db,root));
   app.use('/api',(req,res,next)=>{
     if(req.path==='/health')return next();
     const token=req.cookies.kondo_session;
@@ -87,8 +89,10 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   app.get('/api/session',route(async(req,res)=>res.json(await getSessionData(db,req.userId!))));
   app.post('/api/logout',route(async(req,res)=>{await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(req.cookies.kondo_session)]);res.clearCookie('kondo_session',{path:'/',sameSite:'strict',httpOnly:true});res.json({ok:true});}));
   app.use('/api/admin',createGiftAdminRouter(db));
+  app.use('/api/admin',createShareAdminRouter(db));
   app.use('/api/admin',createAdminRouter(db));
   app.use('/api',createGiftRouter(db));
+  app.use('/api',createOwnerShareRouter(db));
   app.post('/api/admin/spots/:id/photo',limits.single('photo'),route(async(req,res)=>{
     // createAdminRouterの共通middlewareを通過した町アカウントだけが到達する。
     const id=uuidSchema.parse(req.params.id),revision=Number(req.get('If-Match'));

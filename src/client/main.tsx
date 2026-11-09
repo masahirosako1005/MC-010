@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { SharedPage } from './SharedPage';
 import './styles.css';
 
 class AppBoundary extends Component<{children:ReactNode},{failed:boolean}> {
@@ -11,6 +12,6 @@ class AppBoundary extends Component<{children:ReactNode},{failed:boolean}> {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppBoundary><App /></AppBoundary>
+    <AppBoundary>{window.location.pathname === '/share' || window.location.pathname.startsWith('/share/') ? <SharedPage /> : <App />}</AppBoundary>
   </StrictMode>,
 );

@@ -49,6 +49,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TripSettingsScreen } from './TripSettingsScreen';
 import { AdminDashboard } from './AdminDashboard';
 import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
+import { SharePanel } from './SharePanel';
 
 type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -553,12 +554,6 @@ function BrochureEditor(props: EditorProps) {
   const detailItem = draft.items.find(item => item.spotId === detailSpotId);
   const detailSpot = detailSpotId ? spotsById.get(detailSpotId) : undefined;
   const selected = useMemo(() => draft.items.filter((item) => item.selected).sort((a, b) => a.order - b.order), [draft.items]);
-  const visitedItems = useMemo(() => draft.items
-    .filter((item) => item.kind === 'visited' && item.isMemory)
-    .sort((a, b) => a.order - b.order), [draft.items]);
-  const heroItem = selected[0];
-  const heroSpot = heroItem ? spotsById.get(heroItem.spotId) : undefined;
-  const heroImage = heroItem ? pendingPhotos[heroItem.id]?.preview || heroItem.photoUrl || heroSpot?.image : undefined;
   const currentInvitation = useMemo(() => currentInvitationText(draft, spotsById), [draft, spotsById]);
 
   useEffect(() => {
@@ -739,7 +734,7 @@ function BrochureEditor(props: EditorProps) {
         <header className="preview-toolbar" data-testid="html-preview-toolbar">
           <div className="preview-toolbar-title">
             <Eye aria-hidden="true" />
-            <span><strong>HTMLプレビュー</strong><small>相手に見える内容</small></span>
+            <span><strong>HTMLプレビュー</strong><small>作成者としての表示</small></span>
           </div>
           <button ref={previewCloseRef} className="button button-outline" onClick={closeHtmlPreview}>
             <ChevronLeft aria-hidden="true" />編集画面へ戻る
@@ -768,65 +763,17 @@ function BrochureEditor(props: EditorProps) {
         </div>
         <button className="icon-button logout-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
       </header>}
+      {previewOpen && <SharePanel canPublish={(saveState === 'clean' || saveState === 'saved') && !photoBusyId && Object.keys(pendingPhotos).length === 0} />}
       {!previewOpen && <div className={`status-strip state-${saveState}`} role="status" aria-live="polite">
         {saveState === 'error' ? <CircleAlert aria-hidden="true" /> : saveState === 'dirty' ? <PencilLine aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
         <span>{statusMessage || '体験カテゴリ・写真・コメント・訪問順をパンフレット上で編集できます。'}</span>
       </div>}
       <main className="editor-main">
-        <article id="brochure-top" ref={brochureRef} data-testid="brochure" className={`brochure template-${draft.template}`}>
-          <BrochureHeader brochure={draft} heroImage={heroImage} />
-          <section className="pickup-section" aria-labelledby="pickup-title">
-            <div className="section-heading pickup-heading">
-              <Sparkles aria-hidden="true" />
-              <div><span>NEXT TRIP</span><h2 id="pickup-title">5つの楽しみ</h2></div>
-              <button data-export-exclude="true" className="button mini-action" onClick={() => setSettingsOpen(true)}><RefreshCw aria-hidden="true" />まとめて選び直す</button>
-            </div>
-            <p className="pickup-intro">場所からではなく、次の旅で楽しみたいことからおすすめを選びました。</p>
-            <div className="category-grid" role="list" aria-label="体験カテゴリ別のおすすめ">
-              {EXPERIENCE_CATEGORIES.map((definition) => {
-                const item = selected.find((entry) => entry.pickupCategory === definition.id);
-                const spot = item ? spotsById.get(item.spotId) : undefined;
-                return item && spot ? (
-                  <CategoryPickupCard
-                    key={definition.id}
-                    category={definition.id}
-                    item={item}
-                    spot={spot}
-                    onComment={(comment) => updateItem(item.id, (entry) => ({ ...entry, comment }))}
-                    onReplace={() => setReplaceItemId(item.id)}
-                    onPhoto={(file) => void uploadPhoto(item, file)}
-                    onRemovePhoto={() => void removePhoto(item)}
-                    busy={photoBusyId === item.id}
-                    error={photoError[item.id]}
-                    pendingPhoto={pendingPhotos[item.id]}
-                    onOpen={() => setDetailSpotId(spot.id)}
-                  />
-                ) : <EmptyCategoryCard key={definition.id} category={definition.id} onOpenSettings={() => setSettingsOpen(true)} />;
-              })}
-            </div>
-          </section>
-          <div className="brochure-support-grid">
-            <ModelPlan selected={selected} spotsById={spotsById} onMove={moveItem} duration={draft.duration} onOpen={setDetailSpotId} />
-            <MemoryPanel
-              visitedItems={visitedItems}
-              visits={session.visits}
-              survey={session.survey}
-              spotsById={spotsById}
-              onComment={(id, comment) => updateItem(id, (item) => ({ ...item, comment }))}
-              onPhoto={uploadPhoto}
-              onRemovePhoto={removePhoto}
-              busyId={photoBusyId}
-              photoError={photoError}
-              pendingPhotos={pendingPhotos}
-              onOpen={setDetailSpotId}
-            />
-            <InvitationPanel brochure={draft} invitation={currentInvitation} selected={selected} spotsById={spotsById} onCopy={copyInvitation} />
-          </div>
-          <footer className="brochure-footer">
-            <span><Sparkles aria-hidden="true" /> 今度はあなたと</span>
-            <small>ローカルデモ専用・スポットと画像はデモ用イメージ・写真や内容を外部へ送信しません</small>
-          </footer>
-        </article>
+        <BrochurePaper paperRef={brochureRef} draft={draft} spots={session.spots} visits={session.visits} survey={session.survey}
+          pendingPhotos={pendingPhotos} photoBusyId={photoBusyId} photoError={photoError}
+          onComment={(id, comment) => updateItem(id, item => ({ ...item, comment }))}
+          onReplace={setReplaceItemId} onPhoto={uploadPhoto} onRemovePhoto={removePhoto}
+          onMove={moveItem} onOpen={setDetailSpotId} onOpenSettings={() => setSettingsOpen(true)} onCopy={copyInvitation} />
       </main>
       {!previewOpen && <div className="mobile-share-bar" data-export-exclude="true">
         <button className="button save-button" onClick={() => void onSave()} disabled={saveState === 'saving' || saveState === 'clean' || saveState === 'saved'}><Save aria-hidden="true" />{saveLabel}</button>
@@ -853,8 +800,89 @@ function BrochureEditor(props: EditorProps) {
           }}
         />
       )}
-      {detailSpot && <SpotDetailDialog key={detailSpot.id} spot={detailSpot} photoUrl={detailItem ? pendingPhotos[detailItem.id]?.preview || detailItem.photoUrl : null} comment={detailItem?.comment} canClaim={!previewOpen} onClose={() => setDetailSpotId(null)} />}
+      {detailSpot && <SpotDetailDialog key={detailSpot.id} spot={detailSpot} photoUrl={detailItem ? pendingPhotos[detailItem.id]?.preview || detailItem.photoUrl : null} comment={detailItem?.comment} canClaim={true} onClose={() => setDetailSpotId(null)} />}
     </div>
+  );
+}
+
+
+interface PaperProps {
+  draft: Brochure; spots: Spot[]; visits: Array<Pick<Visit, 'spotId' | 'visitedAt' | 'stamp'>>; survey: SessionData['survey'];
+  paperRef?: import('react').Ref<HTMLElement>;
+  pendingPhotos?: Record<string, PendingPhoto>; photoBusyId?: string | null; photoError?: Record<string, string>;
+  onOpen: (spotId: string) => void;
+  onComment?: (id: string, comment: string) => void;
+  onReplace?: (itemId: string) => void;
+  onPhoto?: (item: BrochureItem, file: File) => Promise<void>;
+  onRemovePhoto?: (item: BrochureItem) => Promise<void>;
+  onMove?: (item: BrochureItem, direction: -1 | 1) => void;
+  onOpenSettings?: () => void;
+  onCopy?: () => Promise<void>;
+}
+export function BrochurePaper({ draft, spots, visits, survey, paperRef, pendingPhotos = {}, photoBusyId = null, photoError = {},
+  onOpen, onComment = () => {}, onReplace = () => {}, onPhoto: uploadPhoto = async () => {},
+  onRemovePhoto: removePhoto = async () => {}, onMove = () => {}, onOpenSettings = () => {}, onCopy = async () => {} }: PaperProps) {
+  const spotsById = new Map(spots.map(spot => [spot.id, spot]));
+  const selected = draft.items.filter(item => item.selected).sort((a, b) => a.order - b.order);
+  const visitedItems = draft.items.filter(item => item.kind === 'visited' && item.isMemory).sort((a, b) => a.order - b.order);
+  const heroItem = selected[0], heroSpot = heroItem ? spotsById.get(heroItem.spotId) : undefined;
+  const heroImage = heroItem ? pendingPhotos[heroItem.id]?.preview || heroItem.photoUrl || heroSpot?.image : undefined;
+  const currentInvitation = currentInvitationText(draft, spotsById);
+  return (
+        <article id="brochure-top" ref={paperRef} data-testid="brochure" className={`brochure template-${draft.template}`}>
+          <BrochureHeader brochure={draft} heroImage={heroImage} />
+          <section className="pickup-section" aria-labelledby="pickup-title">
+            <div className="section-heading pickup-heading">
+              <Sparkles aria-hidden="true" />
+              <div><span>NEXT TRIP</span><h2 id="pickup-title">5つの楽しみ</h2></div>
+              <button data-export-exclude="true" className="button mini-action" onClick={onOpenSettings}><RefreshCw aria-hidden="true" />まとめて選び直す</button>
+            </div>
+            <p className="pickup-intro">場所からではなく、次の旅で楽しみたいことからおすすめを選びました。</p>
+            <div className="category-grid" role="list" aria-label="体験カテゴリ別のおすすめ">
+              {EXPERIENCE_CATEGORIES.map((definition) => {
+                const item = selected.find((entry) => entry.pickupCategory === definition.id);
+                const spot = item ? spotsById.get(item.spotId) : undefined;
+                return item && spot ? (
+                  <CategoryPickupCard
+                    key={definition.id}
+                    category={definition.id}
+                    item={item}
+                    spot={spot}
+                    onComment={(comment) => onComment(item.id, comment)}
+                    onReplace={() => onReplace(item.id)}
+                    onPhoto={(file) => void uploadPhoto(item, file)}
+                    onRemovePhoto={() => void removePhoto(item)}
+                    busy={photoBusyId === item.id}
+                    error={photoError[item.id]}
+                    pendingPhoto={pendingPhotos[item.id]}
+                    onOpen={() => onOpen(spot.id)}
+                  />
+                ) : <EmptyCategoryCard key={definition.id} category={definition.id} onOpenSettings={onOpenSettings} />;
+              })}
+            </div>
+          </section>
+          <div className="brochure-support-grid">
+            <ModelPlan selected={selected} spotsById={spotsById} onMove={onMove} duration={draft.duration} onOpen={onOpen} />
+            <MemoryPanel
+              visitedItems={visitedItems}
+              visits={visits}
+              survey={survey}
+              spotsById={spotsById}
+              onComment={onComment}
+              onPhoto={uploadPhoto}
+              onRemovePhoto={removePhoto}
+              busyId={photoBusyId}
+              photoError={photoError}
+              pendingPhotos={pendingPhotos}
+              onOpen={onOpen}
+            />
+            <InvitationPanel brochure={draft} invitation={currentInvitation} selected={selected} spotsById={spotsById} onCopy={onCopy} />
+          </div>
+          <footer className="brochure-footer">
+            <span><Sparkles aria-hidden="true" /> 今度はあなたと</span>
+            <small>ローカルデモ専用・スポットと画像はデモ用イメージ</small>
+          </footer>
+        </article>
   );
 }
 
@@ -980,7 +1008,7 @@ function ModelPlan({ selected, spotsById, onMove, duration, onOpen }: {
 
 interface MemoryProps {
   visitedItems: BrochureItem[];
-  visits: Visit[];
+  visits: Array<Pick<Visit, 'spotId' | 'visitedAt' | 'stamp'>>;
   survey: SessionData['survey'];
   spotsById: Map<string, Spot>;
   onComment: (id: string, comment: string) => void;

@@ -94,4 +94,25 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 | POST /api/spots/:id/coupon | 空JSON `{}`。利用者専用、本人の冊子所属・公開・提供状態を確認。couponCode（文字列）とgiftClaim=null。既に使用済みならcouponCode=nullと既存giftClaim。コード発行は利用件数へ加算しない。 |
 | POST /api/spots/:id/gift-claim | 空JSON `{}`。既存の本人・提供状態・一度限りの検証に加え、発行済みコードの存在を確認する。未発行409 coupon_not_displayed。既存履歴の再送は発行状態にかかわらず同じ履歴を返す。 |
 
-画面では「クーポンを表示する」で新APIを呼び、確認画面の「使う」だけで利用用APIを呼ぶ。コードは認証用の秘密や引換用APIトークンとしては扱わず、すべての操作はセッション本人を照合する。コードだけで利用者を指定するAPIはない。詳細GETは読み取りのみ、プレビューはコード発行APIを呼ばない。コード発行もcatalog共有lockで管理変更と直列化する。管理履歴の件数・人数は従来の履歴表だけを集計し、表示済みの未使用コードを含めない。バックアップには新表も含める。
+画面では「クーポンを表示する」で新APIを呼び、確認画面の「使う」だけで利用用APIを呼ぶ。コードは認証用の秘密や引換用APIトークンとしては扱わず、すべての操作はセッション本人を照合する。コードだけで利用者を指定するAPIはない。詳細GETは読み取りのみ。作成者としてプレビューした場合も、明示的なクーポン表示操作でのみ発行する。コード発行もcatalog共有lockで管理変更と直列化する。管理履歴の件数・人数は従来の履歴表だけを集計し、表示済みの未使用コードを含めない。バックアップには新表も含める。
+
+## 共有URL（006_brochure_shares.sql）
+
+`brochure_shares`: id、brochure_id UNIQUE、token（32byte乱数のhex64文字、UNIQUE）、active、view_count（非負整数）、created_at、last_viewed_at。`share_page_views`: share_id + request_id（UUID）の複合主キーとDB時刻のviewed_at。URLは本人へだけ返し、ログ/町側一覧へ出さない。停止・再開してもトークンと件数を維持する。バックアップには両表を含める。
+
+| メソッド・パス | 契約 |
+|---|---|
+| GET /api/brochure/share | 認証済み作成者。share（なければnull）。path/active/viewCount/createdAt/lastViewedAt。参照だけでは発行しない。 |
+| POST /api/brochure/share | 空JSON。本人の保存済み冊子にURLを発行/再開。冊子UNIQUEのupsertで同時要求・再送でも同じURL。 |
+| DELETE /api/brochure/share | 空JSON。本人の公開を停止しshareを返す。データと件数は保持。 |
+| GET /api/shared/:token | 公開中URLのみ。brochureはselectedまたはvisitedかつisMemoryのitemだけ、spotsもその集合だけ。写真URLを書換え、viewerIsOwnerをセッション照合する。非所有者はhasGift=false。アカウント情報・全訪問・survey・クーポン状態/コードは返さない。GETで計測しない。 |
+| GET /api/shared/:token/photos/:id | 公開URLと現在の対象itemを照合した個人写真。IDだけでは取得できず、非掲載itemは404。 |
+| GET /api/shared/:token/spot-photos/:id | 同じ共有範囲の町側公式写真。 |
+| POST /api/shared/:token/views | requestId（UUID）のみ。公開中share行をロックし、表示UUIDをINSERT ON CONFLICT DO NOTHING、新規時だけview_countとlast_viewed_atを更新。再送200、無効/停止URL404。 |
+| GET /api/admin/shares | 町専用。scope=all/organizer/fixture、page。25件。匿名UUID/出所/公開状態/表示回数/発行・最終表示日時。発行数・公開数・累計表示回数と一覧は同一read-only snapshot。生URLは返さない。 |
+
+公開ルーターは既存のHost・Origin・JSON/cookie処理後、必須認証middlewareの前へ置く。その他は認証後。全APIはno-store。公開本文はrepeatable-read read-only transactionで取得する。画像実体はUPLOAD_DIRのUUID.webpのまま、DB参照と固定形式のstorage_keyを照合して読み出す。クーポン表示/利用は共有トークンを受け付けず、従来のセッション所有者照合を維持する。
+
+公開本文のmemoryVisitsは選択した訪問済み思い出の最新1件ずつに限定し、spotId/visitedAt/stampのみを返す。紙面の訪問日時とスタンプ表示を維持し、全履歴や回答本文は返さない。
+
+SPAは本文表示後にページごとのUUIDで計測し、記録失敗時は同じUUIDで1回再試行する。リロードは新UUID、作者のプレビューは計測APIを呼ばない。JS無効・通信失敗で記録されない場合や、閲覧者によるリクエストの作成はあり得るため、実人数やボットを排除した厳密な人間閲覧の指標ではない。閲覧者ID・IP・User-Agentは保存しない。

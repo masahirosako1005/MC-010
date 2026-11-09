@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plus, RefreshCw, Save, X } from 'lucide-react';
+import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plus, RefreshCw, Save, Share2, X } from 'lucide-react';
 import { COMPANIONS, type User } from '../shared/types';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared/experience-categories';
 import { SPOT_IMAGES, THEME_TAGS, type AdminOverview, type AdminSpot, type DataScope, type RegistrationPage, type SpotInput, type GiftClaimPage } from '../shared/admin-types';
 import './admin.css';
 import { GiftBadge } from './SpotDetailDialog';
+import type { AdminSharePage } from '../shared/sharing-types';
 
 class AdminApiError extends Error {
   constructor(message: string, public code: string) { super(message); }
@@ -22,7 +23,7 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat('ja-JP', 
 const number = (value: number) => value.toLocaleString('ja-JP');
 const scopeLabel = { all: 'すべて', organizer: '提供データ', fixture: 'デモデータ' };
 const sourceLabel = { organizer: '提供データ', fixture: 'デモ', town: '町で登録' };
-type Tab = 'overview' | 'spots' | 'registrations' | 'claims';
+type Tab = 'overview' | 'spots' | 'registrations' | 'claims' | 'shares';
 
 function useData<T>(url: string) {
   const [data, setData] = useState<T | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ function LoadState({ loading, error, retry }: { loading: boolean; error: string;
 export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogout: () => Promise<void>; notice: string }) {
   const [tab, setTab] = useState<Tab>('overview'), [scope, setScope] = useState<DataScope>('all'), [dirty, setDirty] = useState(false), [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（クーポン利用）', icon: Ticket }];
+  const tabs = [{ id: 'overview' as const, label: '概況', icon: BarChart3 }, { id: 'spots' as const, label: 'スポット管理', icon: MapPin }, { id: 'registrations' as const, label: 'パンフレット登録状況', icon: ClipboardList }, { id: 'claims' as const, label: '来訪履歴（クーポン利用）', icon: Ticket }, { id: 'shares' as const, label: '共有状況', icon: Share2 }];
   useEffect(() => { titleRef.current?.focus({ preventScroll: true }); }, [tab]);
   useEffect(() => {
     if (!dirty) return;
@@ -76,6 +77,7 @@ export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogou
         {tab === 'spots' && <Spots onDirty={setDirty} onBusy={setSaving} />}
         {tab === 'registrations' && <Registrations key={scope} scope={scope} />}
         {tab === 'claims' && <GiftClaims key={scope} scope={scope} />}
+        {tab === 'shares' && <Shares key={scope} scope={scope} />}
       </main>
     </div>
   </div>;
@@ -249,6 +251,23 @@ function SpotEditor({ spot, onDirty, onBusy, onSaved, onClose }: { spot: AdminSp
       <div className="admin-editor-actions"><button className="button button-primary" type="submit" disabled={busy || (!dirty && Boolean(saved))}>{busy ? <LoaderCircle className="spin" aria-hidden="true" /> : <Save aria-hidden="true" />}{busy ? '保存中' : '保存する'}</button><button className="button" type="button" disabled={busy} onClick={onClose}>閉じる</button><span role="status" aria-live="polite">{message ? <><Check aria-hidden="true" />{message}</> : dirty ? '未保存の変更があります' : saved ? '保存済み' : '新規登録'}</span></div>
     </form>
   </section>;
+}
+
+function Shares({ scope }: { scope: DataScope }) {
+  const [page, setPage] = useState(1);
+  const { data, loading, error, reload } = useData<AdminSharePage>(`/api/admin/shares?scope=${scope}&page=${page}`);
+  return <>
+    <p className="admin-description">共有URLの発行状況と、共有ページを表示した回数です。再読み込みを含み、同じ表示記録の再送は加算しません。作者のプレビューや画像取得は対象外です。閲覧人数や現地への来訪件数ではありません。</p>
+    <div className="admin-filters"><button className="button" disabled={loading} onClick={reload}><RefreshCw aria-hidden="true" />更新</button></div>
+    <LoadState loading={loading} error={error} retry={reload} />
+    {data && <>
+      <div className="admin-metrics share-metrics"><Metric label="発行済み共有URL" value={number(data.total)} unit="件" detail="1パンフレットにつき1件" /><Metric label="公開中" value={number(data.active)} unit="件" detail="公開停止後も履歴と件数を保持" /><Metric label="共有ページ表示回数" value={number(data.totalViews)} unit="回" detail="選択したデータ範囲の累計" /></div>
+      <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>共有状況</h2><span>{number(data.total)}件</span></div>
+        {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="共有状況（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID</th><th scope="col">出所</th><th scope="col">公開状態</th><th scope="col">表示回数</th><th scope="col">URL発行日時</th><th scope="col">最終表示日時</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><th scope="row"><code className="admin-anon-id">{row.userId}</code></th><td>{sourceLabel[row.source]}</td><td><span className={`admin-badge ${row.active ? 'is-active' : ''}`}>{row.active ? '公開中' : '公開停止'}</span></td><td>{number(row.viewCount)}回</td><td>{date(row.createdAt)}</td><td>{date(row.lastViewedAt)}</td></tr>)}</tbody></table></div> : <p className="admin-empty">共有URLはまだ発行されていません。</p>}
+        <div className="admin-pagination"><span role="status">{data.page} / {Math.max(1, Math.ceil(data.total / data.pageSize))}ページ</span><button className="button" disabled={data.page <= 1 || loading} onClick={() => setPage(data.page - 1)}><ChevronLeft aria-hidden="true" />前へ</button><button className="button" disabled={data.page * data.pageSize >= data.total || loading} onClick={() => setPage(data.page + 1)}>次へ<ChevronRight aria-hidden="true" /></button></div>
+      </section>
+    </>}
+  </>;
 }
 
 function GiftClaims({ scope }: { scope: DataScope }) {

@@ -113,7 +113,7 @@ Windows PowerShell 5.1では、実行ポリシーによる停止と、UTF-8 BOM�
 
 - Node 26.13.0からpnpm 11.25.0を起動し、`pnpm install --lockfile-only --offline --frozen-lockfile --ignore-scripts` 相当が終了コード0。実行前後のlockfile SHA-256は `704F01F3BF9E01413969B3F4E67468FD5634B5A879F7F0CA1282206552128EDE` で不変。
 - Node 26.13.0／pnpm 11.25.0で `pnpm run build` 相当が終了コード0。server TypeScriptとVite 8.3.6のSPA（1,583 modules）を生成し、実行前後でlockfileは不変。
-- build後、共有ワークスペースの併存作業により3001番の対象プロセスが切り替わったため、旧PIDを重ねて停止していない。新PIDはこのworkspaceのNode 26.13.0と `dist/node/server/index.js`、メインウィンドウなしで起動していることを再同定。`GET /` と `GET /api/health` は200。
+- 最終build後、3001番の対象プロセスをこのworkspaceのNode 26.13.0と `dist/node/server/index.js` であることまで再同定し、そのPIDだけを停止。プロジェクト同梱Node 26.13.0から `--env-file-if-exists=.env dist/node/server/index.js` をHiddenで再起動した。PostgreSQLと別アプリは停止せず、`GET /` と `GET /api/health` は200。
 - AGENTS.mdの明示依頼限定ルールに従い、この移行差分に対する `pnpm run check` / `pnpm test` / `pnpm run test:e2e` / `pnpm audit` / data verification / skill inventoryと独立レビューは実施していない。
 
 ## 町側管理画面の反映（2026-11-09）

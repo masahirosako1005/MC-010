@@ -121,6 +121,6 @@ Run `git status --short`, `git diff --check`, inspect the staged file list, and 
 
 Commit message: `chore: migrate dependency management to pnpm`
 
-- [ ] **Step 5: Report the verification boundary**
+- [x] **Step 5: Report the verification boundary**
 
 Report build, restart, HTTP result, and commit hash. Explicitly state that tests, check, audit, E2E, data verification, and independent review were not run.

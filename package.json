@@ -19,6 +19,7 @@
     "db:seed": "tsx --env-file-if-exists=.env src/server/db-cli.ts seed",
     "data:inspect": "tsx src/server/import-cli.ts inspect",
     "data:import": "tsx --env-file-if-exists=.env src/server/import-cli.ts import",
+    "data:import-additions": "tsx --env-file-if-exists=.env src/server/additional-spots-cli.ts",
     "data:verify": "node --env-file-if-exists=.env scripts/verify-sample.mjs"
   },
   "dependencies": {

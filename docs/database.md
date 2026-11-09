@@ -8,7 +8,7 @@ PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_bro
 |---|---|
 |users|匿名利用者。external_id UNIQUE、正規化email UNIQUE nullable、fixture/organizerを分離。|
 |auth_aliases|明示的デモ用仮メール→利用者。マスクメールを推測しない。|
-|spots|7架空スポット、タグ・紹介・ローカル画像参照。実在位置情報なし。|
+|spots|元の7架空スポット＋専用CSVで追加するデモ10件。タグ・紹介・ローカル画像参照。実在位置情報なし。|
 |visits|利用者→スポット、実訪問日時・スタンプ。source_key UNIQUEで冪等。|
 |surveys|利用者全体の参加後アンケート。スポットに結合しない。|
 |brochures|user_id UNIQUE。同行者・日数・過ごし方・テンプレ・生成文・revision。|

@@ -223,6 +223,15 @@ URLは現在のローカルアプリ向け。インターネット/LAN公開は�
 - 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-DO9kJDg1.js`。`GET /api/health` は200 / `{"ok":true}`。
 - AGENTS.mdに従い追加のcheck、単体/API統合、E2E、audit、skill inventory、画面目視、独立レビューは未実施。相手別招待・公開停止後の再開・Clipboard失敗・未保存時の制御、概要/推薦理由の長文・コメント保持、2操作バー・クーポン右寄せ・共有の所有者分離は今後の対象。旧招待文コピー/PNG保存を前提にする既存E2Eは今回更新・実行していない。過去の57件/16件を本差分の合格へ流用しない。
 
+## 追加デモスポット10件（2026-11-09）
+
+- 登録前に追加分だけのCSV `data/additions/2026-11-09-additional-demo-spots.csv` を作成。バッチ・追加デモ表記・fixture出所・外部ID・画像注記で元データと区別した。
+- Node 26.13.0 / pnpm 11.25.0でbuildが終了コード0。server TypeScriptとVite SPA（1,580 modules）を生成。追加依存・DB schema・API契約・生成規則の変更なし。
+- `data:import-additions` の実行結果は `inserted=10`、`skipped=0`、`totalSpots=17`。登録処理が出力した公開中候補数は、みる7・あそぶ13・たべる4・いやす7・かう6。カテゴリ間で重複する候補を含み、利用者の履歴による絞り込み前の件数。既存外部IDへの再投入はコード上DO NOTHINGとしたが、再投入の動作検証は未実施。
+- 3001番のPID 34380をこのworkspaceのNode実体・server entrypoint・待受ポートで同定し、このPIDだけを停止。既存env-fileでHidden起動（PID 24740）。DBと別アプリは停止していない。
+- 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-DO9kJDg1.js`。`GET /api/health` は200 / `{"ok":true}`。
+- AGENTS.mdに従い追加のcheck、単体/API統合、E2E、audit、skill inventory、画面目視、独立レビューは未実施。追加スポットの初回生成・再生成・保存復元、同行者別の選出、再投入・競合・不正CSV時のrollbackは未検証。過去の合格範囲へ本差分を含めない。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

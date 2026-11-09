@@ -34,6 +34,8 @@
 
 カテゴリ、説明、同行者/体験タグ、写真、位置、出典は未提供。`src/server/catalog.ts` にレビューしたデモ用補足を分離し、同梱の生成イラストと表示する。実在施設の情報・移動時間・座標を付与していない。
 
+2026-11-09の追加依頼では、元の7件とは別に候補用の架空スポット10件を先に専用CSVへ作成した。`data/additions/2026-11-09-additional-demo-spots.csv` を `pnpm run data:import-additions` で登録する。出所は `fixture`、外部IDは `additional-demo-20261109-*` とし、元CSV・元のmaster・訪問履歴へ追加しない。食事・買い物・屋内体験・子ども向け・海遊び・休憩を補う。再投入は同一外部IDをスキップし、既存の町側編集を上書きしない。内容・画像の扱い・再生成への反映は [追加スポット資料](additional-spots.md) を参照。
+
 ## 実行と冪等性
 
 ```powershell

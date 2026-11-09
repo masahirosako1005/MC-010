@@ -96,6 +96,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-db.ps1 -Acti
 
 ## 提供CSVの取り込み
 
+候補を増やす追加デモ10件は、元データとは別の [追加CSV](data/additions/2026-11-09-additional-demo-spots.csv) を `pnpm run data:import-additions` で登録します。既存7件と合わせて17件。食事・買い物・屋内体験などを補い、保存済みしおりは「旅の条件を変更」から再生成すると追加候補を取得します。[内容・再投入方法](docs/additional-spots.md) を参照してください。
+
 元データは読み取り専用です。リポジトリへコピーしません。
 
 ```powershell

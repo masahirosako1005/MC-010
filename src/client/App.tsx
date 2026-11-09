@@ -10,6 +10,7 @@ import {
   Download,
   Eye,
   Image as ImageIcon,
+  Leaf,
   LoaderCircle,
   LogOut,
   Map as MapIcon,
@@ -18,9 +19,11 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  ShoppingBag,
   Sparkles,
   Stamp,
   Trash2,
+  Utensils,
   UserRound,
   UsersRound,
   X,
@@ -35,6 +38,13 @@ import {
   type Template,
   type Visit,
 } from '../shared/types';
+import {
+  assignPickupCategories,
+  EXPERIENCE_CATEGORIES,
+  experienceCategoryLabel,
+  spotSupportsExperienceCategory,
+  type ExperienceCategory,
+} from '../shared/experience-categories';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TripSettingsScreen } from './TripSettingsScreen';
 
@@ -92,14 +102,26 @@ function brochurePayload(brochure: Brochure): SavePayload {
     duration: brochure.duration,
     tripStyle: brochure.tripStyle,
     template: brochure.template,
-    items: brochure.items.map(({ id, selected, isMemory, order, comment }) => ({
+    items: brochure.items.map(({ id, selected, isMemory, order, comment, pickupCategory }) => ({
       id,
       selected,
       isMemory,
       order,
       comment,
+      pickupCategory,
     })),
   };
+}
+
+function normalizeBrochureCategories(brochure: Brochure, spots: Spot[]): Brochure {
+  return { ...brochure, items: assignPickupCategories(brochure, spots) };
+}
+
+function categoryAssignmentsChanged(before: Brochure, after: Brochure): boolean {
+  return before.items.some((item) => {
+    const next = after.items.find((entry) => entry.id === item.id);
+    return !next || item.selected !== next.selected || item.order !== next.order || item.pickupCategory !== next.pickupCategory;
+  });
 }
 
 function payloadSignature(brochure: Brochure) {
@@ -192,8 +214,11 @@ export function App() {
       return;
     }
     if (data.brochure) {
-      setDraft(data.brochure);
-      setSaveState('clean');
+      const normalized = normalizeBrochureCategories(data.brochure, data.spots);
+      const migrated = categoryAssignmentsChanged(data.brochure, normalized);
+      setDraft(normalized);
+      setSaveState(migrated ? 'dirty' : 'clean');
+      if (migrated) setStatusMessage('保存済みの内容を5つの体験カテゴリへ整理しました。「変更を保存」で確定できます。');
       setScreen('brochure');
       return;
     }
@@ -259,8 +284,9 @@ export function App() {
           ? '送信中に加えた変更は画面に残っています。もう一度「変更を保存」を押してください。'
           : '変更と写真を保存しました。再ログインしても復元されます。');
       } else {
-        draftRef.current = result.brochure;
-        setDraft(result.brochure);
+        const normalized = session ? normalizeBrochureCategories(result.brochure, session.spots) : result.brochure;
+        draftRef.current = normalized;
+        setDraft(normalized);
         setSaveState('saved');
         setStatusMessage('変更を保存しました。再ログインしても復元されます。');
       }
@@ -270,7 +296,7 @@ export function App() {
         ? '別の画面で更新されています。入力は残っています。内容を控えてから再読み込みしてください。'
         : formatError(error));
     }
-  }, [draft, saveState]);
+  }, [draft, saveState, session]);
 
   const logout = useCallback(async () => {
     if (saveState === 'saving') return;
@@ -294,9 +320,10 @@ export function App() {
     onGenerate={async(settings) => {
       setStatusMessage('');
       const result = await withGeneratingScreenDuration(api<{ brochure: Brochure }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) }));
-      draftRef.current = result.brochure;
-      setDraft(result.brochure);
-      setSession(current => current ? { ...current, brochure: result.brochure } : current);
+      const normalized = normalizeBrochureCategories(result.brochure, session.spots);
+      draftRef.current = normalized;
+      setDraft(normalized);
+      setSession(current => current ? { ...current, brochure: normalized } : current);
       setSaveState('saved');
       setStatusMessage('選んだ条件でパンフレットを作成して保存しました。');
       setScreen('brochure');
@@ -313,8 +340,9 @@ export function App() {
       statusMessage={statusMessage}
       onChange={markChanged}
       onReplace={(brochure, message) => {
-        draftRef.current = brochure;
-        setDraft(brochure);
+        const normalized = normalizeBrochureCategories(brochure, session.spots);
+        draftRef.current = normalized;
+        setDraft(normalized);
         setSaveState('saved');
         setStatusMessage(message);
       }}
@@ -503,7 +531,6 @@ function BrochureEditor(props: EditorProps) {
   const previewReturnY = useRef(0);
   const previewCloseRef = useRef<HTMLButtonElement>(null);
   const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
-  const [addSpotOpen, setAddSpotOpen] = useState(false);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<Record<string, string>>({});
   const pendingPhotosRef = useRef<Record<string, PendingPhoto>>({});
@@ -516,8 +543,11 @@ function BrochureEditor(props: EditorProps) {
   const spotsById = useMemo(() => new Map(session.spots.map((spot) => [spot.id, spot])), [session.spots]);
   const selected = useMemo(() => draft.items.filter((item) => item.selected).sort((a, b) => a.order - b.order), [draft.items]);
   const visitedItems = useMemo(() => draft.items
-    .filter((item) => item.kind === 'visited' && item.selected)
+    .filter((item) => item.kind === 'visited' && item.isMemory)
     .sort((a, b) => a.order - b.order), [draft.items]);
+  const heroItem = selected[0];
+  const heroSpot = heroItem ? spotsById.get(heroItem.spotId) : undefined;
+  const heroImage = heroItem ? pendingPhotos[heroItem.id]?.preview || heroItem.photoUrl || heroSpot?.image : undefined;
   const currentInvitation = useMemo(() => currentInvitationText(draft, spotsById), [draft, spotsById]);
 
   useEffect(() => {
@@ -563,40 +593,6 @@ function BrochureEditor(props: EditorProps) {
         ? { ...entry, order: other.order }
         : entry.id === other.id ? { ...entry, order: item.order } : entry),
     }));
-  }
-
-  function removeItem(itemId: string) {
-    if (selected.length <= 1) return;
-    onChange((current) => {
-      const remaining = current.items
-        .filter((item) => item.selected && item.id !== itemId)
-        .sort((a, b) => a.order - b.order);
-      const orderById = new globalThis.Map(remaining.map((item, index) => [item.id, index + 1]));
-      return {
-        ...current,
-        items: current.items.map((item) => item.id === itemId
-          ? { ...item, selected: false }
-          : item.selected ? { ...item, order: orderById.get(item.id) ?? item.order } : item),
-      };
-    });
-  }
-
-  function addItem(itemId: string) {
-    if (selected.length >= 10) return;
-    onChange((current) => {
-      const selectedIds = [
-        ...current.items.filter((item) => item.selected).sort((a, b) => a.order - b.order).map((item) => item.id),
-        itemId,
-      ];
-      const orderById = new globalThis.Map(selectedIds.map((id, index) => [id, index + 1]));
-      return {
-        ...current,
-        items: current.items.map((item) => item.id === itemId
-          ? { ...item, selected: true, order: orderById.get(item.id) ?? item.order }
-          : item.selected ? { ...item, order: orderById.get(item.id) ?? item.order } : item),
-      };
-    });
-    setAddSpotOpen(false);
   }
 
   function rememberPendingPhoto(itemId: string, file: File) {
@@ -665,9 +661,10 @@ function BrochureEditor(props: EditorProps) {
     const stopLines = selected.map((item, index) => {
       const spot = spotsById.get(item.spotId);
       const note = item.comment.trim() || item.reason.trim();
-      return `${index + 1}. ${spot?.name ?? '訪問候補'}${note ? ` — ${note}` : ''}`;
+      const category = item.pickupCategory ? `${experienceCategoryLabel(item.pickupCategory)}：` : '';
+      return `${index + 1}. ${category}${spot?.name ?? '訪問候補'}${note ? ` — ${note}` : ''}`;
     });
-    return [draft.title, currentInvitation, '', 'めぐる場所', ...stopLines, '', '「今度はあなたと」で作成'].join('\n');
+    return [draft.title, currentInvitation, '', '5つの楽しみとおすすめ順路', ...stopLines, '', '「今度はあなたと」で作成'].join('\n');
   }
 
   async function copyInvitation() {
@@ -762,12 +759,42 @@ function BrochureEditor(props: EditorProps) {
       </header>}
       {!previewOpen && <div className={`status-strip state-${saveState}`} role="status" aria-live="polite">
         {saveState === 'error' ? <CircleAlert aria-hidden="true" /> : saveState === 'dirty' ? <PencilLine aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
-        <span>{statusMessage || '写真・コメント・訪問順をパンフレット上で編集できます。'}</span>
+        <span>{statusMessage || '体験カテゴリ・写真・コメント・訪問順をパンフレット上で編集できます。'}</span>
       </div>}
       <main className="editor-main">
         <article id="brochure-top" ref={brochureRef} data-testid="brochure" className={`brochure template-${draft.template}`}>
-          <BrochureHeader brochure={draft} />
-          <div className="brochure-columns">
+          <BrochureHeader brochure={draft} heroImage={heroImage} />
+          <section className="pickup-section" aria-labelledby="pickup-title">
+            <div className="section-heading pickup-heading">
+              <Sparkles aria-hidden="true" />
+              <div><span>NEXT TRIP</span><h2 id="pickup-title">5つの楽しみ</h2></div>
+              <button data-export-exclude="true" className="button mini-action" onClick={() => setSettingsOpen(true)}><RefreshCw aria-hidden="true" />まとめて選び直す</button>
+            </div>
+            <p className="pickup-intro">場所からではなく、次の旅で楽しみたいことからおすすめを選びました。</p>
+            <div className="category-grid" role="list" aria-label="体験カテゴリ別のおすすめ">
+              {EXPERIENCE_CATEGORIES.map((definition) => {
+                const item = selected.find((entry) => entry.pickupCategory === definition.id);
+                const spot = item ? spotsById.get(item.spotId) : undefined;
+                return item && spot ? (
+                  <CategoryPickupCard
+                    key={definition.id}
+                    category={definition.id}
+                    item={item}
+                    spot={spot}
+                    onComment={(comment) => updateItem(item.id, (entry) => ({ ...entry, comment }))}
+                    onReplace={() => setReplaceItemId(item.id)}
+                    onPhoto={(file) => void uploadPhoto(item, file)}
+                    onRemovePhoto={() => void removePhoto(item)}
+                    busy={photoBusyId === item.id}
+                    error={photoError[item.id]}
+                    pendingPhoto={pendingPhotos[item.id]}
+                  />
+                ) : <EmptyCategoryCard key={definition.id} category={definition.id} onOpenSettings={() => setSettingsOpen(true)} />;
+              })}
+            </div>
+          </section>
+          <div className="brochure-support-grid">
+            <ModelPlan selected={selected} spotsById={spotsById} onMove={moveItem} duration={draft.duration} />
             <MemoryPanel
               visitedItems={visitedItems}
               visits={session.visits}
@@ -780,41 +807,8 @@ function BrochureEditor(props: EditorProps) {
               photoError={photoError}
               pendingPhotos={pendingPhotos}
             />
-            <section className="route-section" aria-labelledby="route-title">
-              <div className="section-heading route-heading">
-                <MapPin aria-hidden="true" />
-                <div><span>NEXT TRIP</span><h2 id="route-title">次の旅の候補</h2></div>
-                <div className="route-heading-actions" data-export-exclude="true">
-                  <button className="button mini-action add-action" data-testid="add-spot" disabled={selected.length >= 10} onClick={() => setAddSpotOpen(true)}><MapPin aria-hidden="true" />候補を追加</button>
-                  <button className="button mini-action" onClick={() => setSettingsOpen(true)}><RefreshCw aria-hidden="true" />候補を一括変更</button>
-                </div>
-              </div>
-              {selected.length ? (
-                <ol className="route-list">
-                  {selected.map((item, index) => (
-                    <RouteItem
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      count={selected.length}
-                      spot={spotsById.get(item.spotId)}
-                      onComment={(comment) => updateItem(item.id, (entry) => ({ ...entry, comment }))}
-                      onMove={(direction) => moveItem(item, direction)}
-                      onReplace={() => setReplaceItemId(item.id)}
-                      onRemove={() => removeItem(item.id)}
-                      canRemove={selected.length > 1}
-                      onPhoto={(file) => void uploadPhoto(item, file)}
-                      onRemovePhoto={() => void removePhoto(item)}
-                      busy={photoBusyId === item.id}
-                      error={photoError[item.id]}
-                      pendingPhoto={pendingPhotos[item.id]}
-                    />
-                  ))}
-                </ol>
-              ) : <div className="route-empty"><MapIcon aria-hidden="true" /><p>訪問候補がありません。「候補を一括変更」から選び直してください。</p></div>}
-            </section>
+            <InvitationPanel brochure={draft} invitation={currentInvitation} selected={selected} spotsById={spotsById} onCopy={copyInvitation} />
           </div>
-          <InvitationPanel brochure={draft} invitation={currentInvitation} selected={selected} spotsById={spotsById} onCopy={copyInvitation} />
           <footer className="brochure-footer">
             <span><Sparkles aria-hidden="true" /> 今度はあなたと</span>
             <small>ローカルデモ専用・スポットと画像はデモ用イメージ・写真や内容を外部へ送信しません</small>
@@ -829,36 +823,21 @@ function BrochureEditor(props: EditorProps) {
       </div>}
       {!previewOpen && replaceItemId && (
         <SpotReplaceDialog
-          mode="replace"
           itemId={replaceItemId}
           brochure={draft}
           spotsById={spotsById}
           onClose={() => setReplaceItemId(null)}
           onChoose={(newItemId) => {
             const old = draft.items.find((item) => item.id === replaceItemId);
-            if (!old) return;
+            if (!old?.pickupCategory) return;
             onChange((current) => {
               const replaced = current.items.map((item) => item.id === replaceItemId
-                ? { ...item, selected: false }
-                : item.id === newItemId ? { ...item, selected: true, order: old.order } : item);
-              const selectedIds = replaced.filter((item) => item.selected).sort((a, b) => a.order - b.order).map((item) => item.id);
-              const orderById = new globalThis.Map(selectedIds.map((id, index) => [id, index + 1]));
-              return {
-                ...current,
-                items: replaced.map((item) => item.selected ? { ...item, order: orderById.get(item.id) ?? item.order } : item),
-              };
+                ? { ...item, selected: false, pickupCategory: null }
+                : item.id === newItemId ? { ...item, selected: true, pickupCategory: old.pickupCategory, order: old.order } : item);
+              return { ...current, items: replaced };
             });
             setReplaceItemId(null);
           }}
-        />
-      )}
-      {!previewOpen && addSpotOpen && (
-        <SpotReplaceDialog
-          mode="add"
-          brochure={draft}
-          spotsById={spotsById}
-          onClose={() => setAddSpotOpen(false)}
-          onChoose={addItem}
         />
       )}
     </div>
@@ -878,16 +857,17 @@ function TemplateSelect({ value, onChange }: { value: Template; onChange: (value
   );
 }
 
-function BrochureHeader({ brochure }: { brochure: Brochure }) {
+function BrochureHeader({ brochure, heroImage }: { brochure: Brochure; heroImage?: string }) {
   return (
     <header className="brochure-header">
-      <div className="title-rays" aria-hidden="true"><i /><i /><i /></div>
-      <div>
-        <h1>{brochure.title}</h1>
-        <div className="title-underline" aria-hidden="true" />
-      </div>
-      <div className="header-illustration" aria-hidden="true">
-        <MapPin /><span className="illustration-line" /><Stamp />
+      <div className="brochure-hero">
+        {heroImage && <img src={heroImage} alt="" />}
+        <div className="hero-copy">
+          <p>旅の思い出を、次の約束に。</p>
+          <h1>{brochure.title}</h1>
+          <div className="title-underline" aria-hidden="true" />
+        </div>
+        <div className="hero-stamp" aria-hidden="true"><Stamp /></div>
       </div>
       <dl className="trip-meta">
         <div><dt><UsersRound aria-hidden="true" />旅の相手</dt><dd>{brochure.companion}</dd></div>
@@ -895,6 +875,89 @@ function BrochureHeader({ brochure }: { brochure: Brochure }) {
         <div><dt><MapIcon aria-hidden="true" />日程</dt><dd>{brochure.duration === 'day' ? '日帰り' : '一泊二日'}・{brochure.tripStyle === 'slow' ? 'ゆっくり' : 'アクティブ'}</dd></div>
       </dl>
     </header>
+  );
+}
+
+function CategoryIcon({ category }: { category: ExperienceCategory }) {
+  if (category === 'see') return <Eye aria-hidden="true" />;
+  if (category === 'eat') return <Utensils aria-hidden="true" />;
+  if (category === 'relax') return <Leaf aria-hidden="true" />;
+  if (category === 'buy') return <ShoppingBag aria-hidden="true" />;
+  return <Sparkles aria-hidden="true" />;
+}
+
+interface CategoryPickupCardProps {
+  category: ExperienceCategory;
+  item: BrochureItem;
+  spot: Spot;
+  onComment: (comment: string) => void;
+  onReplace: () => void;
+  onPhoto: (file: File) => void;
+  onRemovePhoto: () => void;
+  busy: boolean;
+  error?: string;
+  pendingPhoto?: PendingPhoto;
+}
+
+function CategoryPickupCard(props: CategoryPickupCardProps) {
+  const { category, item, spot, onComment, onReplace, onPhoto, onRemovePhoto, busy, error, pendingPhoto } = props;
+  const label = experienceCategoryLabel(category);
+  return (
+    <article className={`category-card category-${category}`} role="listitem">
+      <div className="category-ribbon"><CategoryIcon category={category} /><strong>{label}</strong></div>
+      <PhotoEditor item={item} spot={spot} busy={busy} error={error} pendingPhoto={pendingPhoto} onPhoto={onPhoto} onRemove={onRemovePhoto} compact />
+      <div className="category-card-copy">
+        <span className="spot-kind">{item.kind === 'visited' ? '前回訪れた場所' : '次の旅の候補'}</span>
+        <h3>{spot.name}</h3>
+        <p className="spot-description">{spot.description}</p>
+        <CommentEditor
+          label={item.kind === 'visited' ? '前回の感想' : '行ってみたい理由'}
+          value={item.comment}
+          placeholder={item.reason}
+          onChange={onComment}
+        />
+      </div>
+      <button data-export-exclude="true" className="button replace-button category-replace" onClick={onReplace}><RotateCcw aria-hidden="true" />{label}を変更</button>
+    </article>
+  );
+}
+
+function EmptyCategoryCard({ category, onOpenSettings }: { category: ExperienceCategory; onOpenSettings: () => void }) {
+  const label = experienceCategoryLabel(category);
+  return (
+    <article className={`category-card category-empty category-${category}`} role="listitem">
+      <div className="category-ribbon"><CategoryIcon category={category} /><strong>{label}</strong></div>
+      <div className="category-empty-body"><ImageIcon aria-hidden="true" /><p>条件に合う別のスポットがありません。</p></div>
+      <button data-export-exclude="true" className="button replace-button category-replace" onClick={onOpenSettings}><RefreshCw aria-hidden="true" />条件を見直す</button>
+    </article>
+  );
+}
+
+function ModelPlan({ selected, spotsById, onMove, duration }: {
+  selected: BrochureItem[];
+  spotsById: Map<string, Spot>;
+  onMove: (item: BrochureItem, direction: -1 | 1) => void;
+  duration: Brochure['duration'];
+}) {
+  return (
+    <section className="model-plan" aria-labelledby="model-plan-title">
+      <div className="support-heading"><MapIcon aria-hidden="true" /><div><span>MODEL PLAN</span><h2 id="model-plan-title">モデルプラン</h2></div></div>
+      <p className="support-intro">{duration === 'day' ? '日帰り' : '一泊二日'}でめぐる、おすすめの順路です。</p>
+      <ol className="model-plan-list">
+        {selected.map((item, index) => {
+          const spot = spotsById.get(item.spotId);
+          if (!spot) return null;
+          return <li key={item.id}>
+            <span className="plan-number">{index + 1}</span>
+            <span className="plan-copy"><small>{item.pickupCategory ? experienceCategoryLabel(item.pickupCategory) : 'おすすめ'}</small><strong>{spot.name}</strong></span>
+            <span className="order-actions" data-export-exclude="true">
+              <button className="icon-button" aria-label={`${spot.name}を前へ`} disabled={index === 0} onClick={() => onMove(item, -1)}><ArrowUp aria-hidden="true" /></button>
+              <button className="icon-button" aria-label={`${spot.name}を後へ`} disabled={index === selected.length - 1} onClick={() => onMove(item, 1)}><ArrowDown aria-hidden="true" /></button>
+            </span>
+          </li>;
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -1150,21 +1213,25 @@ function InvitationPanel({ brochure, invitation, selected, spotsById, onCopy }: 
 }
 
 
-function SpotReplaceDialog({ mode, itemId, brochure, spotsById, onClose, onChoose }: {
-  mode: 'add' | 'replace'; itemId?: string; brochure: Brochure; spotsById: Map<string, Spot>; onClose: () => void; onChoose: (id: string) => void;
+function SpotReplaceDialog({ itemId, brochure, spotsById, onClose, onChoose }: {
+  itemId: string; brochure: Brochure; spotsById: Map<string, Spot>; onClose: () => void; onChoose: (id: string) => void;
 }) {
-  const current = itemId ? brochure.items.find((item) => item.id === itemId) : undefined;
+  const current = brochure.items.find((item) => item.id === itemId);
+  const category = current?.pickupCategory;
+  const categoryLabel = category ? experienceCategoryLabel(category) : 'このカテゴリ';
   const dialogRef = useDialogFocus(onClose);
-  const choices = brochure.items.filter((item) => !item.selected && item.kind === 'candidate');
+  const choices = brochure.items.filter((item) => {
+    if (item.selected || !category) return false;
+    const spot = spotsById.get(item.spotId);
+    return Boolean(spot && spotSupportsExperienceCategory(spot, category));
+  });
   return (
     <div className="dialog-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
       <section ref={dialogRef} tabIndex={-1} className="dialog replace-dialog" role="dialog" aria-modal="true" aria-labelledby="replace-title">
-        <button className="icon-button dialog-close" aria-label={mode === 'add' ? '候補追加を閉じる' : '候補変更を閉じる'} onClick={onClose}><X aria-hidden="true" /></button>
-        <p className="eyebrow">SPOT CHANGE</p>
-        <h2 id="replace-title">{mode === 'add' ? '候補を追加' : 'この候補を変更'}</h2>
-        <p className="dialog-intro">{mode === 'add'
-          ? '旅の最後に追加する場所を選んでください。候補は10件まで追加できます。'
-          : `「${current ? spotsById.get(current.spotId)?.name : '現在の候補'}」と入れ替える場所を選んでください。外した場所の写真やコメントは削除しません。`}</p>
+        <button className="icon-button dialog-close" aria-label={`${categoryLabel}の候補変更を閉じる`} onClick={onClose}><X aria-hidden="true" /></button>
+        <p className="eyebrow">CATEGORY PICKUP</p>
+        <h2 id="replace-title">{categoryLabel}のピックアップを変更</h2>
+        <p className="dialog-intro">「{current ? spotsById.get(current.spotId)?.name : '現在の候補'}」と入れ替える、{categoryLabel}の体験を選んでください。外した場所の写真やコメントは削除しません。</p>
         <div className="replace-list">
           {choices.map((item) => {
             const spot = spotsById.get(item.spotId);
@@ -1177,7 +1244,7 @@ function SpotReplaceDialog({ mode, itemId, brochure, spotsById, onClose, onChoos
               </button>
             );
           })}
-          {choices.length === 0 && <p className="empty-message">ほかの候補がありません。「旅の条件を変更」から一括で作り直してください。</p>}
+          {choices.length === 0 && <p className="empty-message">{categoryLabel}に合うほかの候補がありません。「旅の条件を変更」から一括で作り直してください。</p>}
         </div>
       </section>
     </div>

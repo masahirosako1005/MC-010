@@ -1,5 +1,7 @@
 import type { BrochureItem, Companion, Spot, TripSettings, Visit } from '../shared/types.js';
+import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory, type ExperienceCategory } from '../shared/experience-categories.js';
 export interface Survey { satisfaction: number | null; goodPoints: string | null; tags: string[]; previousCompanion: string | null }
+export interface CategoryPick { spotId: string; pickupCategory: ExperienceCategory }
 const keywords: Record<string,string[]> = {
   海:['海','潮','灯台'], 景色:['景色','風景','眺め'], 食:['食','おいし','美味','グルメ'],
   散歩:['散歩','歩','散策'], 文化:['歴史','文化','音楽'], 体験:['体験','楽しか','作'], 自然:['自然','湖','山'],
@@ -29,6 +31,79 @@ export function selectRoute(spots: Spot[], visits: Visit[], survey: Survey | nul
   const candidates=rotated.slice(0,settings.duration==='overnight'?3:2).map(s=>s.spot.id);
   const revisits=[...new Set(settings.visitedSpotIds)].filter(id=>visited.has(id));
   return [...revisits,...candidates];
+}
+
+function categoryCandidateScore(
+  spot: Spot,
+  category: ExperienceCategory,
+  visited: Set<string>,
+  survey: Survey | null,
+  settings: TripSettings,
+): number {
+  const tags = surveyTags(survey);
+  const preferred = settings.tripStyle === 'slow' ? ['休憩', '散歩', '景色'] : ['体験', '町歩き', '自然'];
+  const selectedRevisits = new Set(settings.visitedSpotIds);
+  return 1_000
+    + (selectedRevisits.has(spot.id) ? 500 : 0)
+    + (spot.companionTags.includes(settings.companion) ? 40 : 0)
+    + spot.themeTags.filter((tag) => tags.includes(tag)).length * 30
+    + spot.themeTags.filter((tag) => preferred.includes(tag)).length * 20
+    + (visited.has(spot.id) ? 5 : 10)
+    + (spotSupportsExperienceCategory(spot, category) ? 100 : 0);
+}
+
+export function selectCategoryPicks(
+  spots: Spot[],
+  visits: Visit[],
+  survey: Survey | null,
+  settings: TripSettings,
+  rotation = 0,
+  retained: CategoryPick[] = [],
+): CategoryPick[] {
+  const visited = new Set(visits.map((visit) => visit.spotId));
+  const requestedRevisits = new Set(settings.visitedSpotIds);
+  const available = spots.filter((spot) => !visited.has(spot.id) || requestedRevisits.has(spot.id));
+  const byId = new Map(spots.map((spot) => [spot.id, spot]));
+  const picks: CategoryPick[] = [];
+  const usedSpots = new Set<string>();
+  const usedCategories = new Set<ExperienceCategory>();
+
+  for (const pick of retained) {
+    const spot = byId.get(pick.spotId);
+    if (!spot || usedSpots.has(pick.spotId) || usedCategories.has(pick.pickupCategory)) continue;
+    if (!available.some((entry) => entry.id === pick.spotId)) continue;
+    if (!spotSupportsExperienceCategory(spot, pick.pickupCategory)) continue;
+    picks.push(pick);
+    usedSpots.add(pick.spotId);
+    usedCategories.add(pick.pickupCategory);
+  }
+
+  const missing = EXPERIENCE_CATEGORIES
+    .filter((definition) => !usedCategories.has(definition.id))
+    .map((definition, index) => ({
+      definition,
+      index,
+      count: available.filter((spot) => !usedSpots.has(spot.id) && spotSupportsExperienceCategory(spot, definition.id)).length,
+    }))
+    .sort((a, b) => a.count - b.count || a.index - b.index);
+
+  for (const { definition } of missing) {
+    const candidates = available
+      .filter((spot) => !usedSpots.has(spot.id) && spotSupportsExperienceCategory(spot, definition.id))
+      .map((spot) => ({
+        spot,
+        score: categoryCandidateScore(spot, definition.id, visited, survey, settings),
+      }))
+      .sort((a, b) => b.score - a.score || a.spot.id.localeCompare(b.spot.id));
+    if (!candidates.length) continue;
+    const choice = candidates[rotation % candidates.length]!.spot;
+    picks.push({ spotId: choice.id, pickupCategory: definition.id });
+    usedSpots.add(choice.id);
+    usedCategories.add(definition.id);
+  }
+
+  const categoryOrder = new Map(EXPERIENCE_CATEGORIES.map((entry, index) => [entry.id, index]));
+  return picks.sort((a, b) => (categoryOrder.get(a.pickupCategory) ?? 0) - (categoryOrder.get(b.pickupCategory) ?? 0));
 }
 export function makeCopy(spots: Spot[], items: Pick<BrochureItem,'spotId'|'kind'|'selected'|'order'|'isMemory'|'comment'>[], settings: Pick<TripSettings,'companion'|'duration'|'tripStyle'>) {
   const names=new Map(spots.map(s=>[s.id,s.name]));

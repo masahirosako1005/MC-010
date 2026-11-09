@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { COMPANIONS } from '../shared/types.js';
+import { EXPERIENCE_CATEGORIES } from '../shared/experience-categories.js';
 export const uuidSchema=z.string().uuid();
 export const loginSchema=z.object({email:z.string().trim().toLowerCase().email().max(254),code:z.string().regex(/^\d{4}$/)}).strict();
 const base={companion:z.enum(COMPANIONS),duration:z.enum(['day','overnight']),tripStyle:z.enum(['slow','active'])};
@@ -8,6 +9,7 @@ export const creationSchema=z.object({settings:settingsSchema.optional()}).stric
 export const saveSchema=z.object({
   revision:z.number().int().positive(),...base,template:z.enum(['colorful','postcard']),
   items:z.array(z.object({id:uuidSchema,selected:z.boolean(),isMemory:z.boolean(),order:z.number().int().min(0).max(999),
+    pickupCategory:z.enum(EXPERIENCE_CATEGORIES.map(entry=>entry.id)).nullable(),
     comment:z.string().refine(v=>[...v].length<=200,'コメントは200字以内にしてください。')}).strict()).min(1).max(1000),
 }).strict();
 export const regenerationSchema=z.object({draft:saveSchema,settings:settingsSchema,mode:z.enum(['all','candidates'])}).strict();

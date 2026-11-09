@@ -1,3 +1,5 @@
+import type { ExperienceCategory } from './experience-categories.js';
+
 export const COMPANIONS = ['家族', '子ども', 'パートナー', '友人', '親', '一人'] as const;
 export type Companion = typeof COMPANIONS[number];
 export type TripStyle = 'slow' | 'active';
@@ -15,7 +17,7 @@ export interface Visit {
 export interface BrochureItem {
   id: string; spotId: string; kind: 'visited' | 'candidate'; selected: boolean;
   isMemory: boolean; order: number; comment: string; photoUrl: string | null;
-  reason: string;
+  reason: string; pickupCategory: ExperienceCategory | null;
 }
 export interface Brochure {
   id: string; revision: number; companion: Companion; duration: Duration; tripStyle: TripStyle;
@@ -27,6 +29,6 @@ export interface SessionData { user: User; visits: Visit[]; spots: Spot[]; broch
 export interface TripSettings { companion: Companion; duration: Duration; tripStyle: TripStyle; visitedSpotIds: string[] }
 export interface SavePayload {
   revision: number; companion: Companion; duration: Duration; tripStyle: TripStyle; template: Template;
-  items: Array<Pick<BrochureItem, 'id' | 'selected' | 'isMemory' | 'order' | 'comment'>>;
+  items: Array<Pick<BrochureItem, 'id' | 'selected' | 'isMemory' | 'order' | 'comment' | 'pickupCategory'>>;
 }
 

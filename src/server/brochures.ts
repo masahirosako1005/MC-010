@@ -8,7 +8,7 @@ type DB = Pick<pg.PoolClient,'query'>;
 
 export async function getSpots(db:DB):Promise<Spot[]> {
   const {rows}=await db.query('SELECT * FROM spots ORDER BY external_id');
-  return rows.map(r=>({id:r.id,name:r.name,category:r.category,description:r.description,companionTags:r.companion_tags,themeTags:r.theme_tags,image:r.image,source:r.source,sourceUrl:r.source_url,active:r.active}));
+  return rows.map(r=>({id:r.id,name:r.name,category:r.category,description:r.description,companionTags:r.companion_tags,themeTags:r.theme_tags,image:r.image,source:r.source,sourceUrl:r.source_url,active:r.active,hasGift:r.has_gift}));
 }
 export async function getVisits(db:DB,userId:string):Promise<Visit[]> {
   const {rows}=await db.query('SELECT * FROM visits WHERE user_id=$1 ORDER BY visited_at DESC,id',[userId]);

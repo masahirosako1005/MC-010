@@ -70,3 +70,17 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 管理APIは認証401／町権限なし403。利用者専用APIへ町アカウントからアクセスした場合も403。既存Origin/X-Requested-With制約を維持。POST ensure/regenerateはbrochureに加えspotsも返す。catalog変更の排他advisory lockと冊子更新の共有advisory lockでタグ変更と生成・保存を直列化する。新規スポットitemの追加は再生成transaction内のみで行い、GETや再ログインで既存編集を変更しない。
 
 保存時のカテゴリ付替は、入力全体の検証後、同一transaction内でpickup_categoryを一度NULLにしてから再割当する。配列中の新旧itemの順番によってUNIQUE制約が途中衝突しない。再送された新規登録は監査create行も重複させず、他操作者の操作ID流用は409にする。
+
+## プレゼント受取追加（004_spot_gift_claims.sql）
+
+`spots.has_gift` はNOT NULL、初期値false。`spot_gift_claims` はid（UUID）、user_id、spot_id、claimed_at（DB時刻）を保持し、UNIQUE(user_id,spot_id)で一度限りとする。user/spotは外部キー、スポット・日時に索引を持つ。既存の訪問実績から受取を作らず、設定をオフにしても履歴を削除しない。QR・公開用トークンは生成しない。
+
+| メソッド・パス | 契約 |
+|---|---|
+| GET /api/spots/:id/detail | 本人の冊子itemに存在するスポットだけ。最新のspot（hasGiftを含む）と本人のgiftClaim（なければnull）を返す。読み取りのみ。 |
+| POST /api/spots/:id/gift-claim | 利用者専用。空JSON `{}`、セッション本人・DB時刻で記録。giftClaimとalreadyClaimedを返す。既存受取は同じ結果を返し、新規の公開停止・提供終了は409。 |
+| GET /api/admin/gift-claims | 町専用。scope=all/organizer/fixture、任意spotId（UUID）、page。25件/ページ、同一read-only snapshotからtotal・users・rows・page・pageSize。rowsはid/spotId/spotName/userId/source/claimedAtのみ。 |
+
+管理スポットGETへhasGiftとgiftClaimCount（全出所の受取件数）を追加。登録・更新は任意hasGiftを受け付け、登録省略時false、更新省略時は既存値を維持する。通常利用者のスポット返却もhasGiftを含む。受取transactionはcatalog共有advisory lockを取り、管理変更の排他lockと直列化する。INSERT ON CONFLICT DO NOTHINGと既存行の再取得により同時要求・再送で履歴を増やさない。本人ID・日時をpayloadへ指定できない。確認後の本人のPOSTだけで受取を記録し、GETや町の参照APIは履歴を変更しない。既存Origin/X-Requested-With、認証・役割境界を維持する。
+
+この履歴は本人申告の受取であり、`visits` / `surveys` / 冊子の編集内容は変更しない。DBと写真のバックアップ時には新表も含める。

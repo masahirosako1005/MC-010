@@ -10,6 +10,7 @@ export interface Spot {
   companionTags: string[]; themeTags: string[]; image: string;
   source: 'fixture' | 'organizer' | 'town'; sourceUrl: string | null;
   active?: boolean;
+  hasGift?: boolean;
 }
 export interface Visit {
   id: string; spotId: string; visitedAt: string; stamp: boolean;

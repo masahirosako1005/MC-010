@@ -14,11 +14,12 @@ export const THEME_TAGS = ['景色', '海', '体験', '町歩き', '散歩', '�
 export type DataScope = 'all' | 'organizer' | 'fixture';
 export interface SpotInput {
   name: string; category: string; description: string; image: string;
-  themeTags: string[]; companionTags: Companion[]; active: boolean;
+  themeTags: string[]; companionTags: Companion[]; active: boolean; hasGift?: boolean;
 }
 export interface AdminSpot extends Spot {
   active: boolean; revision: number; updatedAt: string;
   visitCount: number; visitorCount: number; brochureCount: number;
+  hasGift: boolean; giftClaimCount: number;
 }
 export interface AdminOverview {
   users: number; usersWithVisits: number; brochures: number; eligibleBrochures: number;
@@ -32,3 +33,7 @@ export interface RegistrationRow {
   selectedSpots: number; photos: number; comments: number;
 }
 export interface RegistrationPage { rows: RegistrationRow[]; total: number; page: number; pageSize: number }
+export interface GiftClaim { id: string; spotId: string; claimedAt: string }
+export interface SpotDetail { spot: Spot; giftClaim: GiftClaim | null }
+export interface GiftClaimRecord extends GiftClaim { spotName: string; userId: string; source: 'fixture' | 'organizer' }
+export interface GiftClaimPage { rows: GiftClaimRecord[]; total: number; users: number; page: number; pageSize: number }

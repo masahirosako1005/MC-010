@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, Check, Coffee, Flag, Footprints, L
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { COMPANIONS, type Brochure, type Companion, type Duration, type SessionData, type TripSettings, type TripStyle } from '../shared/types';
 import './trip-settings.css';
+import { GiftBadge } from './SpotDetailDialog';
 
 interface Props {
   session: SessionData;
@@ -96,7 +97,7 @@ export function TripSettingsScreen({ session, brochure, previewBySpotId = {}, on
                   if (next.length) setError('');
                 }} aria-label={spot.name} />
                 <span className="trip-spot-photo"><MapPin aria-hidden="true" /><img src={previewBySpotId[spot.id] || savedPhoto || spot.image} alt="" onError={event => { event.currentTarget.hidden = true; }} /></span>
-                <span className="trip-spot-copy"><strong>{spot.name}</strong><span className="trip-stamp-status"><Stamp aria-hidden="true" />{hasStamp ? 'スタンプ取得' : 'スタンプ未取得'}</span></span>
+                <span className="trip-spot-copy"><strong>{spot.name}</strong><GiftBadge available={spot.hasGift} /><span className="trip-stamp-status"><Stamp aria-hidden="true" />{hasStamp ? 'スタンプ取得' : 'スタンプ未取得'}</span></span>
                 <span className="trip-checkbox" aria-hidden="true">{checked && <Check />}</span>
               </label>;
             })}

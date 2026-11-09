@@ -18,6 +18,7 @@ const listSchema = z.object({
 const spotFields = {
   name: z.string().trim().min(1).max(100), category: z.string().trim().min(1).max(40),
   description: z.string().trim().min(1).max(1000), active: z.boolean(),
+  hasGift: z.boolean().optional(),
   themeTags: z.array(z.enum(THEME_TAGS)).min(1).max(THEME_TAGS.length).refine(a => new Set(a).size === a.length),
   companionTags: z.array(z.enum(COMPANIONS)).min(1).max(COMPANIONS.length).refine(a => new Set(a).size === a.length),
   image: z.string().refine(value => SPOT_IMAGES.some(image => image.value === value) || /^\/api\/spot-photos\/[a-f0-9-]{36}$/.test(value)),
@@ -38,11 +39,12 @@ export async function getAdminSpots(db: Pick<pg.PoolClient, 'query'>): Promise<A
   const { rows } = await db.query(`SELECT s.*,
     (SELECT count(*)::int FROM visits v WHERE v.spot_id=s.id) AS visit_count,
     (SELECT count(DISTINCT v.user_id)::int FROM visits v WHERE v.spot_id=s.id) AS visitor_count,
-    (SELECT count(*)::int FROM brochure_items i WHERE i.spot_id=s.id AND i.selected) AS brochure_count
+    (SELECT count(*)::int FROM brochure_items i WHERE i.spot_id=s.id AND i.selected) AS brochure_count,
+    (SELECT count(*)::int FROM spot_gift_claims c WHERE c.spot_id=s.id) AS gift_claim_count
     FROM spots s ORDER BY s.active DESC,s.external_id`);
   return rows.map(r => ({ id: r.id, name: r.name, category: r.category, description: r.description,
     companionTags: r.companion_tags, themeTags: r.theme_tags, image: r.image, source: r.source, sourceUrl: r.source_url,
-    active: r.active, revision: r.revision, updatedAt: r.updated_at.toISOString(),
+    active: r.active, hasGift: r.has_gift, giftClaimCount: r.gift_claim_count, revision: r.revision, updatedAt: r.updated_at.toISOString(),
     visitCount: r.visit_count, visitorCount: r.visitor_count, brochureCount: r.brochure_count }));
 }
 
@@ -118,8 +120,8 @@ export function createAdminRouter(db: pg.Pool) {
         if (!createdByActor.rowCount) throw new AppError(409, 'operation_conflict', '登録操作が競合しました。一覧から登録状況を確認してください。');
         return true;
       }
-      await client.query(`INSERT INTO spots(id,external_id,name,category,description,companion_tags,theme_tags,image,source,active)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,'town',$9)`, [id, `town:${id}`, input.name, input.category, input.description, input.companionTags, input.themeTags, input.image, input.active]);
+      await client.query(`INSERT INTO spots(id,external_id,name,category,description,companion_tags,theme_tags,image,source,active,has_gift)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,'town',$9,$10)`, [id, `town:${id}`, input.name, input.category, input.description, input.companionTags, input.themeTags, input.image, input.active, input.hasGift ?? false]);
       await auditSpot(client, req.userId!, id, 'create');
       return false;
     }, db);
@@ -135,8 +137,8 @@ export function createAdminRouter(db: pg.Pool) {
       if (!SPOT_IMAGES.some(image => image.value === input.image) && input.image !== current.image) throw new AppError(400, 'invalid_image', '画像は同梱画像またはこのスポットの保存済み写真を選んでください。');
       const used = (await client.query('SELECT DISTINCT pickup_category FROM brochure_items WHERE spot_id=$1 AND selected AND pickup_category IS NOT NULL', [id])).rows;
       if (used.some(row => !spotSupportsExperienceCategory(input, row.pickup_category))) throw new AppError(409, 'category_in_use', '使用中のパンフレットに必要な体験タグは外せません。タグを残すか、公開停止にしてください。');
-      await client.query(`UPDATE spots SET name=$1,category=$2,description=$3,companion_tags=$4,theme_tags=$5,image=$6,active=$7,revision=revision+1,updated_at=now() WHERE id=$8`,
-        [input.name, input.category, input.description, input.companionTags, input.themeTags, input.image, input.active, id]);
+      await client.query(`UPDATE spots SET name=$1,category=$2,description=$3,companion_tags=$4,theme_tags=$5,image=$6,active=$7,has_gift=COALESCE($9::boolean,has_gift),revision=revision+1,updated_at=now() WHERE id=$8`,
+        [input.name, input.category, input.description, input.companionTags, input.themeTags, input.image, input.active, id, input.hasGift ?? null]);
       await auditSpot(client, req.userId!, id, input.active ? 'update' : 'update_stopped');
     }, db);
     res.json({ spot: (await getAdminSpots(db)).find(s => s.id === id) });

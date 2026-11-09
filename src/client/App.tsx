@@ -48,6 +48,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TripSettingsScreen } from './TripSettingsScreen';
 import { AdminDashboard } from './AdminDashboard';
+import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
 
 type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -538,6 +539,7 @@ function BrochureEditor(props: EditorProps) {
   const previewReturnY = useRef(0);
   const previewCloseRef = useRef<HTMLButtonElement>(null);
   const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
+  const [detailSpotId, setDetailSpotId] = useState<string | null>(null);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<Record<string, string>>({});
   const pendingPhotosRef = useRef<Record<string, PendingPhoto>>({});
@@ -548,6 +550,8 @@ function BrochureEditor(props: EditorProps) {
   const [sharing, setSharing] = useState<'copy' | 'png' | null>(null);
   const brochureRef = useRef<HTMLElement>(null);
   const spotsById = useMemo(() => new Map(session.spots.map((spot) => [spot.id, spot])), [session.spots]);
+  const detailItem = draft.items.find(item => item.spotId === detailSpotId);
+  const detailSpot = detailSpotId ? spotsById.get(detailSpotId) : undefined;
   const selected = useMemo(() => draft.items.filter((item) => item.selected).sort((a, b) => a.order - b.order), [draft.items]);
   const visitedItems = useMemo(() => draft.items
     .filter((item) => item.kind === 'visited' && item.isMemory)
@@ -562,7 +566,7 @@ function BrochureEditor(props: EditorProps) {
     window.scrollTo({ top: 0, behavior: 'instant' });
     previewCloseRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeHtmlPreview();
+      if (event.key === 'Escape' && !document.querySelector('.spot-detail-dialog')) closeHtmlPreview();
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
@@ -795,13 +799,14 @@ function BrochureEditor(props: EditorProps) {
                     busy={photoBusyId === item.id}
                     error={photoError[item.id]}
                     pendingPhoto={pendingPhotos[item.id]}
+                    onOpen={() => setDetailSpotId(spot.id)}
                   />
                 ) : <EmptyCategoryCard key={definition.id} category={definition.id} onOpenSettings={() => setSettingsOpen(true)} />;
               })}
             </div>
           </section>
           <div className="brochure-support-grid">
-            <ModelPlan selected={selected} spotsById={spotsById} onMove={moveItem} duration={draft.duration} />
+            <ModelPlan selected={selected} spotsById={spotsById} onMove={moveItem} duration={draft.duration} onOpen={setDetailSpotId} />
             <MemoryPanel
               visitedItems={visitedItems}
               visits={session.visits}
@@ -813,6 +818,7 @@ function BrochureEditor(props: EditorProps) {
               busyId={photoBusyId}
               photoError={photoError}
               pendingPhotos={pendingPhotos}
+              onOpen={setDetailSpotId}
             />
             <InvitationPanel brochure={draft} invitation={currentInvitation} selected={selected} spotsById={spotsById} onCopy={copyInvitation} />
           </div>
@@ -847,6 +853,7 @@ function BrochureEditor(props: EditorProps) {
           }}
         />
       )}
+      {detailSpot && <SpotDetailDialog key={detailSpot.id} spot={detailSpot} photoUrl={detailItem ? pendingPhotos[detailItem.id]?.preview || detailItem.photoUrl : null} comment={detailItem?.comment} canClaim={!previewOpen} onClose={() => setDetailSpotId(null)} />}
     </div>
   );
 }
@@ -904,18 +911,20 @@ interface CategoryPickupCardProps {
   busy: boolean;
   error?: string;
   pendingPhoto?: PendingPhoto;
+  onOpen: () => void;
 }
 
 function CategoryPickupCard(props: CategoryPickupCardProps) {
-  const { category, item, spot, onComment, onReplace, onPhoto, onRemovePhoto, busy, error, pendingPhoto } = props;
+  const { category, item, spot, onComment, onReplace, onPhoto, onRemovePhoto, busy, error, pendingPhoto, onOpen } = props;
   const label = experienceCategoryLabel(category);
   return (
-    <article className={`category-card category-${category}`} role="listitem">
+    <article className={`category-card category-${category}`} role="listitem" onClick={event => { if (event.target instanceof Element && !event.target.closest('button,a,input,select,textarea,label')) onOpen(); }}>
       <div className="category-ribbon"><CategoryIcon category={category} /><strong>{label}</strong></div>
       <PhotoEditor item={item} spot={spot} busy={busy} error={error} pendingPhoto={pendingPhoto} onPhoto={onPhoto} onRemove={onRemovePhoto} compact />
       <div className="category-card-copy">
         <span className="spot-kind">{item.kind === 'visited' ? '前回訪れた場所' : '次の旅の候補'}</span>
-        <h3>{spot.name}</h3>
+        <h3><button type="button" className="spot-detail-title" aria-label={`${spot.name}の詳細を表示`} onClick={onOpen}>{spot.name}</button></h3>
+        <GiftBadge available={spot.hasGift} />
         <p className="spot-description">{spot.description}</p>
         <CommentEditor
           label={item.kind === 'visited' ? '前回の感想' : '行ってみたい理由'}
@@ -940,11 +949,12 @@ function EmptyCategoryCard({ category, onOpenSettings }: { category: ExperienceC
   );
 }
 
-function ModelPlan({ selected, spotsById, onMove, duration }: {
+function ModelPlan({ selected, spotsById, onMove, duration, onOpen }: {
   selected: BrochureItem[];
   spotsById: Map<string, Spot>;
   onMove: (item: BrochureItem, direction: -1 | 1) => void;
   duration: Brochure['duration'];
+  onOpen: (spotId: string) => void;
 }) {
   return (
     <section className="model-plan" aria-labelledby="model-plan-title">
@@ -956,7 +966,7 @@ function ModelPlan({ selected, spotsById, onMove, duration }: {
           if (!spot) return null;
           return <li key={item.id}>
             <span className="plan-number">{index + 1}</span>
-            <span className="plan-copy"><small>{item.pickupCategory ? experienceCategoryLabel(item.pickupCategory) : 'おすすめ'}</small><strong>{spot.name}</strong></span>
+            <span className="plan-copy"><small>{item.pickupCategory ? experienceCategoryLabel(item.pickupCategory) : 'おすすめ'}</small><strong><button type="button" className="spot-detail-title" onClick={() => onOpen(spot.id)}>{spot.name}</button></strong><GiftBadge available={spot.hasGift} /></span>
             <span className="order-actions" data-export-exclude="true">
               <button className="icon-button" aria-label={`${spot.name}を前へ`} disabled={index === 0} onClick={() => onMove(item, -1)}><ArrowUp aria-hidden="true" /></button>
               <button className="icon-button" aria-label={`${spot.name}を後へ`} disabled={index === selected.length - 1} onClick={() => onMove(item, 1)}><ArrowDown aria-hidden="true" /></button>
@@ -979,10 +989,11 @@ interface MemoryProps {
   busyId: string | null;
   photoError: Record<string, string>;
   pendingPhotos: Record<string, PendingPhoto>;
+  onOpen: (spotId: string) => void;
 }
 
 function MemoryPanel(props: MemoryProps) {
-  const { visitedItems, visits, survey, spotsById, onComment, onPhoto, onRemovePhoto, busyId, photoError, pendingPhotos } = props;
+  const { visitedItems, visits, survey, spotsById, onComment, onPhoto, onRemovePhoto, busyId, photoError, pendingPhotos, onOpen } = props;
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const visitedKey = visitedItems.map((item) => item.id).join(':');
@@ -1052,6 +1063,7 @@ function MemoryPanel(props: MemoryProps) {
                 data-memory-index={index}
                 role="group"
                 aria-label={`${index + 1}/${visitedItems.length} ${spot.name}`}
+                onClick={event => { if (event.target instanceof HTMLImageElement) onOpen(spot.id); }}
               >
                 <PhotoEditor
                   item={item}
@@ -1062,7 +1074,8 @@ function MemoryPanel(props: MemoryProps) {
                   onPhoto={(file) => void onPhoto(item, file)}
                   onRemove={() => void onRemovePhoto(item)}
                 />
-                <h3>{spot.name}</h3>
+                <h3><button type="button" className="spot-detail-title" onClick={() => onOpen(spot.id)}>{spot.name}</button></h3>
+                <GiftBadge available={spot.hasGift} />
                 {visit && (
                   <div className="memory-facts" aria-label={`${spot.name}の訪問記録`}>
                     {visitDate && <span><MapPin aria-hidden="true" />{visitDate}に訪問</span>}
@@ -1246,7 +1259,7 @@ function SpotReplaceDialog({ itemId, brochure, spotsById, onClose, onChoose }: {
             return (
               <button key={item.id} className="replace-option" onClick={() => onChoose(item.id)}>
                 <span className="replace-thumb">{spot.image ? <img src={spot.image} alt="" /> : <ImageIcon aria-hidden="true" />}</span>
-                <span><strong>{spot.name}</strong><small>{spot.category}</small><p>{spot.description}</p></span>
+                <span><strong>{spot.name}</strong><small>{spot.category}</small><GiftBadge available={spot.hasGift} /><p>{spot.description}</p></span>
                 <ChevronRight aria-hidden="true" />
               </button>
             );

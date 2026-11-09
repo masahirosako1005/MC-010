@@ -169,6 +169,16 @@ READMEに残っていた `pnpm run data:inspect -- ...` の区切りはpnpm 11�
 
 根拠・発見内容・未実施範囲は[町側管理機能の最終検証記録](town-admin-verification.md)を参照。
 
+## スポット詳細・プレゼント受取の反映（2026-11-09）
+
+着手前の現状を `fdef044` へコミットした後、スポット詳細、管理用プレゼント設定・ラベル、利用者の受取確認と一度限りの記録、町側の受取件数・匿名履歴を追加した。最新のユーザー訂正に従いQRは実装せず、確認ダイアログの「OK」だけで記録する。既存のスタンプ履歴と共有状況の範囲は変更しない。
+
+- Node 26.13.0 / pnpm 11.25.0で `pnpm run build` 相当が終了コード0。server TypeScriptとVite SPA（1,585 modules）を生成した。追加依存はない。
+- 通常デモDB `kondo_anatato`（127.0.0.1:55432）へ `pnpm run db:migrate` 相当が終了コード0。`004_spot_gift_claims.sql` の初期設定は全スポット提供オフ・新規受取記録なし。既存冊子・写真・コメントのリセットやCSV再投入は行っていない。
+- 3001番PID 21912をこのプロジェクトのNode実体とserver entrypointで同定し、そのアプリだけを停止。`--env-file-if-exists=.env dist/node/server/index.js` をHiddenで起動（PID 14400）。PostgreSQLや別アプリは停止していない。
+- 最小HTTP参照は `GET /` が200、配信JSは `/assets/index-C6A3z194.js`。`GET /api/health` は200 / `{"ok":true}`。
+- AGENTS.mdの明示依頼限定ルールに従い、この追加差分のcheck、単体/API統合、E2E、audit、skill inventory、画面目視・操作テスト、独立レビューは未実施。直前の57件/16件の合格を本機能へ流用しない。受取の権限境界・並列要求・再送・設定変更との競合、モーダル操作・プレビュー・PNGは今後の検証対象。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

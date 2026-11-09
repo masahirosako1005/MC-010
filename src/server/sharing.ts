@@ -15,7 +15,7 @@ type DB = Pick<pg.PoolClient, 'query'>;
 const exposedItem = `(i.selected OR (i.kind='visited' AND i.is_memory))`;
 const notFound = () => new AppError(404, 'share_not_found', '共有パンフレットが見つからないか、公開が停止されています。');
 function shareSettings(row: pg.QueryResultRow): ShareSettings {
-  return { path: `/share/${row.token}`, active: row.active, viewCount: row.view_count,
+  return { id: row.id, path: `/share/${row.token}`, active: row.active, viewCount: row.view_count,
     createdAt: row.created_at.toISOString(), lastViewedAt: row.last_viewed_at?.toISOString() ?? null };
 }
 async function publicShare(db: DB, token: unknown, lock = false) {
@@ -112,6 +112,18 @@ export function createOwnerShareRouter(db: pg.Pool) {
     if (!row) throw new AppError(404, 'not_found', '保存済みのパンフレットがありません。');
     res.json({ share: shareSettings(row) });
   });
+  router.post('/brochure/share/copies', async (req, res) => {
+    const { requestId, shareId } = z.object({ requestId: uuidSchema, shareId: uuidSchema }).strict().parse(req.body);
+    await transaction(async client => {
+      const share = (await client.query(`SELECT s.id FROM brochure_shares s JOIN brochures b ON b.id=s.brochure_id
+        WHERE b.user_id=$1 AND s.id=$2 FOR UPDATE OF s`, [req.userId, shareId])).rows[0];
+      if (!share) throw new AppError(404, 'not_found', 'コピー元の共有URLが見つかりません。');
+      const recorded = await client.query(`INSERT INTO share_url_copies(share_id,request_id) VALUES($1,$2)
+        ON CONFLICT DO NOTHING RETURNING share_id`, [share.id, requestId]);
+      if (recorded.rowCount) await client.query('UPDATE brochure_shares SET copy_count=copy_count+1,last_copied_at=now() WHERE id=$1', [share.id]);
+    }, db);
+    res.json({ ok: true });
+  });
   router.delete('/brochure/share', async (req, res) => {
     z.object({}).strict().parse(req.body);
     const row = (await db.query(`UPDATE brochure_shares s SET active=false FROM brochures b
@@ -135,13 +147,14 @@ export function createShareAdminRouter(db: pg.Pool) {
       const from = `FROM brochure_shares s JOIN brochures b ON b.id=s.brochure_id JOIN users u ON u.id=b.user_id
         WHERE ($1='all' OR u.source=$1)`;
       const totals = (await client.query(`SELECT count(*)::int AS total,count(*) FILTER(WHERE s.active)::int AS active,
-        COALESCE(sum(s.view_count),0)::float8 AS views ${from}`, [scope])).rows[0];
+        COALESCE(sum(s.view_count),0)::float8 AS views,COALESCE(sum(s.copy_count),0)::float8 AS copies ${from}`, [scope])).rows[0];
       const pageSize = 25, currentPage = Math.min(page, Math.max(1, Math.ceil(totals.total / pageSize)));
-      const rows = (await client.query(`SELECT s.id,b.user_id,u.source,s.active,s.view_count,s.created_at,s.last_viewed_at ${from}
+      const rows = (await client.query(`SELECT s.id,b.user_id,u.source,s.active,s.view_count,s.copy_count,s.created_at,s.last_viewed_at,s.last_copied_at ${from}
         ORDER BY s.created_at DESC,s.id LIMIT $2 OFFSET $3`, [scope, pageSize, (currentPage - 1) * pageSize])).rows;
       return { rows: rows.map(row => ({ id: row.id, userId: row.user_id, source: row.source, active: row.active,
-        viewCount: row.view_count, createdAt: row.created_at.toISOString(), lastViewedAt: row.last_viewed_at?.toISOString() ?? null })),
-        total: totals.total, active: totals.active, totalViews: totals.views, page: currentPage, pageSize } satisfies AdminSharePage;
+        viewCount: row.view_count, copyCount: row.copy_count, createdAt: row.created_at.toISOString(), lastViewedAt: row.last_viewed_at?.toISOString() ?? null,
+        lastCopiedAt: row.last_copied_at?.toISOString() ?? null })),
+        total: totals.total, active: totals.active, totalViews: totals.views, totalCopies: totals.copies, page: currentPage, pageSize } satisfies AdminSharePage;
     }, db);
     res.json(result);
   });

@@ -1,5 +1,5 @@
 import { Eye, LoaderCircle, RefreshCw, Send } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ShareSettings } from '../shared/sharing-types';
 import type { Companion } from '../shared/types';
 import { shareRequest } from './sharing-api';
@@ -9,6 +9,8 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
   const [share, setShare] = useState<ShareSettings | null>(null), [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [version, setVersion] = useState(0);
+  const pendingCopies = useRef<Array<{ requestId: string; shareId: string }>>([]), recordingRef = useRef(false);
+  const [unrecordedCopies, setUnrecordedCopies] = useState(0), [recording, setRecording] = useState(false);
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError('');
     shareRequest<{ share: ShareSettings | null }>('/api/brochure/share', { signal: controller.signal })
@@ -18,6 +20,26 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
     return () => controller.abort();
   }, [version]);
   const inviteLabel = companion === '一人' ? 'しおりを共有する' : `${companion}を誘う`;
+  async function recordCopies() {
+    if (recordingRef.current || !pendingCopies.current.length) return;
+    recordingRef.current = true; setRecording(true);
+    try {
+      while (pendingCopies.current.length) {
+        const event = pendingCopies.current[0]!;
+        let saved = false;
+        for (let attempt = 0; attempt < 2 && !saved; attempt++) {
+          try {
+            await shareRequest('/api/brochure/share/copies', { method: 'POST', body: JSON.stringify(event), signal: AbortSignal.timeout(5000) });
+            saved = true;
+          } catch { /* 同じ操作IDで再送し、応答消失後も二重加算しない。 */ }
+        }
+        if (!saved) break;
+        pendingCopies.current.shift();
+      }
+    } finally {
+      setUnrecordedCopies(pendingCopies.current.length); recordingRef.current = false; setRecording(false);
+    }
+  }
   async function copyUrl() {
     if (busy || !canPublish) return;
     setBusy(true); setError(''); setNotice('');
@@ -31,7 +53,10 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
       } catch {
         window.prompt('共有URLを選択してコピーしてください。', url);
         setNotice('共有URLを発行しました。');
+        return;
       }
+      pendingCopies.current.push({ requestId: crypto.randomUUID(), shareId: result.share.id });
+      void recordCopies();
     } catch (reason) { setError(reason instanceof Error ? reason.message : '共有URLを発行できませんでした。'); }
     finally { setBusy(false); }
   }
@@ -51,5 +76,6 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
     {loading ? <p role="status">共有情報を確認しています</p> : <div className="share-panel-metrics"><span><Eye aria-hidden="true" />表示回数 <strong>{error ? '—' : (share?.viewCount ?? 0).toLocaleString('ja-JP')}</strong>回</span><small>共有ページの再読み込みも含みます。作者のプレビューは加算しません。</small><button className="button" disabled={busy} onClick={() => setVersion(value => value + 1)}><RefreshCw aria-hidden="true" />件数を更新</button></div>}
     {share?.active && <button className="button button-outline" disabled={busy || loading} onClick={() => void stopSharing()}>公開を停止する</button>}
     {notice && <p role="status" className="share-notice">{notice}</p>}{error && <p role="alert" className="form-error">{error}</p>}
+    {unrecordedCopies > 0 && <div className="share-notice" role="status"><p>URLはコピーできましたが、{unrecordedCopies}回分のコピー記録が未完了です。</p><button className="button button-outline" disabled={recording} onClick={() => void recordCopies()}>{recording ? '記録しています' : 'コピー記録を再送する'}</button></div>}
   </section>;
 }

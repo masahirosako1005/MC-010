@@ -74,7 +74,7 @@ export class PublicContentCache {
 export function invalidatePublicContentOnWrite(cache: PublicContentCache): RequestHandler {
   return (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) ||
-      (req.method === 'POST' && /^\/shared\/[a-f0-9]{64}\/views\/?$/.test(req.path))) return next();
+      (req.method === 'POST' && (/^\/shared\/[a-f0-9]{64}\/views\/?$/.test(req.path) || /^\/brochure\/share\/copies\/?$/.test(req.path)))) return next();
     const json = res.json;
     // Mutation handlers have committed before serializing their response. This also runs
     // if the client disconnected earlier, so a late commit cannot leave old bytes cached.

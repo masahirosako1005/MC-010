@@ -697,7 +697,7 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect((await api('/api/admin/shares', { cookie: owner.cookie })).response.status).toBe(403);
     const report = await api<import('../src/shared/sharing-types.js').AdminSharePage>('/api/admin/shares?scope=fixture&page=999', { cookie: town.cookie });
     expect(report.body).toMatchObject({ total: 1, active: 1, totalViews: 2, page: 1 });
-    expect(Object.keys(report.body.rows[0]!).sort()).toEqual(['id', 'userId', 'source', 'active', 'viewCount', 'createdAt', 'lastViewedAt'].sort());
+    expect(Object.keys(report.body.rows[0]!).sort()).toEqual(['id', 'userId', 'source', 'active', 'viewCount', 'copyCount', 'createdAt', 'lastViewedAt', 'lastCopiedAt'].sort());
     expect(JSON.stringify(report.body)).not.toContain(share.path.split('/').at(-1));
   });
 

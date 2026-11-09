@@ -31,7 +31,7 @@
 .admin-metric { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--coral); border-radius: 12px; padding: 20px 16px; }
 .admin-metric:nth-child(2) { border-top-color: var(--blue); }.admin-metric:nth-child(3) { border-top-color: var(--orange); }.admin-metric:nth-child(4) { border-top-color: var(--yellow); }
 .gift-claim-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.share-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.share-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .admin-metric h2 { font-size: .85rem; margin: 0; font-weight: 800; line-height: 1.5; }
 .admin-metric p { display: flex; align-items: baseline; gap: 6px; margin: 12px 0; }
 .admin-metric p strong { font-size: clamp(1.8rem, 3vw, 2.8rem); font-variant-numeric: tabular-nums; }.admin-metric p span { font-size: .9rem; }

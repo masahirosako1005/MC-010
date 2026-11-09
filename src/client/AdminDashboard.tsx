@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plug, Plus, RefreshCw, Save, Share2, X } from 'lucide-react';
+import { BarChart3, Building2, Check, ChevronLeft, ChevronRight, ClipboardList, Ticket, LoaderCircle, LogOut, MapPin, PencilLine, Plug, Plus, RefreshCw, Save, Share2, X } from 'lucide-react';
 import { COMPANIONS, type User } from '../shared/types';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared/experience-categories';
 import { SPOT_IMAGES, THEME_TAGS, type AdminOverview, type AdminSpot, type DataScope, type RegistrationPage, type SpotInput, type GiftClaimPage } from '../shared/admin-types';
@@ -7,45 +7,10 @@ import './admin.css';
 import { GiftBadge } from './SpotDetailDialog';
 import type { AdminSharePage } from '../shared/sharing-types';
 import { AdminMcp } from './AdminMcp';
-
-class AdminApiError extends Error {
-  constructor(message: string, public code: string) { super(message); }
-}
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, { credentials: 'same-origin', ...init, headers: {
-    ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(init.method ? { 'X-Requested-With': 'kondo' } : {}), ...init.headers,
-  } });
-  const body = await response.json().catch(() => null);
-  if (!response.ok) throw new AdminApiError(body?.error?.message ?? '読み込みに失敗しました。接続を確認して再試行してください。', body?.error?.code ?? 'unknown');
-  return body as T;
-}
-const date = (value: string | null) => value ? new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
-const number = (value: number) => value.toLocaleString('ja-JP');
-const scopeLabel = { all: 'すべて', organizer: '提供データ', fixture: 'デモデータ' };
-const sourceLabel = { organizer: '提供データ', fixture: 'デモ', town: '町で登録' };
+import { AdminApiError, request, date, number, scopeLabel, sourceLabel, useData, LoadState, Metric, useDrilldown } from './admin-ui';
+import { AdminRegistrationDetail } from './AdminRegistrationDetail';
+import { AdminSpotAnalytics } from './AdminSpotAnalytics';
 type Tab = 'overview' | 'spots' | 'registrations' | 'claims' | 'shares' | 'mcp';
-
-function useData<T>(url: string) {
-  const [data, setData] = useState<T | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true);
-  const [version, setVersion] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true); setError(''); setData(null);
-    request<T>(url, { signal: controller.signal }).then(value => {
-      if (!controller.signal.aborted) setData(value);
-    }).catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '読み込めませんでした。'); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
-  }, [url, version]);
-  return { data, error, loading, reload: () => setVersion(value => value + 1) };
-}
-
-function LoadState({ loading, error, retry }: { loading: boolean; error: string; retry: () => void }) {
-  if (loading) return <div className="admin-load" role="status"><LoaderCircle className="spin" aria-hidden="true" />データを読み込んでいます</div>;
-  if (error) return <div className="admin-error" role="alert"><CircleAlert aria-hidden="true" /><span>{error}</span><button className="button button-outline" onClick={retry}>再試行</button></div>;
-  return null;
-}
 
 export function AdminDashboard({ user, onLogout, notice }: { user: User; onLogout: () => Promise<void>; notice: string }) {
   const [tab, setTab] = useState<Tab>('overview'), [scope, setScope] = useState<DataScope>('all'), [dirty, setDirty] = useState(false), [saving, setSaving] = useState(false);
@@ -113,14 +78,11 @@ function Overview({ scope }: { scope: DataScope }) {
     </>}
   </>;
 }
-function Metric({ label, value, unit, detail }: { label: string; value: string; unit: string; detail: string }) {
-  return <section className="admin-metric"><h2>{label}</h2><p><strong>{value}</strong><span>{unit}</span></p><small>{detail}</small></section>;
-}
-
 function Registrations({ scope }: { scope: DataScope }) {
   const [status, setStatus] = useState('all'), [history, setHistory] = useState('all'), [page, setPage] = useState(1);
+  const detail = useDrilldown();
   const { data, loading, error, reload } = useData<RegistrationPage>(`/api/admin/registrations?scope=${scope}&status=${status}&history=${history}&page=${page}`);
-  return <>
+  return <><div hidden={detail.id !== null}>
     <p className="admin-description">利用者ごとの作成状況を匿名IDで確認します。写真・コメントは選択中スポットの件数だけを表示します。</p>
     <div className="admin-filters"><label>登録状態<select value={status} onChange={event => { setPage(1); setStatus(event.target.value); }}><option value="all">すべて</option><option value="created">作成済み</option><option value="missing">未作成</option></select></label>
       <label>訪問履歴<select value={history} onChange={event => { setPage(1); setHistory(event.target.value); }}><option value="all">すべて</option><option value="yes">履歴あり</option><option value="no">履歴なし</option></select></label>
@@ -129,12 +91,13 @@ function Registrations({ scope }: { scope: DataScope }) {
     <LoadState loading={loading} error={error} retry={reload} />
     {data && <section className="admin-panel admin-table-panel">
       <div className="admin-table-heading"><h2>登録一覧</h2><span>{number(data.total)}人</span></div>
-      {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="パンフレット登録一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID / 出所</th><th scope="col">訪問履歴</th><th scope="col">登録状態</th><th scope="col">掲載 / 写真 / コメント</th><th scope="col">作成日時</th><th scope="col">最終更新日時</th></tr></thead><tbody>
-        {data.rows.map(row => <tr key={row.userId}><th scope="row"><code className="admin-anon-id">{row.userId}</code><small>{sourceLabel[row.source]}</small></th><td>{row.visits}件</td><td><span className={`admin-badge ${row.brochureId ? 'is-active' : ''}`}>{row.brochureId ? '作成済み' : '未作成'}</span>{!row.visits && <small>履歴なし</small>}</td><td>{row.brochureId ? `${row.selectedSpots} / ${row.photos} / ${row.comments}件` : '—'}</td><td>{date(row.createdAt)}</td><td>{date(row.updatedAt)}</td></tr>)}
+      {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="パンフレット登録一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID / 出所</th><th scope="col">訪問履歴</th><th scope="col">登録状態</th><th scope="col">掲載 / 写真 / コメント</th><th scope="col">作成日時</th><th scope="col">最終更新日時</th><th scope="col">操作</th></tr></thead><tbody>
+        {data.rows.map(row => <tr key={row.userId}><th scope="row"><code className="admin-anon-id">{row.userId}</code><small>{sourceLabel[row.source]}</small></th><td>{row.visits}件</td><td><span className={`admin-badge ${row.brochureId ? 'is-active' : ''}`}>{row.brochureId ? '作成済み' : '未作成'}</span>{!row.visits && <small>履歴なし</small>}</td><td>{row.brochureId ? `${row.selectedSpots} / ${row.photos} / ${row.comments}件` : '—'}</td><td>{date(row.createdAt)}</td><td>{date(row.updatedAt)}</td><td><button className="button button-outline" aria-label={`${row.userId}の作成詳細を表示`} onClick={event => detail.open(row.userId, event.currentTarget)}>詳細</button></td></tr>)}
       </tbody></table></div> : <p className="admin-empty">この条件に合う利用者はいません。</p>}
       <div className="admin-pagination"><span role="status">{data.page} / {Math.max(1, Math.ceil(data.total / data.pageSize))}ページ</span><button className="button" disabled={data.page <= 1 || loading} onClick={() => setPage(data.page - 1)}><ChevronLeft aria-hidden="true" />前へ</button><button className="button" disabled={data.page * data.pageSize >= data.total || loading} onClick={() => setPage(data.page + 1)}>次へ<ChevronRight aria-hidden="true" /></button></div>
     </section>}
     <p className="admin-muted">未作成には訪問履歴がない利用者も含まれます。必要に応じて「履歴あり」で絞り込んでください。</p>
+    </div>{detail.id && <AdminRegistrationDetail key={detail.id} userId={detail.id} scope={scope} onBack={detail.close} />}
   </>;
 }
 
@@ -142,21 +105,23 @@ function Spots({ onDirty, onBusy }: { onDirty: (dirty: boolean) => void; onBusy:
   const { data, loading, error, reload } = useData<{ spots: AdminSpot[] }>('/api/admin/spots');
   const [editor, setEditor] = useState<{ spot: AdminSpot | null; key: number } | null>(null), [dirty, setDirty] = useState(false);
   const [search, setSearch] = useState(''), [status, setStatus] = useState('all'), [busy, setBusy] = useState(false);
+  const analysis = useDrilldown();
   function select(spot: AdminSpot | null) {
     if (busy) return;
     if (dirty && !window.confirm('未保存の変更を破棄して別のスポットを開きますか？')) return;
     setDirty(false); onDirty(false); setEditor({ spot, key: Date.now() });
   }
   const spots = (data?.spots ?? []).filter(spot => (status === 'all' || (status === 'active' ? spot.active : !spot.active)) && (!search || `${spot.name} ${spot.category}`.includes(search.trim())));
-  return <>
+  return <><div hidden={analysis.id !== null}>
     <div className="admin-section-intro"><p>名称・説明・体験タグ・画像を管理します。公開停止後も、既存の履歴とパンフレットは残ります。</p><button className="button button-primary" onClick={() => select(null)}><Plus aria-hidden="true" />スポットを登録</button></div>
     {editor && <SpotEditor key={editor.key} spot={editor.spot} onDirty={value => { setDirty(value); onDirty(value); }} onBusy={value => { setBusy(value); onBusy(value); }} onSaved={reload} onClose={() => { if (!dirty || window.confirm('未保存の変更を破棄しますか？')) { setEditor(null); setDirty(false); onDirty(false); } }} />}
     <div className="admin-filters"><label>スポットを検索<input type="search" placeholder="名称・分類" value={search} onChange={event => setSearch(event.target.value)} /></label><label>公開状態<select value={status} onChange={event => setStatus(event.target.value)}><option value="all">すべて</option><option value="active">公開中</option><option value="stopped">公開停止</option></select></label><button className="button" disabled={loading} onClick={reload}><RefreshCw aria-hidden="true" />一覧を更新</button></div>
     <LoadState loading={loading} error={error} retry={reload} />
     {data && <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>スポット一覧</h2><span>{spots.length}件</span></div>
-      {spots.length ? <div className="admin-table-scroll" role="region" aria-label="スポット一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table admin-spots-table"><thead><tr><th scope="col">スポット</th><th scope="col">体験カテゴリ</th><th scope="col">状態</th><th scope="col">訪問 / 人数 / 掲載</th><th scope="col">クーポン利用</th><th scope="col">操作</th></tr></thead><tbody>{spots.map(spot => <tr key={spot.id}><th scope="row"><div className="admin-spot-cell"><img src={spot.image} alt="" loading="lazy" /><span>{spot.name}<small>{spot.category} · {sourceLabel[spot.source]}</small><GiftBadge available={spot.hasGift} /></span></div></th><td><div className="admin-tags">{EXPERIENCE_CATEGORIES.filter(c => spotSupportsExperienceCategory(spot, c.id)).map(c => <span key={c.id}>{c.label}</span>)}</div></td><td><span className={`admin-badge ${spot.active ? 'is-active' : ''}`}>{spot.active ? '公開中' : '公開停止'}</span></td><td>{spot.visitCount}件 / {spot.visitorCount}人 / {spot.brochureCount}冊</td><td>{spot.giftClaimCount}件</td><td><button className="button button-outline" aria-label={`${spot.name}を編集`} onClick={() => select(spot)}><PencilLine aria-hidden="true" />編集</button></td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件に合うスポットはありません。</p>}
+      {spots.length ? <div className="admin-table-scroll" role="region" aria-label="スポット一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table admin-spots-table"><thead><tr><th scope="col">スポット</th><th scope="col">体験カテゴリ</th><th scope="col">状態</th><th scope="col">訪問 / 人数 / 掲載</th><th scope="col">クーポン利用</th><th scope="col">操作</th></tr></thead><tbody>{spots.map(spot => <tr key={spot.id}><th scope="row"><div className="admin-spot-cell"><img src={spot.image} alt="" loading="lazy" /><span>{spot.name}<small>{spot.category} · {sourceLabel[spot.source]}</small><GiftBadge available={spot.hasGift} /></span></div></th><td><div className="admin-tags">{EXPERIENCE_CATEGORIES.filter(c => spotSupportsExperienceCategory(spot, c.id)).map(c => <span key={c.id}>{c.label}</span>)}</div></td><td><span className={`admin-badge ${spot.active ? 'is-active' : ''}`}>{spot.active ? '公開中' : '公開停止'}</span></td><td>{spot.visitCount}件 / {spot.visitorCount}人 / {spot.brochureCount}冊</td><td>{spot.giftClaimCount}件</td><td><div className="admin-row-actions"><button className="button button-outline" disabled={busy} aria-label={`${spot.name}の詳細分析`} onClick={event => { if (!busy) analysis.open(spot.id, event.currentTarget); }}><BarChart3 aria-hidden="true" />詳細分析</button><button className="button button-outline" aria-label={`${spot.name}を編集`} onClick={() => select(spot)}><PencilLine aria-hidden="true" />編集</button></div></td></tr>)}</tbody></table></div> : <p className="admin-empty">この条件に合うスポットはありません。</p>}
     </section>}
     <p className="admin-muted">訪問はCSV由来の履歴、クーポン利用は利用者の確認操作による申告件数です。件数は提供・デモデータの合計です。新しく登録したスポットは、利用者がパンフレットを再生成すると候補に加わります。</p>
+    </div>{analysis.id && <AdminSpotAnalytics key={analysis.id} spotId={analysis.id} onBack={analysis.close} />}
   </>;
 }
 
@@ -259,13 +224,13 @@ function Shares({ scope }: { scope: DataScope }) {
   const [page, setPage] = useState(1);
   const { data, loading, error, reload } = useData<AdminSharePage>(`/api/admin/shares?scope=${scope}&page=${page}`);
   return <>
-    <p className="admin-description">共有URLの発行状況と、共有ページを表示した回数です。再読み込みを含み、同じ表示記録の再送は加算しません。作者のプレビューや画像取得は対象外です。閲覧人数や現地への来訪件数ではありません。</p>
+    <p className="admin-description">公開URLの発行・コピー回数とアクセス数です。コピーは計測開始後のブラウザによる成功回数（手動コピーを除く）、アクセスは本文表示の回数（再読み込みを含む）です。同じ記録の再送は加算せず、作者のプレビューや画像取得はアクセスの対象外です。</p>
     <div className="admin-filters"><button className="button" disabled={loading} onClick={reload}><RefreshCw aria-hidden="true" />更新</button></div>
     <LoadState loading={loading} error={error} retry={reload} />
     {data && <>
-      <div className="admin-metrics share-metrics"><Metric label="発行済み共有URL" value={number(data.total)} unit="件" detail="1パンフレットにつき1件" /><Metric label="公開中" value={number(data.active)} unit="件" detail="公開停止後も履歴と件数を保持" /><Metric label="共有ページ表示回数" value={number(data.totalViews)} unit="回" detail="選択したデータ範囲の累計" /></div>
+      <div className="admin-metrics share-metrics"><Metric label="発行済み共有URL" value={number(data.total)} unit="件" detail="1パンフレットにつき1件" /><Metric label="公開中" value={number(data.active)} unit="件" detail="公開停止後も履歴と件数を保持" /><Metric label="公開URLコピー回数" value={number(data.totalCopies)} unit="回" detail="選択したデータ範囲の合計（計測開始後）" /><Metric label="公開URLアクセス数" value={number(data.totalViews)} unit="回" detail="選択したデータ範囲の累計" /></div>
       <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>共有状況</h2><span>{number(data.total)}件</span></div>
-        {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="共有状況（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID</th><th scope="col">出所</th><th scope="col">公開状態</th><th scope="col">表示回数</th><th scope="col">URL発行日時</th><th scope="col">最終表示日時</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><th scope="row"><code className="admin-anon-id">{row.userId}</code></th><td>{sourceLabel[row.source]}</td><td><span className={`admin-badge ${row.active ? 'is-active' : ''}`}>{row.active ? '公開中' : '公開停止'}</span></td><td>{number(row.viewCount)}回</td><td>{date(row.createdAt)}</td><td>{date(row.lastViewedAt)}</td></tr>)}</tbody></table></div> : <p className="admin-empty">共有URLはまだ発行されていません。</p>}
+        {data.rows.length ? <div className="admin-table-scroll" role="region" aria-label="共有状況（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID</th><th scope="col">出所</th><th scope="col">公開状態</th><th scope="col">コピー回数</th><th scope="col">アクセス数</th><th scope="col">URL発行日時</th><th scope="col">最終コピー日時</th><th scope="col">最終アクセス日時</th></tr></thead><tbody>{data.rows.map(row => <tr key={row.id}><th scope="row"><code className="admin-anon-id">{row.userId}</code></th><td>{sourceLabel[row.source]}</td><td><span className={`admin-badge ${row.active ? 'is-active' : ''}`}>{row.active ? '公開中' : '公開停止'}</span></td><td>{number(row.copyCount)}回</td><td>{number(row.viewCount)}回</td><td>{date(row.createdAt)}</td><td>{date(row.lastCopiedAt)}</td><td>{date(row.lastViewedAt)}</td></tr>)}</tbody></table></div> : <p className="admin-empty">共有URLはまだ発行されていません。</p>}
         <div className="admin-pagination"><span role="status">{data.page} / {Math.max(1, Math.ceil(data.total / data.pageSize))}ページ</span><button className="button" disabled={data.page <= 1 || loading} onClick={() => setPage(data.page - 1)}><ChevronLeft aria-hidden="true" />前へ</button><button className="button" disabled={data.page * data.pageSize >= data.total || loading} onClick={() => setPage(data.page + 1)}>次へ<ChevronRight aria-hidden="true" /></button></div>
       </section>
     </>}

@@ -1,0 +1,35 @@
+.admin-detail[hidden] { display: none; }
+.admin-detail-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 12px 0 24px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.admin-detail-heading > div { flex: 1; min-width: 200px; }.admin-detail-heading h2 { font-family: var(--font-rounded); font-size: 1.45rem; line-height: 1.5; margin: 0; }
+.admin-detail-heading p { font-size: .8rem; line-height: 1.8; color: var(--ink-soft); margin: 5px 0 0; }
+.admin-detail-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.admin-detail-section-heading h2 { font: 800 1.1rem/1.5 var(--font-rounded); margin: 0; }.admin-detail-section-heading > span { font-size: .8rem; color: var(--ink-soft); }
+.admin-detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; margin: 0; }
+.admin-detail-facts > div { padding: 16px 0; border-bottom: 1px solid var(--line); min-width: 0; }.admin-detail-facts dt { font-weight: 700; font-size: .8rem; color: var(--ink-soft); margin-bottom: 7px; }
+.admin-detail-facts dd { margin: 0; font-size: .93rem; line-height: 1.8; overflow-wrap: anywhere; }.admin-detail-facts code { font-size: .84rem; }.admin-fact-wide { grid-column: 1 / -1; }
+.admin-detail-spot-name { min-width: 170px; max-width: 300px; overflow-wrap: anywhere; }.admin-detail-table-note { padding: 0 20px 12px; font-size: .8rem; line-height: 1.8; color: var(--ink-soft); }
+.admin-row-actions { display: flex; gap: 8px; align-items: center; }.admin-row-actions .button { flex-shrink: 0; }
+.admin-analysis-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin: 16px 0 24px; }.admin-analysis-controls label { display: grid; gap: 7px; font-size: .85rem; }
+.admin-analysis-spot { display: flex; align-items: start; gap: 22px; }.admin-analysis-spot > img { width: 160px; height: 112px; object-fit: cover; border-radius: 9px; flex-shrink: 0; }
+.admin-analysis-spot > div { min-width: 0; }.admin-analysis-spot h2 { overflow-wrap: anywhere; font-size: 1.35rem; }.admin-analysis-spot p { font-size: .85rem; line-height: 1.9; }
+.admin-detail-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }.admin-detail-badges .gift-badge { width: auto; margin: 0; }
+.admin-distribution dl { margin: 24px 0 0; display: grid; gap: 18px; }.admin-distribution dl > div { display: grid; grid-template-columns: minmax(70px, .6fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+.admin-distribution dt { font-size: .9rem; font-weight: 700; overflow-wrap: anywhere; }.admin-distribution dd { margin: 0; }.admin-distribution dd strong { display: block; font-size: .85rem; font-variant-numeric: tabular-nums; margin-bottom: 7px; }.admin-distribution dd small { font-weight: 400; color: var(--ink-soft); }
+.admin-distribution-track { display: block; height: 10px; border-radius: 5px; background: var(--paper-deep); overflow: hidden; }.admin-distribution-track > span { display: block; height: 100%; border-radius: 5px; background: var(--blue); }.admin-distribution:nth-child(2n) .admin-distribution-track > span { background: var(--coral); }
+.admin-detail .admin-panel > h2 > svg { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; }
+.admin-period-form { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin: 22px 0 14px; }.admin-period-form label { display: grid; gap: 7px; font-size: .85rem; min-width: 0; }.admin-period-form input { width: 175px; min-width: 0; }
+.admin-period-presets { display: flex; flex-wrap: wrap; gap: 8px; }.admin-period-presets .button { padding: 8px 13px; font-size: .8rem; }
+.admin-period-summary { padding: 14px 18px; border-left: 4px solid var(--blue); border-radius: 6px; background: var(--blue-soft); font-size: .88rem; font-weight: 700; line-height: 1.8; }
+.admin-trend { margin: 22px 0 0; }.admin-trend figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: .85rem; line-height: 1.8; }.admin-trend figcaption strong { font-variant-numeric: tabular-nums; }
+.admin-trend svg { display: block; width: 100%; height: 210px; overflow: visible; }.admin-trend-scale { color: var(--ink-soft); font-size: .78rem; margin: 12px 0 0; }.admin-trend-dates { display: flex; justify-content: space-between; gap: 10px; padding: 0 5.5% 0 6.5%; color: var(--ink-soft); font-size: .78rem; font-variant-numeric: tabular-nums; }
+.admin-trend-grid { stroke: var(--line); stroke-dasharray: 4 5; }.admin-trend-axis { stroke: var(--ink-soft); }.admin-trend-line { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.admin-trend-line.trend-visits { stroke: var(--blue); }.admin-trend-point.trend-visits { fill: var(--blue); }.admin-trend-line.trend-brochures { stroke: var(--accent-ink); }.admin-trend-point.trend-brochures { fill: var(--accent-ink); }
+.admin-trend-line.trend-couponUses { stroke: var(--coral); }.admin-trend-point.trend-couponUses { fill: var(--coral); }.admin-trend-line.trend-shareViews { stroke: #8550aa; }.admin-trend-point.trend-shareViews { fill: #8550aa; }
+.admin-trend-table { margin-top: 18px; border-top: 1px solid var(--line); }.admin-trend-table summary { cursor: pointer; min-height: 44px; padding: 14px 0; font-size: .9rem; font-weight: 700; }.admin-trend-table .admin-table-scroll { max-height: 420px; }.admin-trend-table thead { position: sticky; top: 0; }
+.admin-analysis-note { border-left: 4px solid var(--orange); padding: 4px 0 4px 18px; margin: 24px 0; }.admin-analysis-note h2 { font-size: 1rem; margin: 0 0 8px; }.admin-analysis-note p { font-size: .8rem; line-height: 1.9; color: var(--ink-soft); }
+@media (max-width: 620px) {
+  .admin-detail-heading { align-items: start; }.admin-detail-heading > div { order: -1; width: 100%; flex-basis: 100%; }.admin-detail-heading > .button { font-size: .8rem; }
+  .admin-detail-facts { grid-template-columns: 1fr; }.admin-analysis-spot { flex-direction: column; gap: 16px; }.admin-analysis-spot > img { width: 100%; height: 165px; }
+  .admin-period-form label { flex: 1; min-width: 120px; }.admin-period-form input { width: 100%; }.admin-period-form > button { width: 100%; }
+  .admin-trend svg { height: 180px; }.admin-detail .admin-scope { max-width: 100%; }.admin-detail .admin-scope select { min-width: 0; width: 100%; }
+}

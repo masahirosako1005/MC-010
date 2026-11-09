@@ -8,6 +8,7 @@ import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared
 import { transaction } from './db.js';
 import { AppError } from './errors.js';
 import { uuidSchema } from './validation.js';
+import { createAdminDetailRouter } from './admin-details.js';
 
 const scopeSchema = z.enum(['all', 'organizer', 'fixture']).default('all');
 const listSchema = z.object({
@@ -54,6 +55,7 @@ export function createAdminRouter(db: pg.Pool) {
     if (req.accountRole !== 'town_admin') return next(new AppError(403, 'admin_required', '町側アカウントでログインしてください。'));
     next();
   });
+  router.use(createAdminDetailRouter(db));
 
   router.get('/overview', async (req, res) => {
     const { scope } = z.object({ scope: scopeSchema }).strict().parse(req.query);

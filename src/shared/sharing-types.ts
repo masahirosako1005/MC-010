@@ -1,6 +1,7 @@
 import type { Brochure, Spot, Visit } from './types.js';
 
 export interface ShareSettings {
+  id: string;
   path: string;
   active: boolean;
   viewCount: number;
@@ -19,6 +20,8 @@ export interface AdminShareRow {
   source: 'fixture' | 'organizer';
   active: boolean;
   viewCount: number;
+  copyCount: number;
+  lastCopiedAt: string | null;
   createdAt: string;
   lastViewedAt: string | null;
 }
@@ -27,6 +30,7 @@ export interface AdminSharePage {
   total: number;
   active: number;
   totalViews: number;
+  totalCopies: number;
   page: number;
   pageSize: number;
 }

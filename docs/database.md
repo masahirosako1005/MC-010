@@ -1,5 +1,24 @@
 # DB・API・生成規則
 
+## 公開URLコピー記録（008_share_copy_counts.sql）
+
+`brochure_shares` に `copy_count`（非負integer、既存値0）と `last_copied_at` を追加。`share_url_copies` はshare_id/request_idの複合主キーとサーバー時刻のcopied_atを保存する。共有ID＋日付のindexを持つ。既存のアクセス記録・view_count・公開状態・トークンは変更しない。コピー時刻はサーバーが成功イベントを受理した時刻。
+
+`POST /api/brochure/share/copies` は作成者専用。strict JSON `{shareId: UUID, requestId: UUID}` を受け、セッション本人の冊子の共有行をFOR UPDATEしてイベントをINSERT ON CONFLICT DO NOTHING、新規時だけコピー累計・最終日時を更新し `{ok:true}` を返す。存在しない／他人のshareIdは404、町アカウントは403、未ログインは401。公開停止後の遅延送信は記録するが再公開はしない。ブラウザのコピー確認イベントであり、実コピーの独立証明ではない。
+
+作成者用ShareSettingsは対象を固定するためidも返す。町側共有一覧はcopyCount/lastCopiedAt、累計はtotalCopiesを追加。作成詳細のshareにも同項目、スポット分析のtotalsとperiodの日別／合計にはshareCopiesを追加する。スポットは現在掲載中の冊子だけを対象にする。コピー記録は本文を変更しないため公開コンテンツcacheの無効化対象から除外する。バックアップには新列・イベント表も含める。
+
+## 管理用の作成詳細・スポット分析（2026-11-09追加）
+
+既存の町権限middlewareの内側で次のGETを提供する。共通の認証・no-storeを適用し、UUIDとstrict queryを検証。取得はREPEATABLE READ / READ ONLY、SQLごとの上限8秒。DB migrationはない。
+
+|メソッド・パス|契約|
+|---|---|
+|GET /api/admin/registrations/:id|idは匿名利用者UUID。scope=all/organizer/fixture、既定all。registrationに出所と訪問／スポット／スタンプ数・最終訪問、brochureに条件・日時・revision・再生成／掲載／思い出／写真／コメント数、itemsに掲載または選んだ思い出のスポット情報と写真有無・コメント有無／文字数、shareに公開状態・件数・日時。未作成はbrochure/share=null、items=[]。対象なし・町利用者・scope不一致は404。|
+|GET /api/admin/spots/:id/analytics|idはスポットUUID。scope（既定all）、from/toは両方省略でJST直近30日、同時指定時1900〜2100年・最大366日。spotは公式情報、totalsは累計／現在の掲載・全冊数、breakdownsは現在掲載中の条件内訳、periodは指定日・日別値・期間合計、recentBrochuresは更新順最大10冊の匿名作成条件。存在しないスポットは404。|
+
+型定義は `src/shared/admin-detail-types.ts`。利用者の氏名・メール・回答・本文・写真URL・クーポンコード・共有トークン／生URLは含めない。写真はEXISTS、コメントは有無とchar_lengthだけを取得する。掲載しおりの共有表示は現在そのスポットを選択している冊子の共有履歴であり、個別スポット閲覧イベントではない。初回作成は冊子のcreated_at、訪問はvisited_at、クーポンはclaimed_at、共有表示はviewed_atで日付を判定する。
+
 ## DB
 
 PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_brochure_pickup_categories.sql` が体験カテゴリ割当を追加する。起動時の自動DB変更はなく、CLIの `db:migrate` がmigration名とadvisory lockで冪等実行する。

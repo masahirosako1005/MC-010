@@ -99,7 +99,7 @@ test('相手別の招待・表示計測・所有者限定クーポンと一度�
     await adminPage.getByRole('button', { name: '来訪履歴（クーポン利用）', exact: true }).click();
     await expect(adminPage.getByRole('table')).toContainText(spot.name);
     await adminPage.getByRole('button', { name: '共有状況', exact: true }).click();
-    await expect(adminPage.getByRole('heading', { name: '共有ページ表示回数', exact: true })).toBeVisible();
+    await expect(adminPage.getByRole('heading', { name: '公開URLアクセス数', exact: true })).toBeVisible();
     await adminPage.screenshot({ path: info.outputPath('admin-sharing.png'), fullPage: true });
   } finally { await Promise.all([admin.close(), guest.close(), other.close()]); }
 });

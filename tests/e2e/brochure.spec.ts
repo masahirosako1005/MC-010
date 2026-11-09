@@ -78,6 +78,10 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith(new URL(testInfo.project.use.baseURL??'http://127.0.0.1:3001').origin))externalRequests.push(r.url());});
   await login(page);
   await expect(page.getByTestId('brochure')).toBeVisible();
+  const surveyDisclosure=page.getByTestId('survey-disclosure');
+  await expect(surveyDisclosure).not.toHaveAttribute('open','');
+  await surveyDisclosure.getByText('編集確認：前回の旅全体のアンケート',{exact:true}).click();
+  await expect(surveyDisclosure).toHaveAttribute('open','');
   expect(await page.getByTestId('route-item').count()).toBeGreaterThan(0);
   const route=page.getByTestId('route-item').first();
   const comment=`また一緒に歩きたい！${testInfo.project.name}`;

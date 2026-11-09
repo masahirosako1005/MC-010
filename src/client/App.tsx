@@ -968,14 +968,14 @@ function MemoryPanel(props: MemoryProps) {
             <button type="button" className="icon-button" aria-label="次の思い出を見る" disabled={activeIndex === visitedItems.length - 1} onClick={() => showSlide(activeIndex + 1)}><ChevronRight aria-hidden="true" /></button>
           </div>}
           {hasSurvey && survey && (
-            <aside className="survey-note" aria-label="前回の旅全体のアンケート" data-export-exclude="true">
-              <strong>前回の旅全体のアンケート</strong>
+            <details className="survey-note survey-disclosure" data-testid="survey-disclosure" data-export-exclude="true">
+              <summary>編集確認：前回の旅全体のアンケート</summary>
               <dl>
                 {survey.satisfaction !== null && <div><dt>総合満足度</dt><dd>{survey.satisfaction}/5</dd></div>}
                 {survey.goodPoints && <div><dt>良かった点</dt><dd>{survey.goodPoints}</dd></div>}
                 {survey.previousCompanion && <div><dt>前回の同行者</dt><dd>{survey.previousCompanion}</dd></div>}
               </dl>
-            </aside>
+            </details>
           )}
         </>
       ) : <p className="empty-message">振り返りに使える訪問記録がありません。</p>}

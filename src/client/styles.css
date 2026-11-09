@@ -412,14 +412,36 @@ img { display: block; max-width: 100%; }
 .memory-facts svg { width: 15px; height: 15px; }
 .survey-note {
   margin-top: 14px;
-  padding: 11px 12px;
   border: 1px dashed #bc8d8d;
   background: rgb(255 253 248 / 72%);
   color: var(--ink-soft);
   font-size: .76rem;
 }
-.survey-note > strong { color: var(--ink); font-size: .79rem; }
-.survey-note dl { display: grid; gap: 6px; margin: 8px 0 0; }
+.survey-disclosure summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .79rem;
+  font-weight: 900;
+}
+.survey-disclosure summary::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  margin-right: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+.survey-disclosure[open] summary::before { transform: rotate(45deg) translate(-2px, -2px); }
+.survey-disclosure summary:hover { background: rgb(255 255 255 / 54%); }
+.survey-disclosure summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.survey-disclosure[open] summary { border-bottom: 1px dashed #bc8d8d; }
+.survey-note dl { display: grid; gap: 6px; margin: 0; padding: 10px 12px 12px; }
 .survey-note dl > div { display: grid; grid-template-columns: 82px 1fr; gap: 6px; }
 .survey-note dt { font-weight: 800; }
 .survey-note dd { margin: 0; overflow-wrap: anywhere; line-height: 1.45; }

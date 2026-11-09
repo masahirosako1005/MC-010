@@ -107,6 +107,23 @@ Windows PowerShell 5.1では、実行ポリシーによる停止と、UTF-8 BOM�
 - 390×844で、カテゴリカードの横スワイプ用部分表示、ヒーロー、固定共有バーを目視。DOMで5件とモバイル共有バーの表示も確認した。
 - AGENTS.mdの明示依頼限定ルールに従い、今回の差分に対する `npm run check` / `npm test` / `npm run test:e2e` / `npm audit` / skill inventoryと独立レビューは実施していない。保存・再ログイン・PNGの新紙面専用再検証も未実施。
 
+## pnpm移行の検証範囲
+
+2026-11-09、依存管理をnpmからpnpmへ移行した。移行前のnpm lockfileに記録されていた直接依存25件の解決版を `package.json` へ正確に固定し、pnpm 11.25.0で `pnpm-lock.yaml` へ変換した。互換範囲と `latest` タグは使用していない。
+
+- Node 26.13.0からpnpm 11.25.0を起動し、`pnpm install --lockfile-only --offline --frozen-lockfile --ignore-scripts` 相当が終了コード0。実行前後のlockfile SHA-256は `704F01F3BF9E01413969B3F4E67468FD5634B5A879F7F0CA1282206552128EDE` で不変。
+- Node 26.13.0／pnpm 11.25.0で `pnpm run build` 相当が終了コード0。server TypeScriptとVite 8.3.6のSPA（1,583 modules）を生成し、実行前後でlockfileは不変。
+- build後、共有ワークスペースの併存作業により3001番の対象プロセスが切り替わったため、旧PIDを重ねて停止していない。新PIDはこのworkspaceのNode 26.13.0と `dist/node/server/index.js`、メインウィンドウなしで起動していることを再同定。`GET /` と `GET /api/health` は200。
+- AGENTS.mdの明示依頼限定ルールに従い、この移行差分に対する `pnpm run check` / `pnpm test` / `pnpm run test:e2e` / `pnpm audit` / data verification / skill inventoryと独立レビューは実施していない。
+
+## 町側管理画面の反映（2026-11-09）
+
+- `003_town_admin.sql` を通常デモDB `kondo_anatato`（127.0.0.1:55432）へ適用。既存データの初期化やfixture再投入は行わず、町デモ `town@example.test` を追加した。
+- Node 26.13.0 / pnpm 11.25.0で `build` 成功。server TypeScriptとVite SPAを生成した。デスクトップ付属pnpmラッパーは別Node 24と自動installへ進んだため失敗し、Node 26からpnpm.mjsを直接起動、`--config.verify-deps-before-run=false` で既存依存によるbuildを実行した。依存スクリプトの実行許可設定は変更していない。
+- 3001番PIDとプロジェクト内Nodeパス・サーバーentrypointを同定し、このアプリのみHidden再起動。PostgreSQLと別アプリは停止していない。
+- 最小HTTP参照で `GET /` は200、新しいビルドのJS参照を確認。`GET /api/health` は200 / `{"ok":true}`。
+- AGENTS.mdに従い、町側ログイン・権限境界・CRUD・集計・写真再試行・既存利用者フローのテスト、check、audit、E2E、独立レビュー、画面目視は未実施。buildとHTTP配信確認を機能テストの合格とは扱わない。共有状況の実装は保留。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

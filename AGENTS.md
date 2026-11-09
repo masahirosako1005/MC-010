@@ -28,7 +28,7 @@ QA担当: 独立したセキュリティレビューと検証。修正はメイ�
 
 ユーザーが明示的に依頼した場合のみ、レビューおよびテストを実行する。通常の変更/コミット依頼をテスト・レビュー実行の許可とは解釈しない。
 
-`npm test`、check、audit、E2E等の追加検証や独立レビューもこのルールに従う。skills内のTDD・レビュー・完了前検証の既定よりユーザー指示を優先する。実行しなかった検証は未実施と報告し、コミットの前提条件にしない。
+`pnpm test`、check、audit、E2E等の追加検証や独立レビューもこのルールに従う。skills内のTDD・レビュー・完了前検証の既定よりユーザー指示を優先する。実行しなかった検証は未実施と報告し、コミットの前提条件にしない。
 
 ## コード修正後の反映（常時）
 
@@ -36,10 +36,10 @@ QA担当: 独立したセキュリティレビューと検証。修正はメイ�
 
 ## 明示的な検証依頼がある場合の確認
 
-- Node 26で `npm run check`、`npm run build`、`npm audit`、`node scripts/skill-inventory.mjs`。
-- 専用PostgreSQL DBを `TEST_DATABASE_URL` に指定して `npm test`。DBテストがskipの場合は統合合格としない。
-- 専用DB・画像保存先でアプリを起動し、`E2E_BASE_URL` を指定して `npm run test:e2e`。デモ利用者の編集が変わるため、利用中DBを安易にテストへ流用しない。
-- CSV取込は読み取り専用の元ファイルから別の空DBで再現。件数・冪等性・履歴なしを `npm run data:verify` で確認。
+- Node 26と固定pnpmで `pnpm run check`、`pnpm run build`、`pnpm audit`、`node scripts/skill-inventory.mjs`。
+- 専用PostgreSQL DBを `TEST_DATABASE_URL` に指定して `pnpm test`。DBテストがskipの場合は統合合格としない。
+- 専用DB・画像保存先でアプリを起動し、`E2E_BASE_URL` を指定して `pnpm run test:e2e`。デモ利用者の編集が変わるため、利用中DBを安易にテストへ流用しない。
+- CSV取込は読み取り専用の元ファイルから別の空DBで再現。件数・冪等性・履歴なしを `pnpm run data:verify` で確認。
 - 画面とPNGを目視確認し、編集UI除外、PC/スマホ、写真保存失敗からの再試行を確認。READMEと `docs/verification.md` を更新する。
 
 ## コミット時の確認（常時）

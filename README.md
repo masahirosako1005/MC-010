@@ -7,9 +7,10 @@
 ## 必要環境
 
 - **Node.js 26**（`.nvmrc` / `engines`に明記）。検証には26.13.0を使用。
+- **pnpm 11.25.0**（`packageManager` / `engines`に固定）。互換範囲や`latest`ではなく、この版を使用。
 - PostgreSQL 17以降。Docker Compose、または通常のローカルPostgreSQLで動きます。
-- 初回のnpm依存取得にはインターネットが必要。起動後の生成・写真・共有にはクラウド／外部AI／SMTPは不要です。
-- npmロックファイルを同梱。画像素材も `public/assets` に同梱しています。
+- 初回のpnpm依存取得にはインターネットが必要。起動後の生成・写真・共有にはクラウド／外部AI／SMTPは不要です。
+- `pnpm-lock.yaml` を同梱。直接依存とpnpm自体も正確な版へ固定し、画像素材も `public/assets` に同梱しています。
 
 Node 26が未導入なら、[公式Node.js 26.13.0配布](https://nodejs.org/dist/v26.13.0/)からOSに合う配布物を取得してください。Windowsでは `node-v26.13.0-win-x64.zip` を `.tools` へ展開すれば、システムのNodeを変更せず使えます。
 
@@ -17,6 +18,7 @@ Node 26が未導入なら、[公式Node.js 26.13.0配布](https://nodejs.org/dis
 # ZIPを .tools/node-v26.13.0-win-x64 に展開済みの場合
 $env:Path = (Join-Path $PWD '.tools\node-v26.13.0-win-x64') + ';' + $env:Path
 node --version   # v26.13.0（26系を使用）
+pnpm --version   # 11.25.0（固定版を使用）
 ```
 
 Pythonはアプリの起動には不要です。導入済みUIスキルの検索を使う場合だけ使用します。採用技術・配布元・検証したアーカイブのハッシュは [技術資料](docs/technology.md) に記載しています。
@@ -27,17 +29,18 @@ Pythonはアプリの起動には不要です。導入済みUIスキルの検索
 
 プロジェクトルートで実行します。
 
-以下はWindows PowerShell用の例です。実行ポリシーにより `npm.ps1` が止められる場合は、各コマンドの `npm` を `npm.cmd` に置き換えてください（例: `npm.cmd ci --ignore-scripts`）。Node公式ZIPには両方が同梱され、`npm.cmd` の使用に恒久的なポリシー変更は不要です。
+以下はWindows PowerShell用の例です。実行ポリシーにより `pnpm.ps1` が止められる場合は、各コマンドの `pnpm` を `pnpm.cmd` に置き換えてください（例: `pnpm.cmd install --frozen-lockfile --ignore-scripts`）。実行ポリシーを恒久変更する必要はありません。
 
 ```powershell
 node --version
-npm ci --ignore-scripts
+pnpm --version
+pnpm install --frozen-lockfile --ignore-scripts
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d --wait db
-npm run db:migrate
-npm run db:seed
-npm run build
-npm start
+pnpm run db:migrate
+pnpm run db:seed
+pnpm run build
+pnpm start
 ```
 
 [http://127.0.0.1:3001](http://127.0.0.1:3001) を開きます。通常停止はアプリのCtrl+Cと `docker compose stop`。DBボリュームは残すので編集が保持されます。`docker compose down -v` はデータを消すため、通常停止には使用しません。
@@ -51,11 +54,11 @@ npm start
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-db.ps1 -Action start -PostgresBin C:\path\to\pgsql\bin
 $env:DATABASE_URL = 'postgres://postgres@127.0.0.1:55432/kondo_anatato'
-npm ci --ignore-scripts
-npm run db:migrate
-npm run db:seed
-npm run build
-npm start
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm run db:migrate
+pnpm run db:seed
+pnpm run build
+pnpm start
 ```
 
 以後も同じ `DATABASE_URL` を指定します（または `.env` に記載）。この補助スクリプトは `.local/pgdata` に専用DBを初期化し、127.0.0.1:55432だけで起動します。信頼認証は単独端末のデモ専用です。通常運用向けにはパスワード認証のDocker版を使用してください。
@@ -96,8 +99,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-db.ps1 -Acti
 元データは読み取り専用です。リポジトリへコピーしません。
 
 ```powershell
-npm run data:inspect -- C:\AI-Sprint\sample-data
-npm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
+pnpm run data:inspect -- C:\AI-Sprint\sample-data
+pnpm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
 ```
 
 提供データの全500件のメールはマスク済み同一値のため、メール照合には使用できません。`--with-demo-aliases` を明示すると `sample@example.test`（実績あり）と `sample-empty@example.test`（実績なし）を匿名利用者へ対応付けます。これはデモ用の仮メールであり、実メールや訪問履歴を補完・推測しません。
@@ -106,7 +109,7 @@ npm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
 
 ```powershell
 $env:E2E_BASE_URL = 'http://127.0.0.1:3001'
-npm run data:verify
+pnpm run data:verify
 ```
 
 デモfixtureと取り込みデータはID名前空間で分離します。500人・2,629スタンプ履歴・287参加後回答を取り込み、登録時属性・氏名・LINE情報はDBへ保存しません。特典履歴の集計不一致は補完せず、中心機能には使用しません。再投入はファイルハッシュで冪等です。列・件数・欠損・境界の詳細は [取り込み資料](docs/data-import.md)。
@@ -123,9 +126,9 @@ npm run data:verify
 ## 開発・検証
 
 ```powershell
-npm run dev
-npm run check
-npm test
+pnpm run dev
+pnpm run check
+pnpm test
 ```
 
 開発画面は [http://127.0.0.1:5173](http://127.0.0.1:5173)、APIは3001。5173が使用中なら、空きポートへの自動切替はせず明示エラーになります。別ポートを使う場合はvite設定と `WEB_ORIGIN` の両方を一致させてください。
@@ -134,19 +137,27 @@ DB統合テストは一時schemaを作成・破棄します。専用検証DBを�
 
 ```powershell
 $env:TEST_DATABASE_URL = 'postgres://postgres:postgres@127.0.0.1:5432/kondo_anatato'
-npm test
-node node_modules/playwright/cli.js install chromium
+pnpm test
+pnpm exec playwright install chromium
 # build/start済みのアプリを別ターミナルで起動してから実行
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 `TEST_DATABASE_URL` がない場合、DB統合テストはskipとして明示されます。PCとスマホのブラウザテストはローカルPNGダウンロードまで検証します。実行結果と残存リスクは [検証記録](docs/verification.md) と [セキュリティ監査](docs/security.md)。
 
 Windowsのブラウザテストはインストール済みMicrosoft Edge、他OSはPlaywright Chromiumを既定にします。`PLAYWRIGHT_CHANNEL=chromium` などで切替可能です。この端末ではEdgeでPC/スマホを検証しました。
 
-E2Eはデモ利用者の保存内容を変更します。自分のデモ編集を残す場合は、空の専用検証DBと別の `UPLOAD_DIR` を指定して別ポートで起動してください。DBと保存先を揃えたうえで、`E2E_BASE_URL` をそのURLへ設定します。テスト結果は `test-results` に出力し、Gitへ含めません。依存監査は `npm audit`、スキルの同梱ファイル検証は `node scripts/skill-inventory.mjs`。
+E2Eはデモ利用者の保存内容を変更します。自分のデモ編集を残す場合は、空の専用検証DBと別の `UPLOAD_DIR` を指定して別ポートで起動してください。DBと保存先を揃えたうえで、`E2E_BASE_URL` をそのURLへ設定します。テスト結果は `test-results` に出力し、Gitへ含めません。依存監査は `pnpm audit`、スキルの同梱ファイル検証は `node scripts/skill-inventory.mjs`。
 
-2026-11-09の検証ではNode 26.13.0／PostgreSQL 17.11／Edgeで、単体・DB統合46件とPC・スマホE2E10件、型チェック・buildが合格し、開発依存を含むnpm auditは0件でした。Docker構成は未実行です。実機スマホと正式Cloudflare完全監査の未検証範囲は [検証記録](docs/verification.md) を参照してください。
+2026-11-09のpnpm移行前の検証ではNode 26.13.0／PostgreSQL 17.11／Edgeで、単体・DB統合46件とPC・スマホE2E10件、型チェック・buildが合格し、開発依存を含むnpm auditは0件でした。pnpm移行差分の検証範囲は [検証記録](docs/verification.md) に分けて記載しています。Docker構成は未実行です。実機スマホと正式Cloudflare完全監査の未検証範囲も同資料を参照してください。
+
+## 町側管理画面
+
+`pnpm run db:migrate` で追加migrationと町デモアカウントを登録後、`town@example.test` / `1111` でログインしてください。同じログイン画面から町側の「概況」「スポット管理」「パンフレット登録状況」が開きます。`source=organizer` の一般利用者に管理権限は付きません。
+
+スポットは追加・編集・公開停止／再開でき、画像は同梱イメージか1枚5MB以内のJPEG/PNG/WebPを使えます。公開停止でも過去の履歴・掲載は保持します。新規スポットは既存冊子を再生成すると候補へ追加されます。名称・説明・公式画像は既存冊子へも反映され、使用中カテゴリに必要なタグ削除は拒否します。カタログseedの再実行は町の編集を上書きしません。
+
+登録状況は匿名IDと件数・日時だけを表示し、利用者のメール・氏名・写真実体・コメント本文は表示しません。「共有状況」は保留で、記録も集計も追加していません。固定コードは町側もローカルデモ専用です。
 
 ## 資料
 

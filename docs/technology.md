@@ -12,11 +12,11 @@
 |共有|Clipboard API / html-to-image|文字列コピーと端末内PNG。公開共有先や外部ストレージなし。|
 |検証|Vitest 5 / Playwright 1.65 / Edge|実DB統合、ブラウザ一筆書き、ローカルダウンロード。|
 
-正確な依存バージョン・解決先は `package-lock.json`。既定のパッケージスクリプトによる未確認処理を避け、`npm ci --ignore-scripts` で導入した。Windows x64のSharpは配布済みoptional binaryで動き、別の空ディレクトリでも同コマンドによる導入とPNGのデコード／エンコードを確認した。
+正確な依存バージョン・解決先は `pnpm-lock.yaml`。pnpm自体は11.25.0、直接依存は移行前のnpm lockfileで解決済みだった版へ正確に固定し、通常導入は `pnpm install --frozen-lockfile --ignore-scripts` とする。依存build scriptを実行する場合の許可は `pnpm-workspace.yaml` で現在の `esbuild@0.28.2` だけへ限定する。npm管理時にはWindows x64のSharpが配布済みoptional binaryで動くことを別の空ディレクトリで確認済み。pnpm移行後の確認範囲は [検証記録](verification.md) に分離する。
 
 ## この端末の実環境
 
-- Windows x64、Node.js **26.13.0**、PostgreSQL **17.11**。
+- Windows x64、Node.js **26.13.0**、pnpm **11.25.0**、PostgreSQL **17.11**。
 - PlaywrightのPC/スマホともMicrosoft Edge **157.0.4341.42**のheadless実行。スマホはiPhone 13相当390×844のエミュレーションで、実機Safariではない。
 - PostgreSQLは `.tools/pgsql` の公式配布バイナリ。専用clusterは `.local/pgdata`、127.0.0.1:55432。Windowsサービス登録なし。
 - DB補助スクリプトの初期化・起動・状態確認・通常停止は、別の空clusterを55433番へ作って確認。Windows PowerShell 5.1の文字コード差を避けるため本文をASCIIとした。

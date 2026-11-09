@@ -93,7 +93,7 @@
 
 ## 最終再監査手順
 
-1. `TEST_DATABASE_URL` に破棄可能なPostgreSQL DBを指定し、Node.js 26で `npm test` を実行する。
+1. `TEST_DATABASE_URL` に破棄可能なPostgreSQL DBを指定し、Node.js 26と固定pnpmで `pnpm test` を実行する。
 2. 同一利用者の並列ensureでパンフレットが1件だけであることを確認する。
 3. 2利用者間でitem ID、photo ID、SavePayloadを差し替え、404/400となりデータが変わらないことを確認する。
 4. 正常写真の追加・差し替え・削除・再取得、およびMIME偽装、SVG、5MB超、巨大画像を確認する。

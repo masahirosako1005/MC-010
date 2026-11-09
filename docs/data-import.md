@@ -37,9 +37,9 @@
 ## 実行と冪等性
 
 ```powershell
-npm run db:migrate
-npm run data:inspect -- C:\AI-Sprint\sample-data
-npm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
+pnpm run db:migrate
+pnpm run data:inspect -- C:\AI-Sprint\sample-data
+pnpm run data:import -- C:\AI-Sprint\sample-data --with-demo-aliases
 ```
 
 解析→必須列・キー・日時・メール・孤児・重複検証→全件transaction内upsert。1件でも不正なら全体rollback。匿名件数だけを出力する。ファイル内容＋取り込み変換版（現在v2）のハッシュをimport_runsへ記録し、同版・同内容は `already_imported`。履歴source_keyもUNIQUE。既存パンフレット・コメント・写真には触れない。

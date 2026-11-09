@@ -67,3 +67,9 @@ node scripts/skill-inventory.mjs
 
 新規3ファイルのSHA256をinventoryへ追加し、既存の登録値は保持する。AGENTS.mdに従い、skill validator、inventory照合、テスト、独立レビューは未実施。アプリのコード変更がないため、ビルドと再起動も行わない。
 
+## 公開キャッシュの手動クリア（2026-11-09）
+
+プロジェクト独自の[project-cache-clear](../.agents/skills/project-cache-clear/SKILL.md)を追加した。CLI取込・DB直接更新後や古い公開内容への運用対処として、3001番の対象アプリを同定し、既存のビルド済みアプリだけを1回Hidden再起動してメモリー内キャッシュを空にする手順。停止前の起動設定確認、PID再照合、最小HTTP確認、起動失敗時の終了条件を含む。通常の更新時の自動クリア、ブラウザ/CDN、DB・写真の削除、アプリのビルド/反映には使わない。
+
+「project-cache-clearで公開キャッシュをクリアして」で利用できる。今回の依頼はスキル作成のため、実際のキャッシュクリア・再起動・DB操作・HTTP参照は実施していない。新規SKILL.mdのSHA256だけをinventoryへ追加し、公式vendorと既存の登録値を保持する。新しい実行スクリプトや定期実行設定は追加していない。AGENTS.mdに従い、validator・inventory照合・テスト・独立レビューは未実施。アプリコード変更がないためbuildも対象外。
+

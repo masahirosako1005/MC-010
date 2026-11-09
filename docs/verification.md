@@ -201,6 +201,10 @@ READMEに残っていた `pnpm run data:inspect -- ...` の区切りはpnpm 11�
 
 URLは現在のローカルアプリ向け。インターネット/LAN公開は追加せず、表示回数は再読み込みを含むブラウザからの申告記録で、人数や現地来訪を保証しない。
 
+## 英語補助見出しの削除（2026-11-09）
+
+ブラウザ注釈の「NEXT TRIP」「MODEL PLAN」「LAST TRIP」を共通紙面から削除し、日本語見出しを保持した。Node 26.13.0 / pnpm 11.25.0でbuildが終了コード0。3001番の対象PID 25816をNode実体・entrypoint・ポートで同定し、そのPIDだけを停止してHidden起動（PID 11676）。`GET /` と `/api/health` は200、新JSは `/assets/index-jXhiE7oi.js`。DB変更なし。AGENTS.mdに従い追加テスト・画面目視・レビューは未実施。
+
 ## 未検証・残存事項
 
 - 実機iPhone/Android、Safari、スクリーンリーダー、200%ブラウザズーム、実機のソフトキーボードとの共存は未検証。WCAG完全適合とは主張しない。

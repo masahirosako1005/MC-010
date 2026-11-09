@@ -834,7 +834,7 @@ export function BrochurePaper({ draft, spots, visits, survey, paperRef, pendingP
           <section className="pickup-section" aria-labelledby="pickup-title">
             <div className="section-heading pickup-heading">
               <Sparkles aria-hidden="true" />
-              <div><span>NEXT TRIP</span><h2 id="pickup-title">5つの楽しみ</h2></div>
+              <div><h2 id="pickup-title">5つの楽しみ</h2></div>
               <button data-export-exclude="true" className="button mini-action" onClick={onOpenSettings}><RefreshCw aria-hidden="true" />まとめて選び直す</button>
             </div>
             <p className="pickup-intro">場所からではなく、次の旅で楽しみたいことからおすすめを選びました。</p>
@@ -986,7 +986,7 @@ function ModelPlan({ selected, spotsById, onMove, duration, onOpen }: {
 }) {
   return (
     <section className="model-plan" aria-labelledby="model-plan-title">
-      <div className="support-heading"><MapIcon aria-hidden="true" /><div><span>MODEL PLAN</span><h2 id="model-plan-title">モデルプラン</h2></div></div>
+      <div className="support-heading"><MapIcon aria-hidden="true" /><div><h2 id="model-plan-title">モデルプラン</h2></div></div>
       <p className="support-intro">{duration === 'day' ? '日帰り' : '一泊二日'}でめぐる、おすすめの順路です。</p>
       <ol className="model-plan-list">
         {selected.map((item, index) => {
@@ -1055,7 +1055,6 @@ function MemoryPanel(props: MemoryProps) {
   return (
     <section className="memory-section" aria-labelledby="memory-title">
       <div className="section-ribbon">
-        <span>LAST TRIP</span>
         <h2 id="memory-title">前回の思い出</h2>
       </div>
       {visitedItems.length ? (

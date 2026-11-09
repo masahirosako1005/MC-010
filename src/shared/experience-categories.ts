@@ -45,7 +45,7 @@ export function assignPickupCategories(brochure: { items: BrochureItem[] }, spot
       index,
       count: ordered.filter((item) => {
         const spot = spotsById.get(item.spotId);
-        return !usedItems.has(item.id) && Boolean(spot && spotSupportsExperienceCategory(spot, definition.id));
+        return !usedItems.has(item.id) && Boolean(spot && spot.active !== false && spotSupportsExperienceCategory(spot, definition.id));
       }).length,
     }))
     .sort((a, b) => a.count - b.count || a.index - b.index);
@@ -55,7 +55,7 @@ export function assignPickupCategories(brochure: { items: BrochureItem[] }, spot
     const item = ordered
       .filter((entry) => {
         const spot = spotsById.get(entry.spotId);
-        return !usedItems.has(entry.id) && Boolean(spot && spotSupportsExperienceCategory(spot, definition.id));
+        return !usedItems.has(entry.id) && Boolean(spot && spot.active !== false && spotSupportsExperienceCategory(spot, definition.id));
       })
       .sort((a, b) => Number(b.selected) - Number(a.selected) || a.order - b.order || a.id.localeCompare(b.id))[0];
     if (!item) continue;

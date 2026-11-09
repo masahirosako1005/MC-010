@@ -8,7 +8,8 @@ export type Template = 'colorful' | 'postcard';
 export interface Spot {
   id: string; name: string; category: string; description: string;
   companionTags: string[]; themeTags: string[]; image: string;
-  source: 'fixture' | 'organizer'; sourceUrl: string | null;
+  source: 'fixture' | 'organizer' | 'town'; sourceUrl: string | null;
+  active?: boolean;
 }
 export interface Visit {
   id: string; spotId: string; visitedAt: string; stamp: boolean;
@@ -24,7 +25,7 @@ export interface Brochure {
   template: Template; title: string; theme: string; invitation: string;
   items: BrochureItem[]; updatedAt: string;
 }
-export interface User { id: string; displayName: string; source: 'fixture' | 'organizer' }
+export interface User { id: string; displayName: string; source: 'fixture' | 'organizer'; role?: 'visitor' | 'town_admin' }
 export interface SessionData { user: User; visits: Visit[]; spots: Spot[]; brochure: Brochure | null; survey?: {satisfaction:number|null;goodPoints:string|null;previousCompanion:string|null}|null }
 export interface TripSettings { companion: Companion; duration: Duration; tripStyle: TripStyle; visitedSpotIds: string[] }
 export interface SavePayload {

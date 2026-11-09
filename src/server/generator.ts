@@ -62,7 +62,7 @@ export function selectCategoryPicks(
 ): CategoryPick[] {
   const visited = new Set(visits.map((visit) => visit.spotId));
   const requestedRevisits = new Set(settings.visitedSpotIds);
-  const available = spots.filter((spot) => !visited.has(spot.id) || requestedRevisits.has(spot.id));
+  const available = spots.filter((spot) => spot.active !== false && (!visited.has(spot.id) || requestedRevisits.has(spot.id)));
   const byId = new Map(spots.map((spot) => [spot.id, spot]));
   const picks: CategoryPick[] = [];
   const usedSpots = new Set<string>();

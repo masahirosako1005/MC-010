@@ -50,3 +50,21 @@ PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_bro
 ## 復旧
 
 ユーザー追加写真のDB参照と保存ディレクトリを同時点でバックアップ。アプリ停止→DBを専用DBへ復元→画像を同じUPLOAD_DIRへ復元→設定確認→起動。元CSV取り込みの再実行は冊子編集を変更しない。新規に試し直す場合は既存DBを削除せず、空の別DBを作る。
+
+## 町側管理追加（003_town_admin.sql）
+
+`users.account_role` はvisitor（既定）/town_admin。既存のsourceとは独立する。migration CLIは固定IDの町デモアカウントだけを追加し、既存アカウントの権限を昇格しない。ログイン・sessionはuser.roleを返し、町アカウントでは利用者向け配列を空で返す。認証middlewareは毎回usersの現在の役割を照合する。
+
+spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町の公式スポット画像の認可付き参照。admin_audit_logsはactor_id/action/spot_id/created_atのみ。写真実体はUPLOAD_DIRを共用し、利用者写真と異なるAPIで配信する。DBと画像は従来どおり同時点バックアップ。カタログseedはINSERT ON CONFLICT DO NOTHINGへ変更し、町の編集を上書きしない。
+
+| メソッド・パス | 契約 |
+|---|---|
+| GET /api/admin/overview?scope=all | scope: all/organizer/fixture、匿名集計。公開スポット件数は常に全件。 |
+| GET /api/admin/registrations | scope、status=all/created/missing、history=all/yes/no、page=1以上。25件/ページ。件数と一覧は同一read-only snapshot。 |
+| GET /api/admin/spots | 全スポットと訪問件数・訪問人数・選択中掲載冊数。 |
+| POST /api/admin/spots | name/category/description/themeTags/companionTags/image/active。画像は同梱画像から選択、登録後に写真追加可。 |
+| PUT /api/admin/spots/:id | 上記とrevision。競合409、使用中pickup_categoryのタグ不適合409。削除APIなし。 |
+| POST /api/admin/spots/:id/photo | multipart photo、If-Matchにrevision整数。画像正規化・行ロック・参照交換・監査ログ。 |
+| GET /api/spot-photos/:id | ログイン済みの利用者・町アカウント向け公式画像。利用者個人写真の認可は変更しない。 |
+
+管理APIは認証401／町権限なし403。利用者専用APIへ町アカウントからアクセスした場合も403。既存Origin/X-Requested-With制約を維持。POST ensure/regenerateはbrochureに加えspotsも返す。catalog変更の排他advisory lockと冊子更新の共有advisory lockでタグ変更と生成・保存を直列化する。新規スポットitemの追加は再生成transaction内のみで行い、GETや再ログインで既存編集を変更しない。

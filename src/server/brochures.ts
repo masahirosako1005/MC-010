@@ -8,7 +8,7 @@ type DB = Pick<pg.PoolClient,'query'>;
 
 export async function getSpots(db:DB):Promise<Spot[]> {
   const {rows}=await db.query('SELECT * FROM spots ORDER BY external_id');
-  return rows.map(r=>({id:r.id,name:r.name,category:r.category,description:r.description,companionTags:r.companion_tags,themeTags:r.theme_tags,image:r.image,source:r.source,sourceUrl:r.source_url}));
+  return rows.map(r=>({id:r.id,name:r.name,category:r.category,description:r.description,companionTags:r.companion_tags,themeTags:r.theme_tags,image:r.image,source:r.source,sourceUrl:r.source_url,active:r.active}));
 }
 export async function getVisits(db:DB,userId:string):Promise<Visit[]> {
   const {rows}=await db.query('SELECT * FROM visits WHERE user_id=$1 ORDER BY visited_at DESC,id',[userId]);
@@ -26,12 +26,15 @@ export async function getBrochure(db:DB,userId:string):Promise<Brochure|null> {
     items:rows.map(i=>({id:i.id,spotId:i.spot_id,kind:i.kind,selected:i.selected,isMemory:i.is_memory,order:i.sort_order,comment:i.comment,photoUrl:i.photo_id?`/api/photos/${i.photo_id}`:null,reason:i.reason,pickupCategory:i.pickup_category??null}))};
 }
 export async function getSessionData(db:DB,userId:string):Promise<SessionData> {
-  const user=(await db.query('SELECT id,display_name,source FROM users WHERE id=$1',[userId])).rows[0];
+  const user=(await db.query('SELECT id,display_name,source,account_role FROM users WHERE id=$1',[userId])).rows[0];
   if(!user)throw new AppError(401,'session_expired','もう一度ログインしてください。');
+  const identity={id:user.id,displayName:user.display_name,source:user.source,role:user.account_role};
+  if(user.account_role==='town_admin')return {user:identity,spots:[],visits:[],brochure:null,survey:null};
   const survey=await getSurvey(db,userId);
-  return {user:{id:user.id,displayName:user.display_name,source:user.source},spots:await getSpots(db),visits:await getVisits(db,userId),brochure:await getBrochure(db,userId),survey:survey?{satisfaction:survey.satisfaction,goodPoints:survey.goodPoints,previousCompanion:survey.previousCompanion}:null};
+  return {user:identity,spots:await getSpots(db),visits:await getVisits(db,userId),brochure:await getBrochure(db,userId),survey:survey?{satisfaction:survey.satisfaction,goodPoints:survey.goodPoints,previousCompanion:survey.previousCompanion}:null};
 }
 export async function ensureBrochure(db:DB,userId:string,requestedSettings?:TripSettings):Promise<Brochure> {
+  await db.query('SELECT pg_advisory_xact_lock_shared(6821452)');
   await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[userId]);
   const existing=await getBrochure(db,userId); if(existing)return existing;
   const spots=await getSpots(db),visits=await getVisits(db,userId),survey=await getSurvey(db,userId);
@@ -40,6 +43,7 @@ export async function ensureBrochure(db:DB,userId:string,requestedSettings?:Trip
   const visited=new Set(visits.map(v=>v.spotId));
   if(!settings.visitedSpotIds.length||new Set(settings.visitedSpotIds).size!==settings.visitedSpotIds.length||settings.visitedSpotIds.some(id=>!visited.has(id)))throw new AppError(400,'invalid_visits','再訪先は前回の訪問履歴から選んでください。');
   const picks=selectCategoryPicks(spots,visits,survey,settings);
+  if(!picks.length)throw new AppError(422,'spots_unavailable','公開中の候補スポットがありません。町側の登録状況をご確認ください。');
   const pickBySpot=new Map(picks.map((pick,index)=>[pick.spotId,{...pick,order:index}]));
   const id=randomUUID();
   const items:BrochureItem[]=spots.map(s=>{const pick=pickBySpot.get(s.id);return {id:randomUUID(),spotId:s.id,kind:visited.has(s.id)?'visited':'candidate',selected:Boolean(pick),isMemory:settings.visitedSpotIds.includes(s.id),order:pick?.order??0,comment:'',photoUrl:null,pickupCategory:pick?.pickupCategory??null,
@@ -61,6 +65,7 @@ async function lockAndCheck(db:DB,userId:string,draft:SavePayload) {
   if(!selected.length||selected.length>5||categories.some(category=>category===null)||new Set(categories).size!==selected.length||new Set(selected.map(i=>i.order)).size!==selected.length)throw new AppError(400,'invalid_route','体験カテゴリごとに1か所を選び、訪問順を重複なく指定してください。');
   if(draft.items.some(item=>!item.selected&&item.pickupCategory!==null))throw new AppError(400,'invalid_category','選択していないスポットには体験カテゴリを指定できません。');
   const spotsById=new Map((await getSpots(db)).map(spot=>[spot.id,spot]));
+  if(selected.some(item=>{const saved=current.items.find(entry=>entry.id===item.id)!;return !saved.selected&&spotsById.get(saved.spotId)?.active===false;}))throw new AppError(409,'spot_stopped','選んだスポットは公開停止になりました。再読み込みして候補を選び直してください。');
   if(selected.some(item=>{const currentItem=current.items.find(entry=>entry.id===item.id)!;const spot=spotsById.get(currentItem.spotId);return !spot||!spotSupportsExperienceCategory(spot,item.pickupCategory!);}))throw new AppError(400,'invalid_category','スポットに対応していない体験カテゴリが指定されています。');
   if(draft.items.some(i=>i.isMemory&&current.items.find(c=>c.id===i.id)!.kind!=='visited'))throw new AppError(400,'invalid_memory','思い出には実際に訪れたスポットを選んでください。');
   return current;
@@ -76,17 +81,25 @@ async function refreshCopy(db:DB,userId:string) {
   return (await getBrochure(db,userId))!;
 }
 export async function saveBrochure(db:DB,userId:string,draft:SavePayload):Promise<Brochure> {
+  await db.query('SELECT pg_advisory_xact_lock_shared(6821452)');
   const current=await lockAndCheck(db,userId,draft);await applyDraft(db,current,draft);return refreshCopy(db,userId);
 }
 export async function regenerateBrochure(db:DB,userId:string,draft:SavePayload,settings:TripSettings,mode:'all'|'candidates'):Promise<Brochure> {
-  const current=await lockAndCheck(db,userId,draft);
+  await db.query('SELECT pg_advisory_xact_lock_shared(6821452)');
+  let current=await lockAndCheck(db,userId,draft);
   const visits=await getVisits(db,userId),visited=new Set(visits.map(v=>v.spotId));
   if(new Set(settings.visitedSpotIds).size!==settings.visitedSpotIds.length||settings.visitedSpotIds.some(id=>!visited.has(id)))throw new AppError(400,'invalid_visits','再訪先は前回の訪問履歴から選んでください。');
   await applyDraft(db,current,draft);
   const spots=await getSpots(db),survey=await getSurvey(db,userId);
+  for(const spot of spots.filter(spot=>!current.items.some(item=>item.spotId===spot.id))) {
+    await db.query(`INSERT INTO brochure_items(id,brochure_id,spot_id,kind,reason) VALUES($1,$2,$3,$4,$5) ON CONFLICT(brochure_id,spot_id) DO NOTHING`,
+      [randomUUID(),current.id,spot.id,visited.has(spot.id)?'visited':'candidate',visited.has(spot.id)?'前回のスタンプラリーで訪れた場所です。':candidateReason(spot,settings.companion,settings.tripStyle,surveyTags(survey))]);
+  }
+  current=(await getBrochure(db,userId))!;
   const count=(await db.query('UPDATE brochures SET regeneration_count=regeneration_count+1 WHERE id=$1 RETURNING regeneration_count',[current.id])).rows[0].regeneration_count;
   const retained:CategoryPick[]=mode==='candidates'?current.items.flatMap(item=>{const submitted=draft.items.find(entry=>entry.id===item.id);return submitted?.selected&&submitted.pickupCategory&&item.kind==='visited'?[{spotId:item.spotId,pickupCategory:submitted.pickupCategory}]:[];}):[];
   const picks=selectCategoryPicks(spots,visits,survey,settings,count,retained);
+  if(!picks.length)throw new AppError(422,'spots_unavailable','公開中の候補スポットがありません。現在の編集は保存されていません。');
   const pickBySpot=new Map(picks.map(pick=>[pick.spotId,pick]));
   const retainedOrder=draft.items.filter(i=>i.selected).sort((a,b)=>a.order-b.order).map(i=>current.items.find(c=>c.id===i.id)!.spotId).filter(id=>pickBySpot.has(id));
   const route=[...retainedOrder,...picks.map(pick=>pick.spotId).filter(id=>!retainedOrder.includes(id))];

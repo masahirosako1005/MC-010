@@ -47,8 +47,9 @@ import {
 } from '../shared/experience-categories';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TripSettingsScreen } from './TripSettingsScreen';
+import { AdminDashboard } from './AdminDashboard';
 
-type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history';
+type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
 
 class ApiError extends Error {
@@ -209,6 +210,9 @@ export function App() {
   const openSession = useCallback(async (data: SessionData) => {
     setSession(data);
     setStatusMessage('');
+    if (data.user.role === 'town_admin') {
+      setDraft(null); setSaveState('clean'); setScreen('admin'); return;
+    }
     if (data.visits.length === 0) {
       setScreen('no-history');
       return;
@@ -312,6 +316,7 @@ export function App() {
 
   if (screen === 'checking') return <CheckingScreen />;
   if (screen === 'login') return <LoginScreen onLogin={openSession} notice={statusMessage} />;
+  if (screen === 'admin' && session) return <AdminDashboard user={session.user} onLogout={logout} notice={statusMessage} />;
   if (screen === 'settings' && session) return <TripSettingsScreen
     session={session}
     notice={statusMessage}
@@ -319,11 +324,11 @@ export function App() {
     generatingView={<GeneratingScreen />}
     onGenerate={async(settings) => {
       setStatusMessage('');
-      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) }));
-      const normalized = normalizeBrochureCategories(result.brochure, session.spots);
+      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure; spots: Spot[] }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) }));
+      const normalized = normalizeBrochureCategories(result.brochure, result.spots);
       draftRef.current = normalized;
       setDraft(normalized);
-      setSession(current => current ? { ...current, brochure: normalized } : current);
+      setSession(current => current ? { ...current, spots: result.spots, brochure: normalized } : current);
       setSaveState('saved');
       setStatusMessage('選んだ条件でパンフレットを作成して保存しました。');
       setScreen('brochure');
@@ -339,8 +344,9 @@ export function App() {
       saveState={saveState}
       statusMessage={statusMessage}
       onChange={markChanged}
-      onReplace={(brochure, message) => {
-        const normalized = normalizeBrochureCategories(brochure, session.spots);
+      onReplace={(brochure, message, spots) => {
+        const normalized = normalizeBrochureCategories(brochure, spots ?? session.spots);
+        if (spots) setSession(current => current ? { ...current, spots } : current);
         draftRef.current = normalized;
         setDraft(normalized);
         setSaveState('saved');
@@ -454,6 +460,7 @@ function LoginScreen({ onLogin, notice }: { onLogin: (data: SessionData) => Prom
               、認証コードは <b>1111</b> です。外部サービスへ情報を送りません。
             </span>
           </div>
+          <p className="login-intro">町側の管理デモは<button type="button" className="demo-email" disabled={submitting} onClick={() => setEmail('town@example.test')}>town@example.test</button>でログインできます。</p>
           <p className="form-error" role="alert">{error}</p>
         </div>
       </section>
@@ -517,7 +524,7 @@ interface EditorProps {
   saveState: SaveState;
   statusMessage: string;
   onChange: (update: (current: Brochure) => Brochure) => void;
-  onReplace: (brochure: Brochure, message: string) => void;
+  onReplace: (brochure: Brochure, message: string, spots?: Spot[]) => void;
   onSave: () => Promise<void>;
   onLogout: () => Promise<void>;
   onStatus: (message: string) => void;
@@ -715,8 +722,8 @@ function BrochureEditor(props: EditorProps) {
       requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="trip-settings-open"]')?.focus());
     }}
     onGenerate={async(settings, mode) => {
-      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure }>('/api/brochure/regenerate', { method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }) }));
-      onReplace(result.brochure, mode === 'all' ? '選んだ条件で旅全体を作り直して保存しました。' : '候補を作り直して保存しました。');
+      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure; spots: Spot[] }>('/api/brochure/regenerate', { method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }) }));
+      onReplace(result.brochure, mode === 'all' ? '選んだ条件で旅全体を作り直して保存しました。' : '候補を作り直して保存しました。', result.spots);
       setSettingsOpen(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
     }}
@@ -1223,7 +1230,7 @@ function SpotReplaceDialog({ itemId, brochure, spotsById, onClose, onChoose }: {
   const choices = brochure.items.filter((item) => {
     if (item.selected || !category) return false;
     const spot = spotsById.get(item.spotId);
-    return Boolean(spot && spotSupportsExperienceCategory(spot, category));
+    return Boolean(spot && spot.active !== false && spotSupportsExperienceCategory(spot, category));
   });
   return (
     <div className="dialog-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>

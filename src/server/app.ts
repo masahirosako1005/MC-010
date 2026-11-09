@@ -10,10 +10,11 @@ import type pg from 'pg';
 import { z } from 'zod';
 import { pool, transaction } from './db.js';
 import { AppError } from './errors.js';
-import { ensureBrochure, getSessionData, regenerateBrochure, saveBrochure } from './brochures.js';
+import { ensureBrochure, getSessionData, getSpots, regenerateBrochure, saveBrochure } from './brochures.js';
 import { creationSchema, loginSchema, regenerationSchema, saveSchema, uuidSchema } from './validation.js';
+import { auditSpot, createAdminRouter } from './admin.js';
 
-declare global { namespace Express { interface Request { userId?: string } } }
+declare global { namespace Express { interface Request { userId?: string; accountRole?: 'visitor' | 'town_admin' } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
 const route=(fn:(req:Request,res:Response)=>Promise<unknown>)=>(req:Request,res:Response,next:NextFunction)=>{void fn(req,res).catch(next);};
 const limits=multer({storage:multer.memoryStorage(),limits:{fileSize:5*1024*1024,files:1,fields:0,parts:2}});
@@ -79,14 +80,50 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
     if(req.path==='/health')return next();
     const token=req.cookies.kondo_session;
     if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))return next(new AppError(401,'login_required','ログインしてください。'));
-    void db.query('SELECT user_id FROM sessions WHERE token_hash=$1 AND expires_at>now()',[hash(token)])
-      .then(r=>{if(!r.rows[0])return next(new AppError(401,'session_expired','ログインの有効期限が切れました。もう一度ログインしてください。'));req.userId=r.rows[0].user_id;next();}).catch(next);
+    void db.query('SELECT s.user_id,u.account_role FROM sessions s JOIN users u ON u.id=s.user_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])
+      .then(r=>{if(!r.rows[0])return next(new AppError(401,'session_expired','ログインの有効期限が切れました。もう一度ログインしてください。'));req.userId=r.rows[0].user_id;req.accountRole=r.rows[0].account_role;next();}).catch(next);
   });
   app.get('/api/session',route(async(req,res)=>res.json(await getSessionData(db,req.userId!))));
   app.post('/api/logout',route(async(req,res)=>{await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(req.cookies.kondo_session)]);res.clearCookie('kondo_session',{path:'/',sameSite:'strict',httpOnly:true});res.json({ok:true});}));
-  app.post('/api/brochure/ensure',route(async(req,res)=>{const {settings}=creationSchema.parse(req.body);const brochure=await transaction(c=>ensureBrochure(c,req.userId!,settings),db);res.json({brochure});}));
+  app.use('/api/admin',createAdminRouter(db));
+  app.post('/api/admin/spots/:id/photo',limits.single('photo'),route(async(req,res)=>{
+    // createAdminRouterの共通middlewareを通過した町アカウントだけが到達する。
+    const id=uuidSchema.parse(req.params.id),revision=Number(req.get('If-Match'));
+    if(!Number.isInteger(revision)||revision<1)throw new AppError(400,'revision_required','一覧を読み直して写真を追加してください。');
+    if(!req.file)throw new AppError(400,'photo_required','写真ファイルを選んでください。');
+    const buffer=await normalizeImage(req.file.buffer,req.file.mimetype),key=`${randomUUID()}.webp`,photoId=randomUUID();
+    await mkdir(root,{recursive:true});await writeFile(filePath(key),buffer,{flag:'wx'});
+    let oldKey:string|undefined;
+    try {
+      await transaction(async client=>{
+        await client.query('SELECT pg_advisory_xact_lock(6821452)');
+        const current=(await client.query('SELECT revision FROM spots WHERE id=$1 FOR UPDATE',[id])).rows[0];
+        if(!current)throw new AppError(404,'not_found','スポットが見つかりません。');
+        if(current.revision!==revision)throw new AppError(409,'revision_conflict','他の画面で更新されました。一覧を読み直してください。');
+        oldKey=(await client.query('SELECT storage_key FROM spot_photos WHERE spot_id=$1',[id])).rows[0]?.storage_key;
+        await client.query(`INSERT INTO spot_photos(id,spot_id,storage_key) VALUES($1,$2,$3)
+          ON CONFLICT(spot_id) DO UPDATE SET id=EXCLUDED.id,storage_key=EXCLUDED.storage_key`,[photoId,id,key]);
+        await client.query('UPDATE spots SET image=$1,revision=revision+1,updated_at=now() WHERE id=$2',[`/api/spot-photos/${photoId}`,id]);
+        await auditSpot(client,req.userId!,id,'photo');
+      },db);
+    }catch(error){await removeFile(key);throw error;}
+    if(oldKey)await removeFile(oldKey);
+    res.json({image:`/api/spot-photos/${photoId}`,revision:revision+1});
+  }));
+  app.get('/api/spot-photos/:id',route(async(req,res)=>{
+    const id=uuidSchema.parse(req.params.id);
+    const photo=(await db.query('SELECT storage_key FROM spot_photos WHERE id=$1',[id])).rows[0];
+    if(!photo)throw new AppError(404,'not_found','スポット写真が見つかりません。');
+    let bytes:Buffer;try{bytes=await readFile(filePath(photo.storage_key));}catch{throw new AppError(404,'not_found','写真を読み込めません。町側画面から写真を追加し直してください。');}
+    res.type('image/webp').send(bytes);
+  }));
+  app.use('/api',(req,_res,next)=>{
+    if(req.accountRole!=='visitor')return next(new AppError(403,'visitor_required','この操作は利用者アカウント専用です。'));
+    next();
+  });
+  app.post('/api/brochure/ensure',route(async(req,res)=>{const {settings}=creationSchema.parse(req.body);const result=await transaction(async c=>({brochure:await ensureBrochure(c,req.userId!,settings),spots:await getSpots(c)}),db);res.json(result);}));
   app.put('/api/brochure',route(async(req,res)=>{const draft=saveSchema.parse(req.body);const brochure=await transaction(c=>saveBrochure(c,req.userId!,draft),db);res.json({brochure});}));
-  app.post('/api/brochure/regenerate',route(async(req,res)=>{const {draft,settings,mode}=regenerationSchema.parse(req.body);const brochure=await transaction(c=>regenerateBrochure(c,req.userId!,draft,settings,mode),db);res.json({brochure});}));
+  app.post('/api/brochure/regenerate',route(async(req,res)=>{const {draft,settings,mode}=regenerationSchema.parse(req.body);const result=await transaction(async c=>({brochure:await regenerateBrochure(c,req.userId!,draft,settings,mode),spots:await getSpots(c)}),db);res.json(result);}));
   app.post('/api/items/:id/photo',limits.single('photo'),route(async(req,res)=>{
     const itemId=uuidSchema.parse(req.params.id);
     const owned=await db.query('SELECT i.id FROM brochure_items i JOIN brochures b ON b.id=i.brochure_id WHERE i.id=$1 AND b.user_id=$2',[itemId,req.userId]);

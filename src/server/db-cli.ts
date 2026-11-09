@@ -16,11 +16,13 @@ export async function migrate() {
     });
   }
   await seedCatalog();
+  await pool.query(`INSERT INTO users(id,external_id,email,display_name,source,account_role)
+    VALUES($1,'fixture:town-admin','town@example.test','町管理者','fixture','town_admin') ON CONFLICT(external_id) DO NOTHING`,[stableId('fixture-user:town-admin')]);
 }
 export async function seedCatalog() {
   await transaction(async c => {
     for (const [i,s] of CATALOG.entries()) await c.query(`INSERT INTO spots(id,external_id,name,category,description,companion_tags,theme_tags,image,source,source_url)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(external_id) DO UPDATE SET category=EXCLUDED.category,description=EXCLUDED.description,companion_tags=EXCLUDED.companion_tags,theme_tags=EXCLUDED.theme_tags,image=EXCLUDED.image`,
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(external_id) DO NOTHING`,
       [s.id,`sample-spot-${i+1}`,s.name,s.category,s.description,s.companionTags,s.themeTags,s.image,s.source,s.sourceUrl]);
   });
 }

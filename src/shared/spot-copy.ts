@@ -8,6 +8,13 @@ export function spotOverview(spot: Pick<Spot, 'description' | 'category' | 'them
   return points.length > 120 ? `${points.slice(0, 120).join('')}…` : text;
 }
 
+export function spotListDescription(spot: Pick<Spot, 'description' | 'category' | 'themeTags'>): string {
+  const overview = spotOverview(spot);
+  const sentence = overview.match(/^[^。！？!?\r\n]+[。！？!?]?/u)?.[0] ?? overview;
+  const points = Array.from(sentence);
+  return points.length > 40 ? `${points.slice(0, 40).join('')}...` : sentence;
+}
+
 export function spotRecommendation(item: Pick<BrochureItem, 'kind' | 'reason' | 'pickupCategory'>, trip: Pick<Brochure, 'companion' | 'tripStyle'>): string {
   if (item.kind === 'visited') {
     const who = trip.companion === '一人' ? '自分のペースで' : `${trip.companion}と`;

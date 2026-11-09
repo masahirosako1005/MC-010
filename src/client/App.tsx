@@ -47,7 +47,7 @@ import { TripSettingsScreen } from './TripSettingsScreen';
 import { AdminDashboard } from './AdminDashboard';
 import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
 import { SharePanel } from './SharePanel';
-import { spotOverview, spotRecommendation } from '../shared/spot-copy';
+import { spotListDescription, spotOverview, spotRecommendation } from '../shared/spot-copy';
 import { mergeBrochureEdits } from '../shared/brochure-merge';
 
 type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
@@ -1216,7 +1216,7 @@ function SpotReplaceDialog({ itemId, brochure, spotsById, onClose, onChoose }: {
             return (
               <button key={item.id} className="replace-option" onClick={() => onChoose(item.id)}>
                 <span className="replace-thumb">{spot.image ? <img src={spot.image} alt="" /> : <ImageIcon aria-hidden="true" />}</span>
-                <span><strong>{spot.name}</strong><small>{spot.category}</small><GiftBadge available={spot.hasGift} /><p>{spot.description}</p></span>
+                <span className="replace-option-copy"><strong>{spot.name}</strong><small>{spot.category}</small><GiftBadge available={spot.hasGift} /><p>{spotListDescription(spot)}</p></span>
                 <ChevronRight aria-hidden="true" />
               </button>
             );

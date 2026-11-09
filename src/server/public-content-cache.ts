@@ -18,7 +18,7 @@ export class PublicContentCache {
   private generation = 0;
 
   constructor(options: Partial<CacheOptions> = {}) {
-    this.options = { ttlMs: 30_000, maxEntries: 128, maxBytes: 32 * 1024 * 1024,
+    this.options = { ttlMs: 24 * 60 * 60 * 1000, maxEntries: 128, maxBytes: 32 * 1024 * 1024,
       maxEntryBytes: 4 * 1024 * 1024, now: Date.now, ...options };
   }
 

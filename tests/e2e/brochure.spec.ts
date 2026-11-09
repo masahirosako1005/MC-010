@@ -1,12 +1,20 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 
-async function login(page:Page,email='demo@example.test') {
+async function login(page:Page,email='demo@example.test',create=true) {
   await page.goto('/');
   await page.getByTestId('login-email').fill(email);
+  const response=page.waitForResponse(r=>r.url().endsWith('/api/login')&&r.request().method()==='POST');
   await page.getByTestId('login-submit').click();
+  const result=await response;
+  if(create&&result.ok()){
+    const data=await result.json();
+    if(data.visits.length&&!data.brochure){
+      await page.getByTestId('trip-settings-screen').getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+    }
+  }
 }
-test('demo01は未作成ならログイン後に生成し、次のログインでは復元する',async({page},testInfo)=>{
+test('初回は条件画面で確定して生成し、次のログインでは保存内容を復元する',async({page},testInfo)=>{
   const origin=new URL(testInfo.project.use.baseURL??'http://127.0.0.1:3001').origin;
   const headers={Origin:origin,'X-Requested-With':'kondo'};
   const initial=await page.request.post('/api/login',{headers,data:{email:'demo01@example.test',code:'1111'}});
@@ -17,9 +25,43 @@ test('demo01は未作成ならログイン後に生成し、次のログイン�
   expect((await page.request.post('/api/logout',{headers,data:{}})).status()).toBe(200);
   let ensureRequests=0;
   page.on('request',request=>{if(request.url().endsWith('/api/brochure/ensure')&&request.method()==='POST')ensureRequests++;});
-  await login(page,'demo01@example.test');
+  await login(page,'demo01@example.test',false);
+  if(!before.brochure){
+    const settings=page.getByTestId('trip-settings-screen');
+    await expect(settings).toBeVisible();
+    await expect(settings.getByRole('heading',{name:'旅の内容を選ぶ'})).toBeFocused();
+    expect(ensureRequests).toBe(0);
+    expect((await (await page.request.get('/api/session')).json()).brochure).toBeNull();
+    const boxes=settings.getByRole('checkbox');
+    expect(await boxes.count()).toBe(new Set(before.visits.map((visit:{spotId:string})=>visit.spotId)).size);
+    for(const box of await boxes.all())await box.uncheck();
+    await boxes.last().check();
+    await settings.getByRole('radio',{name:'家族',exact:true}).check();
+    await settings.getByRole('radio',{name:'宿泊 一泊二日',exact:true}).check();
+    await settings.getByRole('radio',{name:'アクティブ',exact:true}).check();
+    await page.screenshot({path:testInfo.outputPath('initial-trip-settings.png'),fullPage:true});
+    await page.route('**/api/logout',r=>r.fulfill({status:503,json:{error:{code:'logout_test_failure',message:'接続を確認してください。'}}}));
+    await settings.getByRole('button',{name:'ログアウト',exact:true}).click();
+    await expect(settings.getByRole('alert')).toContainText('ログアウトを完了できません');
+    await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
+    await page.unroute('**/api/logout');
+    await page.route('**/api/brochure/ensure',r=>r.fulfill({status:503,json:{error:{code:'create_test_failure',message:'作成に失敗しました。もう一度お試しください。'}}}));
+    await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+    await expect(settings.getByRole('alert')).toContainText('作成に失敗');
+    await expect(settings.getByRole('radio',{name:'家族',exact:true})).toBeChecked();
+    await expect(settings.getByRole('radio',{name:'アクティブ',exact:true})).toBeChecked();
+    await page.unroute('**/api/brochure/ensure');
+    const creation=page.waitForRequest(r=>r.url().endsWith('/api/brochure/ensure')&&r.method()==='POST');
+    await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+    const submitted=(await creation).postDataJSON().settings;
+    expect(submitted).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active'});
+    await expect(page.getByTestId('brochure')).toBeVisible();
+    const created=(await (await page.request.get('/api/session')).json()).brochure;
+    expect(created).toMatchObject({companion:'家族',duration:'overnight',tripStyle:'active'});
+    expect(created.items.filter((item:{kind:string;selected:boolean})=>item.kind==='visited'&&item.selected).map((item:{spotId:string})=>item.spotId)).toEqual(submitted.visitedSpotIds);
+  }
   await expect(page.getByTestId('brochure')).toBeVisible();
-  expect(ensureRequests).toBe(before.brochure?0:1);
+  expect(ensureRequests).toBe(before.brochure?0:2);
   const first=(await (await page.request.get('/api/session')).json()).brochure;
   expect(first.items.some((item:{selected:boolean})=>item.selected)).toBeTruthy();
   if(before.brochure)expect(first.id).toBe(before.brochure.id);
@@ -68,21 +110,30 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   await expect(page.getByTestId('route-item').first().locator('textarea')).toHaveValue(comment);
   await expect(page.getByTestId('route-item').first().locator('img')).toHaveAttribute('src',photoSrc!);
   await page.getByTestId('trip-settings-open').click();
-  const dialog=page.getByTestId('trip-settings-dialog');
+  const dialog=page.getByTestId('trip-settings-screen');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button',{name:'旅の条件を閉じる'})).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(dialog.getByRole('button',{name:'旅全体を作り直す'})).toBeFocused();
+  await expect(dialog.getByRole('heading',{name:'旅の内容を選ぶ'})).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('checkbox').first()).toBeFocused();
+  const originalCompanion=(await (await page.request.get('/api/session')).json()).brochure.companion;
+  await dialog.getByLabel(originalCompanion==='家族'?'友人':'家族',{exact:true}).check();
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(page.getByTestId('trip-settings-open')).toBeFocused();
   await page.getByTestId('trip-settings-open').click();
+  await expect(dialog.getByLabel(originalCompanion,{exact:true})).toBeChecked();
   await dialog.getByLabel('一人',{exact:true}).check({force:true});
-  await dialog.getByLabel('一泊二日',{exact:true}).check({force:true});
+  await dialog.getByRole('radio',{name:'宿泊 一泊二日',exact:true}).check();
   await dialog.getByLabel('アクティブ',{exact:true}).check({force:true});
-  await dialog.getByRole('button',{name:/旅全体|この条件|パンフレットを作り/}).first().click();
+  let releaseGeneration!:()=>void;
+  const generationGate=new Promise<void>(resolve=>{releaseGeneration=resolve;});
+  await page.route('**/api/brochure/regenerate',async route=>{await generationGate;await route.continue();});
+  await dialog.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'旅のパンフレットを準備しています'})).toBeVisible();
+  releaseGeneration();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator('.brochure-header h1')).toContainText('自分のペース');
+  await page.unroute('**/api/brochure/regenerate');
   await expect(page.getByTestId('brochure')).toContainText('一泊二日');
   await expect(page.getByTestId('brochure')).toHaveClass(/template-postcard/);
   const response=await page.request.get('/api/session');
@@ -127,7 +178,11 @@ test('小画面・横向き・動き軽減で横にはみ出さない',async({pa
     await page.setViewportSize(size);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
     await page.getByTestId('trip-settings-open').click();
-    await expect(page.getByTestId('trip-settings-dialog')).toBeVisible();
+    await expect(page.getByTestId('trip-settings-screen')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+    expect(await page.locator('.trip-companion-grid').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length)).toBe(3);
+    await page.getByRole('radio',{name:'パートナー',exact:true}).check();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
     await page.keyboard.press('Escape');
   }
 });
@@ -136,17 +191,19 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   await login(page,'second@example.test');
   await expect(page.getByTestId('brochure')).toBeVisible();
   await page.getByTestId('trip-settings-open').click();
-  const settings=page.getByTestId('trip-settings-dialog');
+  const settings=page.getByTestId('trip-settings-screen');
   const revisit=settings.getByRole('checkbox');
   for(const box of await revisit.all())await box.uncheck({force:true});
-  await settings.getByRole('button',{name:'旅全体を作り直す'}).click();
+  await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
   await expect(settings.getByRole('alert')).toContainText('1つ以上');
   for(const box of await revisit.all())await box.check({force:true});
+  await expect(settings.getByRole('alert')).toHaveCount(0);
   await settings.getByLabel('家族',{exact:true}).check({force:true});
   await settings.getByLabel('日帰り',{exact:true}).check({force:true});
   await settings.getByLabel('ゆっくり',{exact:true}).check({force:true});
-  await settings.screenshot({path:testInfo.outputPath('trip-settings.png')});
-  await settings.getByRole('button',{name:'旅全体を作り直す'}).click();
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
+  await page.screenshot({path:testInfo.outputPath('trip-settings-full.png'),fullPage:true});
+  await settings.getByRole('button',{name:'この内容でパンフレットを作る',exact:true}).click();
   await expect(settings).not.toBeVisible();
   await expect(page.locator('.trip-meta')).toContainText('家族');
   await expect(page.locator('.trip-meta')).toContainText('日帰り・ゆっくり');
@@ -174,8 +231,12 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   await expect(restored.locator('textarea')).toHaveValue(retained);
   await expect(restored.locator('img')).toHaveAttribute('src',pendingPreview!);
   await page.getByTestId('trip-settings-open').click();
-  await page.getByTestId('trip-settings-dialog').getByRole('button',{name:'候補だけ作り直す'}).click();
-  await expect(page.getByTestId('trip-settings-dialog')).not.toBeVisible();
+  await page.getByTestId('trip-settings-screen').getByRole('button',{name:'パンフレットへ戻る'}).click();
+  await expect(restored.locator('img')).toHaveAttribute('src',pendingPreview!);
+  await expect(restored.locator('textarea')).toHaveValue(retained);
+  await page.getByTestId('trip-settings-open').click();
+  await page.getByTestId('trip-settings-screen').getByRole('button',{name:'候補だけ作り直す'}).click();
+  await expect(page.getByTestId('trip-settings-screen')).not.toBeVisible();
   if(await restored.count()===0){
     await page.getByTestId('add-spot').click();
     await page.getByRole('dialog').getByRole('button',{name:new RegExp(originalName)}).click();

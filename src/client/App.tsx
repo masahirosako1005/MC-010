@@ -25,22 +25,18 @@ import {
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import {
-  COMPANIONS,
   type Brochure,
   type BrochureItem,
-  type Companion,
-  type Duration,
   type SavePayload,
   type SessionData,
   type Spot,
   type Template,
-  type TripSettings,
-  type TripStyle,
   type Visit,
 } from '../shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { TripSettingsScreen } from './TripSettingsScreen';
 
-type Screen = 'checking' | 'login' | 'generating' | 'brochure' | 'no-history';
+type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
 
 class ApiError extends Error {
@@ -175,6 +171,7 @@ export function App() {
 
   const openSession = useCallback(async (data: SessionData) => {
     setSession(data);
+    setStatusMessage('');
     if (data.visits.length === 0) {
       setScreen('no-history');
       return;
@@ -186,20 +183,7 @@ export function App() {
       return;
     }
 
-    setScreen('generating');
-    try {
-      const result = await api<{ brochure: Brochure }>('/api/brochure/ensure', {
-        method: 'POST', body: '{}',
-      });
-      setDraft(result.brochure);
-      setSession((current) => current ? { ...current, brochure: result.brochure } : current);
-      setSaveState('saved');
-      setStatusMessage('パンフレットを作成して保存しました。');
-      setScreen('brochure');
-    } catch (error) {
-      setStatusMessage(formatError(error));
-      setScreen('login');
-    }
+    setScreen('settings');
   }, []);
 
   useEffect(() => {
@@ -287,7 +271,22 @@ export function App() {
 
   if (screen === 'checking') return <CheckingScreen />;
   if (screen === 'login') return <LoginScreen onLogin={openSession} notice={statusMessage} />;
-  if (screen === 'generating') return <GeneratingScreen />;
+  if (screen === 'settings' && session) return <TripSettingsScreen
+    session={session}
+    notice={statusMessage}
+    onLogout={() => void logout()}
+    generatingView={<GeneratingScreen />}
+    onGenerate={async(settings) => {
+      setStatusMessage('');
+      const result = await api<{ brochure: Brochure }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) });
+      draftRef.current = result.brochure;
+      setDraft(result.brochure);
+      setSession(current => current ? { ...current, brochure: result.brochure } : current);
+      setSaveState('saved');
+      setStatusMessage('選んだ条件でパンフレットを作成して保存しました。');
+      setScreen('brochure');
+    }}
+  />;
   if (screen === 'no-history') return <NoHistoryScreen name={session?.user.displayName ?? ''} notice={statusMessage} onLogout={logout} />;
   if (!session || !draft) return <CheckingScreen />;
 
@@ -672,6 +671,23 @@ function BrochureEditor(props: EditorProps) {
 
   const saveLabel = saveState === 'saving' ? '保存中' : saveState === 'error' ? '保存を再試行' : saveState === 'dirty' ? '変更を保存' : '保存済み';
 
+  if (settingsOpen) return <TripSettingsScreen
+    session={session}
+    brochure={draft}
+    previewBySpotId={Object.fromEntries(draft.items.filter(item => pendingPhotos[item.id]).map(item => [item.spotId, pendingPhotos[item.id]!.preview]))}
+    generatingView={<GeneratingScreen />}
+    onCancel={() => {
+      setSettingsOpen(false);
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="trip-settings-open"]')?.focus());
+    }}
+    onGenerate={async(settings, mode) => {
+      const result = await api<{ brochure: Brochure }>('/api/brochure/regenerate', { method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }) });
+      onReplace(result.brochure, mode === 'all' ? '選んだ条件で旅全体を作り直して保存しました。' : '候補を作り直して保存しました。');
+      setSettingsOpen(false);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }}
+  />;
+
   return (
     <div className="app-shell">
       <header className="editor-toolbar" data-export-exclude="true">
@@ -763,17 +779,6 @@ function BrochureEditor(props: EditorProps) {
           <button className="button button-primary" onClick={() => void exportPng()}><Download aria-hidden="true" />PNG</button>
           <button className="icon-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
       </div>
-      {settingsOpen && (
-        <TripSettingsDialog
-          session={session}
-          draft={draft}
-          onClose={() => setSettingsOpen(false)}
-          onRegenerated={(brochure, mode) => {
-            onReplace(brochure, mode === 'all' ? '旅全体を作り直して保存しました。' : '候補を作り直して保存しました。');
-            setSettingsOpen(false);
-          }}
-        />
-      )}
       {replaceItemId && (
         <SpotReplaceDialog
           mode="replace"
@@ -1041,110 +1046,6 @@ function InvitationPanel({ brochure, invitation, selected, spotsById, onCopy }: 
   );
 }
 
-function TripSettingsDialog({ session, draft, onClose, onRegenerated }: {
-  session: SessionData; draft: Brochure; onClose: () => void; onRegenerated: (brochure: Brochure, mode: 'all' | 'candidates') => void;
-}) {
-  const initialVisited = draft.items.filter((item) => item.kind === 'visited' && item.selected).map((item) => item.spotId);
-  const [companion, setCompanion] = useState<Companion>(draft.companion);
-  const [duration, setDuration] = useState<Duration>(draft.duration);
-  const [tripStyle, setTripStyle] = useState<TripStyle>(draft.tripStyle);
-  const [visitedSpotIds, setVisitedSpotIds] = useState<string[]>(initialVisited);
-  const [busy, setBusy] = useState<'all' | 'candidates' | null>(null);
-  const [error, setError] = useState('');
-  const dialogRef = useDialogFocus(onClose, !busy);
-  const visitedSpots = Array.from(new globalThis.Map(
-    session.visits
-      .map((visit) => session.spots.find((spot) => spot.id === visit.spotId))
-      .filter((spot): spot is Spot => Boolean(spot))
-      .map((spot) => [spot.id, spot] as const),
-  ).values());
-
-  async function regenerate(mode: 'all' | 'candidates') {
-    if (visitedSpotIds.length === 0) {
-      setError('前回の旅から、もう一度訪れたい場所を1つ以上選んでください。');
-      return;
-    }
-    setBusy(mode);
-    setError('');
-    const settings: TripSettings = { companion, duration, tripStyle, visitedSpotIds };
-    try {
-      const result = await api<{ brochure: Brochure }>('/api/brochure/regenerate', {
-        method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }),
-      });
-      onRegenerated(result.brochure, mode);
-    } catch (reason) {
-      setError(formatError(reason));
-      setBusy(null);
-    }
-  }
-
-  return (
-    <div className="dialog-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) onClose(); }}>
-      <section ref={dialogRef} tabIndex={-1} className="dialog settings-dialog" data-testid="trip-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <button className="icon-button dialog-close" aria-label="旅の条件を閉じる" disabled={Boolean(busy)} onClick={onClose}><X aria-hidden="true" /></button>
-        <p className="eyebrow">旅の条件</p>
-        <h2 id="settings-title">次はどんな旅にする？</h2>
-        <p className="dialog-intro">選んだ条件でテーマ・候補・招待文を作り直します。写真とコメントは可能な限り引き継ぎます。</p>
-        <fieldset disabled={Boolean(busy)}>
-          <legend><MapPin aria-hidden="true" />もう一度訪れたい場所</legend>
-          <div className="choice-grid spot-choices">
-            {visitedSpots.map((spot) => {
-              const checked = visitedSpotIds.includes(spot.id);
-              return (
-                <label key={spot.id} className={`choice-card ${checked ? 'selected' : ''}`}>
-                  <input type="checkbox" checked={checked} onChange={() => setVisitedSpotIds((ids) => checked ? ids.filter((id) => id !== spot.id) : [...ids, spot.id])} />
-                  <span className="choice-check"><Check aria-hidden="true" /></span>
-                  <strong>{spot.name}</strong>
-                  <small>{spot.category}</small>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-        <fieldset disabled={Boolean(busy)}>
-          <legend><UsersRound aria-hidden="true" />次は誰と行きたい？</legend>
-          <div className="choice-grid companion-choices">
-            {COMPANIONS.map((value) => <RadioChoice key={value} name="companion" value={value} current={companion} onChange={() => setCompanion(value)}>{value}</RadioChoice>)}
-          </div>
-        </fieldset>
-        <div className="settings-pair">
-          <fieldset disabled={Boolean(busy)}>
-            <legend><MapIcon aria-hidden="true" />日程</legend>
-            <div className="segmented">
-              <RadioChoice name="duration" value="day" current={duration} onChange={() => setDuration('day')}>日帰り</RadioChoice>
-              <RadioChoice name="duration" value="overnight" current={duration} onChange={() => setDuration('overnight')}>一泊二日</RadioChoice>
-            </div>
-          </fieldset>
-          <fieldset disabled={Boolean(busy)}>
-            <legend><Sparkles aria-hidden="true" />過ごし方</legend>
-            <div className="segmented">
-              <RadioChoice name="style" value="slow" current={tripStyle} onChange={() => setTripStyle('slow')}>ゆっくり</RadioChoice>
-              <RadioChoice name="style" value="active" current={tripStyle} onChange={() => setTripStyle('active')}>アクティブ</RadioChoice>
-            </div>
-          </fieldset>
-        </div>
-        <p className="form-error" role="alert">{error}</p>
-        <div className="dialog-actions">
-          <button className="button button-outline" disabled={Boolean(busy)} onClick={() => void regenerate('candidates')}>
-            {busy === 'candidates' ? <LoaderCircle className="spin" aria-hidden="true" /> : <RefreshCw aria-hidden="true" />}候補だけ作り直す
-          </button>
-          <button className="button button-primary" disabled={Boolean(busy)} onClick={() => void regenerate('all')}>
-            {busy === 'all' ? <LoaderCircle className="spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}旅全体を作り直す
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function RadioChoice<T extends string>({ name, value, current, onChange, children }: { name: string; value: T; current: T; onChange: () => void; children: React.ReactNode }) {
-  return (
-    <label className={`radio-choice ${value === current ? 'selected' : ''}`}>
-      <input type="radio" name={name} value={value} checked={value === current} onChange={onChange} />
-      <span>{children}</span>
-    </label>
-  );
-}
 
 function SpotReplaceDialog({ mode, itemId, brochure, spotsById, onClose, onChoose }: {
   mode: 'add' | 'replace'; itemId?: string; brochure: Brochure; spotsById: Map<string, Spot>; onClose: () => void; onChoose: (id: string) => void;

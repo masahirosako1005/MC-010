@@ -9,6 +9,7 @@ import { getBrochure, getSpots, getVisits } from './brochures.js';
 import { transaction } from './db.js';
 import { AppError } from './errors.js';
 import { uuidSchema } from './validation.js';
+import { PublicContentCache } from './public-content-cache.js';
 
 type DB = Pick<pg.PoolClient, 'query'>;
 const exposedItem = `(i.selected OR (i.kind='visited' AND i.is_memory))`;
@@ -32,13 +33,16 @@ async function optionalViewer(db: DB, req: Request): Promise<string | null> {
   return row?.user_id ?? null;
 }
 
-export function createPublicShareRouter(db: pg.Pool, uploadDir: string) {
+export function createPublicShareRouter(db: pg.Pool, uploadDir: string, cache = new PublicContentCache()) {
   const router = Router(), root = path.resolve(uploadDir);
   router.get('/shared/:token', async (req, res) => {
-    const result = await transaction(async client => {
+    // Check publication and the current session even on a cache hit. Owner-only coupon
+    // visibility is generated separately and never enters the shared cache.
+    const share = await publicShare(db, req.params.token);
+    const viewerIsOwner = await optionalViewer(db, req) === share.user_id;
+    const load = () => transaction(async client => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
       const share = await publicShare(client, req.params.token);
-      const viewerIsOwner = await optionalViewer(client, req) === share.user_id;
       const saved = await getBrochure(client, share.user_id);
       if (!saved) throw notFound();
       const items = saved.items.filter(item => item.selected || (item.kind === 'visited' && item.isMemory));
@@ -59,7 +63,9 @@ export function createPublicShareRouter(db: pg.Pool, uploadDir: string) {
         photoUrl: item.photoUrl?.replace(/^\/api\/photos\//, `${photoBase}/photos/`) ?? null,
       })) }, spots, memoryVisits: [...latestVisits.values()], viewerIsOwner } satisfies SharedBrochure;
     }, db);
-    res.json(result);
+    if (viewerIsOwner) return void res.json(await load());
+    const bytes = await cache.getOrLoad(`page:${share.token}`, async () => Buffer.from(JSON.stringify(await load())));
+    res.type('application/json').send(bytes);
   });
   router.post('/shared/:token/views', async (req, res) => {
     const { requestId } = z.object({ requestId: uuidSchema }).strict().parse(req.body);
@@ -80,7 +86,7 @@ export function createPublicShareRouter(db: pg.Pool, uploadDir: string) {
     const row = (await db.query(`SELECT p.storage_key FROM ${from}
       WHERE p.id=$1 AND i.brochure_id=$2 AND ${exposedItem} LIMIT 1`, [id, share.brochure_id])).rows[0];
     if (!row || !/^[a-f0-9-]{36}\.webp$/.test(row.storage_key)) throw new AppError(404, 'photo_not_found', '共有写真が見つかりません。');
-    try { return await readFile(path.join(root, row.storage_key)); }
+    try { return await cache.getOrLoad(`photo:${share.token}:${row.storage_key}`, () => readFile(path.join(root, row.storage_key))); }
     catch { throw new AppError(404, 'photo_not_found', '共有写真を読み込めません。'); }
   }
   router.get('/shared/:token/photos/:id', async (req, res) => { res.type('image/webp').send(await photo(req, false)); });

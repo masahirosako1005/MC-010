@@ -588,6 +588,9 @@ databaseDescribe('PostgreSQL API integration', () => {
     await db.query('UPDATE brochure_items SET comment=$1 WHERE id=$2', ['PRIVATE_UNPUBLISHED_NOTE', hidden.id]);
     const shared = await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie);
     const endpoint = '/api/shared/' + shared.body.share.path.split('/').at(-1);
+    const ownerFirst = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie: owner.cookie });
+    expect(ownerFirst.body.viewerIsOwner).toBe(true);
+    expect(ownerFirst.body.spots.find(value => value.id === spot.id)?.hasGift).toBe(true);
     for (const cookie of [undefined, other.cookie, town.cookie]) {
       const result = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie });
       expect(result.response.status).toBe(200);
@@ -601,7 +604,54 @@ databaseDescribe('PostgreSQL API integration', () => {
     const self = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie: owner.cookie });
     expect(self.body.viewerIsOwner).toBe(true);
     expect(self.body.spots.find(value => value.id === spot.id)?.hasGift).toBe(true);
-    expect((await api(endpoint)).response.headers.get('cache-control')).toBe('no-store');
+    const publicAgain = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+    expect(publicAgain.body.viewerIsOwner).toBe(false);
+    expect(publicAgain.body.spots.every(value => value.hasGift === false)).toBe(true);
+    expect(publicAgain.response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('共有本文を再利用した後も保存と管理スポット更新を次回取得へ反映する', async () => {
+    const { owner, town, brochure, spot } = await giftFixture();
+    const shared = await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie);
+    const endpoint = '/api/shared/' + shared.body.share.path.split('/').at(-1);
+    await api(endpoint); await api(endpoint);
+    const draft = payload(brochure), item = draft.items.find(value => value.selected)!;
+    item.comment = '更新後の公開コメント';
+    expect((await api('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(draft) })).response.status).toBe(200);
+    const updated = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+    expect(updated.body.brochure.items.find(value => value.id === item.id)?.comment).toBe('更新後の公開コメント');
+    const current = (await adminSpots(town.cookie)).find(value => value.id === spot.id)!;
+    expect((await editSpot(town.cookie, current, { name: '更新後の公開スポット' })).response.status).toBe(200);
+    const renamed = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+    expect(renamed.body.spots.find(value => value.id === spot.id)?.name).toBe('更新後の公開スポット');
+    expect(renamed.response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('キャッシュ済み共有写真も削除と公開停止後は返さず、再開時は現在の内容を返す', async () => {
+    const { owner, brochure } = await giftFixture();
+    const item = brochure.items.find(value => value.selected)!;
+    expect((await api(`/api/items/${item.id}/photo`, { method: 'POST', cookie: owner.cookie, body: await pngForm() })).response.status).toBe(200);
+    const share = (await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie)).body.share;
+    const endpoint = '/api/shared/' + share.path.split('/').at(-1);
+    const publicBody = (await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint)).body;
+    const photo = publicBody.brochure.items.find(value => value.id === item.id)!.photoUrl!;
+    expect((await fetch(baseUrl + photo)).status).toBe(200);
+    expect((await fetch(baseUrl + photo)).headers.get('cache-control')).toBe('no-store');
+    expect((await api(`/api/items/${item.id}/photo`, { method: 'DELETE', cookie: owner.cookie })).response.status).toBe(200);
+    expect((await fetch(baseUrl + photo)).status).toBe(404);
+    expect((await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint)).body.brochure.items.find(value => value.id === item.id)?.photoUrl).toBeNull();
+    expect((await api(`/api/items/${item.id}/photo`, { method: 'POST', cookie: owner.cookie, body: await pngForm() })).response.status).toBe(200);
+    const fresh = (await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint)).body;
+    const newPhoto = fresh.brochure.items.find(value => value.id === item.id)!.photoUrl!;
+    expect(newPhoto).not.toBe(photo);
+    expect((await fetch(baseUrl + newPhoto)).status).toBe(200);
+    expect((await api('/api/brochure/share', { method: 'DELETE', cookie: owner.cookie, body: '{}' })).response.status).toBe(200);
+    expect((await api(endpoint)).response.status).toBe(404);
+    expect((await fetch(baseUrl + newPhoto)).status).toBe(404);
+    expect((await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie)).body.share.path).toBe(share.path);
+    expect((await api(endpoint)).response.status).toBe(200);
+    expect((await fetch(baseUrl + newPhoto)).status).toBe(200);
+    expect((await fetch(baseUrl + photo)).status).toBe(404);
   });
 
   it('共有写真は公開URLと掲載範囲を照合し、非掲載写真を拒否する', async () => {

@@ -17,6 +17,7 @@ import { createGiftAdminRouter, createGiftRouter } from './gifts.js';
 import { createOwnerShareRouter, createPublicShareRouter, createShareAdminRouter } from './sharing.js';
 import { createMcpKeyRouter } from './mcp-keys.js';
 import { createMcpRouter } from './mcp.js';
+import { PublicContentCache, invalidatePublicContentOnWrite } from './public-content-cache.js';
 
 declare global { namespace Express { interface Request { userId?: string; accountRole?: 'visitor' | 'town_admin' } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
@@ -42,6 +43,7 @@ export async function normalizeImage(buffer:Buffer,mime:string):Promise<Buffer> 
 
 export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPLOAD_DIR??'uploads')) {
   const app=express();app.disable('x-powered-by');
+  const publicContentCache=new PublicContentCache();
   const root=path.resolve(uploadDir);
   const filePath=(key:string)=>{
     if(!/^[a-f0-9-]{36}\.webp$/.test(key))throw new AppError(404,'not_found','写真が見つかりません。');
@@ -63,6 +65,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   });
   app.use('/mcp',createMcpRouter(db));
   app.use(express.json({limit:'512kb',strict:true}));app.use(cookieParser());
+  app.use('/api',invalidatePublicContentOnWrite(publicContentCache));
   const attempts=new Map<string,{count:number,until:number}>();
   app.get('/api/health',route(async(_req,res)=>{await db.query('SELECT 1');res.json({ok:true});}));
   app.post('/api/login',route(async(req,res)=>{
@@ -81,7 +84,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
     res.cookie('kondo_session',token,{httpOnly:true,sameSite:'strict',secure:false,maxAge:12*60*60*1000,path:'/'});
     res.json(await getSessionData(db,userId));
   }));
-  app.use('/api',createPublicShareRouter(db,root));
+  app.use('/api',createPublicShareRouter(db,root,publicContentCache));
   app.use('/api',(req,res,next)=>{
     if(req.path==='/health')return next();
     const token=req.cookies.kondo_session;

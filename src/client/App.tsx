@@ -757,8 +757,8 @@ function BrochureEditor(props: EditorProps) {
           <button className="button button-primary" onClick={() => void exportPng()} disabled={sharing !== null}>
             {sharing === 'png' ? <LoaderCircle className="spin" aria-hidden="true" /> : <Download aria-hidden="true" />}<span>PNGで保存</span>
           </button>
-          <button className="icon-button logout-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
         </div>
+        <button className="icon-button logout-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
       </header>}
       {!previewOpen && <div className={`status-strip state-${saveState}`} role="status" aria-live="polite">
         {saveState === 'error' ? <CircleAlert aria-hidden="true" /> : saveState === 'dirty' ? <PencilLine aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
@@ -826,7 +826,6 @@ function BrochureEditor(props: EditorProps) {
         <button className="button button-outline preview-button" data-testid="html-preview" onClick={openHtmlPreview}><Eye aria-hidden="true" />プレビュー</button>
         <button className="button button-outline" onClick={() => void copyInvitation()}><Clipboard aria-hidden="true" />コピー</button>
         <button className="button button-primary" onClick={() => void exportPng()}><Download aria-hidden="true" />PNG</button>
-        <button className="icon-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
       </div>}
       {!previewOpen && replaceItemId && (
         <SpotReplaceDialog
@@ -869,8 +868,8 @@ function BrochureEditor(props: EditorProps) {
 function TemplateSelect({ value, onChange }: { value: Template; onChange: (value: Template) => void }) {
   return (
     <label className="template-select">
-      <span className="sr-only">テンプレート</span>
       <MapIcon aria-hidden="true" />
+      <span className="template-select-label">デザインを変える</span>
       <select value={value} onChange={(event) => onChange(event.target.value as Template)}>
         <option value="colorful">カラフルな旅行パンフレット</option>
         <option value="postcard">ポストカード</option>
@@ -884,7 +883,6 @@ function BrochureHeader({ brochure }: { brochure: Brochure }) {
     <header className="brochure-header">
       <div className="title-rays" aria-hidden="true"><i /><i /><i /></div>
       <div>
-        <p className="brochure-overline">YOUR NEXT LOCAL TRIP</p>
         <h1>{brochure.title}</h1>
         <div className="title-underline" aria-hidden="true" />
       </div>

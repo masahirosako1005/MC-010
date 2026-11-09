@@ -3,6 +3,7 @@ import {
   ArrowUp,
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   CircleAlert,
   Clipboard,
@@ -68,6 +69,19 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     );
   }
   return response.json() as Promise<T>;
+}
+
+const GENERATING_SCREEN_MINIMUM_MS = 3_000;
+
+async function withGeneratingScreenDuration<T>(operation: Promise<T>): Promise<T> {
+  const settled = operation.then(
+    (value) => ({ ok: true as const, value }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
+  const delay = new Promise<void>((resolve) => window.setTimeout(resolve, GENERATING_SCREEN_MINIMUM_MS));
+  const [outcome] = await Promise.all([settled, delay]);
+  if (!outcome.ok) throw outcome.error;
+  return outcome.value;
 }
 
 function brochurePayload(brochure: Brochure): SavePayload {
@@ -278,7 +292,7 @@ export function App() {
     generatingView={<GeneratingScreen />}
     onGenerate={async(settings) => {
       setStatusMessage('');
-      const result = await api<{ brochure: Brochure }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) });
+      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure }>('/api/brochure/ensure', { method: 'POST', body: JSON.stringify({ settings }) }));
       draftRef.current = result.brochure;
       setDraft(result.brochure);
       setSession(current => current ? { ...current, brochure: result.brochure } : current);
@@ -497,21 +511,15 @@ function BrochureEditor(props: EditorProps) {
   const brochureRef = useRef<HTMLElement>(null);
   const spotsById = useMemo(() => new Map(session.spots.map((spot) => [spot.id, spot])), [session.spots]);
   const selected = useMemo(() => draft.items.filter((item) => item.selected).sort((a, b) => a.order - b.order), [draft.items]);
-  const visitedItems = useMemo(() => draft.items.filter((item) => item.kind === 'visited'), [draft.items]);
-  const memoryItem = visitedItems.find((item) => item.isMemory) ?? visitedItems.find((item) => item.selected) ?? null;
+  const visitedItems = useMemo(() => draft.items
+    .filter((item) => item.kind === 'visited' && item.selected)
+    .sort((a, b) => a.order - b.order), [draft.items]);
   const currentInvitation = useMemo(() => currentInvitationText(draft, spotsById), [draft, spotsById]);
 
   function updateItem(id: string, updater: (item: BrochureItem) => BrochureItem) {
     onChange((current) => ({
       ...current,
       items: current.items.map((item) => item.id === id ? updater(item) : item),
-    }));
-  }
-
-  function chooseMemory(id: string) {
-    onChange((current) => ({
-      ...current,
-      items: current.items.map((item) => ({ ...item, isMemory: item.id === id })),
     }));
   }
 
@@ -681,7 +689,7 @@ function BrochureEditor(props: EditorProps) {
       requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="trip-settings-open"]')?.focus());
     }}
     onGenerate={async(settings, mode) => {
-      const result = await api<{ brochure: Brochure }>('/api/brochure/regenerate', { method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }) });
+      const result = await withGeneratingScreenDuration(api<{ brochure: Brochure }>('/api/brochure/regenerate', { method: 'POST', body: JSON.stringify({ draft: brochurePayload(draft), settings, mode }) }));
       onReplace(result.brochure, mode === 'all' ? '選んだ条件で旅全体を作り直して保存しました。' : '候補を作り直して保存しました。');
       setSettingsOpen(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -694,7 +702,7 @@ function BrochureEditor(props: EditorProps) {
         <a className="mini-brand" href="#brochure-top" aria-label="パンフレットの先頭へ">今度はあなたと</a>
         <div className="toolbar-actions">
           <button className="button toolbar-button trip-settings-entry" data-testid="trip-settings-open" aria-label="旅の条件を変更" onClick={() => setSettingsOpen(true)}>
-            <UsersRound aria-hidden="true" /><span>旅の条件を変更</span><b>{draft.companion}</b>
+            <UsersRound aria-hidden="true" /><span>旅の条件を変更</span>
           </button>
           <TemplateSelect value={draft.template} onChange={(template) => onChange((current) => ({ ...current, template }))} />
           <button className={`button save-button state-${saveState}`} data-testid="save-button" onClick={() => void onSave()} disabled={saveState === 'saving' || saveState === 'clean' || saveState === 'saved'}>
@@ -719,12 +727,10 @@ function BrochureEditor(props: EditorProps) {
           <BrochureHeader brochure={draft} />
           <div className="brochure-columns">
             <MemoryPanel
-              item={memoryItem}
               visitedItems={visitedItems}
               visits={session.visits}
               survey={session.survey}
               spotsById={spotsById}
-              onChoose={chooseMemory}
               onComment={(id, comment) => updateItem(id, (item) => ({ ...item, comment }))}
               onPhoto={uploadPhoto}
               onRemovePhoto={removePhoto}
@@ -852,12 +858,10 @@ function BrochureHeader({ brochure }: { brochure: Brochure }) {
 }
 
 interface MemoryProps {
-  item: BrochureItem | null;
   visitedItems: BrochureItem[];
   visits: Visit[];
   survey: SessionData['survey'];
   spotsById: Map<string, Spot>;
-  onChoose: (id: string) => void;
   onComment: (id: string, comment: string) => void;
   onPhoto: (item: BrochureItem, file: File) => Promise<void>;
   onRemovePhoto: (item: BrochureItem) => Promise<void>;
@@ -867,44 +871,102 @@ interface MemoryProps {
 }
 
 function MemoryPanel(props: MemoryProps) {
-  const { item, visitedItems, visits, survey, spotsById, onChoose, onComment, onPhoto, onRemovePhoto, busyId, photoError, pendingPhotos } = props;
-  const spot = item ? spotsById.get(item.spotId) : undefined;
-  const visit = item
-    ? visits.filter((entry) => entry.spotId === item.spotId).sort((a, b) => b.visitedAt.localeCompare(a.visitedAt))[0]
-    : undefined;
-  const visitDate = visit ? formatVisitDate(visit.visitedAt) : null;
+  const { visitedItems, visits, survey, spotsById, onComment, onPhoto, onRemovePhoto, busyId, photoError, pendingPhotos } = props;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const visitedKey = visitedItems.map((item) => item.id).join(':');
   const hasSurvey = Boolean(survey && (survey.satisfaction !== null || survey.goodPoints || survey.previousCompanion));
+
+  useEffect(() => {
+    setActiveIndex(0);
+    trackRef.current?.scrollTo({ left: 0, behavior: 'auto' });
+  }, [visitedKey]);
+
+  function showSlide(index: number) {
+    const nextIndex = Math.max(0, Math.min(index, visitedItems.length - 1));
+    const slide = trackRef.current?.querySelector<HTMLElement>(`[data-memory-index="${nextIndex}"]`);
+    slide?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    });
+    setActiveIndex(nextIndex);
+  }
+
+  function updateActiveSlide(track: HTMLDivElement) {
+    const slides = [...track.querySelectorAll<HTMLElement>('[data-memory-index]')];
+    if (!slides.length) return;
+    const closest = slides.reduce((best, slide, index) => (
+      Math.abs(slide.offsetLeft - track.scrollLeft) < Math.abs(slides[best]!.offsetLeft - track.scrollLeft) ? index : best
+    ), 0);
+    setActiveIndex(closest);
+  }
+
   return (
     <section className="memory-section" aria-labelledby="memory-title">
       <div className="section-ribbon">
         <span>LAST TRIP</span>
         <h2 id="memory-title">前回の思い出</h2>
       </div>
-      {item && spot ? (
+      {visitedItems.length ? (
         <>
-          <label className="memory-select" data-export-exclude="true">
-            <span>印象に残ったスポット</span>
-            <select value={item.id} onChange={(event) => onChoose(event.target.value)}>
-              {visitedItems.map((entry) => <option key={entry.id} value={entry.id}>{spotsById.get(entry.spotId)?.name ?? '訪問スポット'}</option>)}
-            </select>
-          </label>
-          <PhotoEditor
-            item={item}
-            spot={spot}
-            busy={busyId === item.id}
-            error={photoError[item.id]}
-            pendingPhoto={pendingPhotos[item.id]}
-            onPhoto={(file) => void onPhoto(item, file)}
-            onRemove={() => void onRemovePhoto(item)}
-          />
-          <h3>{spot.name}</h3>
-          {visit && (
-            <div className="memory-facts" aria-label="選択したスポットの訪問記録">
-              {visitDate && <span><MapPin aria-hidden="true" />{visitDate}に訪問</span>}
-              <span className={visit.stamp ? 'has-stamp' : ''}><Stamp aria-hidden="true" />{visit.stamp ? 'スタンプ取得' : 'スタンプ未取得'}</span>
-            </div>
-          )}
-          <CommentEditor label="前回の感想" value={item.comment} placeholder="印象に残ったことを自由に書けます" onChange={(comment) => onComment(item.id, comment)} />
+          <div className="memory-carousel-heading">
+            <strong>印象に残ったスポット</strong>
+            {visitedItems.length > 1 && <small data-export-exclude="true" aria-live="polite" aria-atomic="true"><b>{activeIndex + 1}/{visitedItems.length}</b> 横にスワイプ</small>}
+          </div>
+          <div
+            ref={trackRef}
+            className="memory-carousel-track"
+            data-testid="memory-carousel"
+            role="region"
+            aria-roledescription="カルーセル"
+            aria-label="条件で選んだ思い出のスポット"
+            tabIndex={0}
+            onScroll={(event) => updateActiveSlide(event.currentTarget)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowLeft') { event.preventDefault(); showSlide(activeIndex - 1); }
+              if (event.key === 'ArrowRight') { event.preventDefault(); showSlide(activeIndex + 1); }
+            }}
+          >
+            {visitedItems.map((item, index) => {
+              const spot = spotsById.get(item.spotId);
+              if (!spot) return null;
+              const visit = visits.filter((entry) => entry.spotId === item.spotId).sort((a, b) => b.visitedAt.localeCompare(a.visitedAt))[0];
+              const visitDate = visit ? formatVisitDate(visit.visitedAt) : null;
+              return <article
+                key={item.id}
+                className="memory-slide"
+                data-testid="memory-slide"
+                data-memory-item-id={item.id}
+                data-memory-index={index}
+                role="group"
+                aria-label={`${index + 1}/${visitedItems.length} ${spot.name}`}
+              >
+                <PhotoEditor
+                  item={item}
+                  spot={spot}
+                  busy={busyId === item.id}
+                  error={photoError[item.id]}
+                  pendingPhoto={pendingPhotos[item.id]}
+                  onPhoto={(file) => void onPhoto(item, file)}
+                  onRemove={() => void onRemovePhoto(item)}
+                />
+                <h3>{spot.name}</h3>
+                {visit && (
+                  <div className="memory-facts" aria-label={`${spot.name}の訪問記録`}>
+                    {visitDate && <span><MapPin aria-hidden="true" />{visitDate}に訪問</span>}
+                    <span className={visit.stamp ? 'has-stamp' : ''}><Stamp aria-hidden="true" />{visit.stamp ? 'スタンプ取得' : 'スタンプ未取得'}</span>
+                  </div>
+                )}
+                <CommentEditor label="前回の感想" value={item.comment} placeholder="印象に残ったことを自由に書けます" onChange={(comment) => onComment(item.id, comment)} />
+              </article>;
+            })}
+          </div>
+          {visitedItems.length > 1 && <div className="memory-carousel-controls" data-export-exclude="true">
+            <button type="button" className="icon-button" aria-label="前の思い出を見る" disabled={activeIndex === 0} onClick={() => showSlide(activeIndex - 1)}><ChevronLeft aria-hidden="true" /></button>
+            <span aria-hidden="true">{activeIndex + 1} / {visitedItems.length}</span>
+            <button type="button" className="icon-button" aria-label="次の思い出を見る" disabled={activeIndex === visitedItems.length - 1} onClick={() => showSlide(activeIndex + 1)}><ChevronRight aria-hidden="true" /></button>
+          </div>}
           {hasSurvey && survey && (
             <aside className="survey-note" aria-label="前回の旅全体のアンケート" data-export-exclude="true">
               <strong>前回の旅全体のアンケート</strong>

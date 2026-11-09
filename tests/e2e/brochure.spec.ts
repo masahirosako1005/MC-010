@@ -187,7 +187,7 @@ test('小画面・横向き・動き軽減で横にはみ出さない',async({pa
   }
 });
 
-test('条件・印象スポット・200字・候補の追加除外変更と順序を保存する',async({page},testInfo)=>{
+test('条件で選んだ思い出カルーセル・200字・候補の追加除外変更と順序を保存する',async({page},testInfo)=>{
   await login(page,'second@example.test');
   await expect(page.getByTestId('brochure')).toBeVisible();
   await page.getByTestId('trip-settings-open').click();
@@ -201,19 +201,23 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   await settings.getByLabel('家族',{exact:true}).check({force:true});
   await settings.getByLabel('日帰り',{exact:true}).check({force:true});
   await settings.getByLabel('ゆっくり',{exact:true}).check({force:true});
+  const selectedMemoryCount=await revisit.count();
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
   await page.screenshot({path:testInfo.outputPath('trip-settings-full.png'),fullPage:true});
   await settings.getByRole('button',{name:'選んだ内容で次の旅を作る',exact:true}).click();
   await expect(settings).not.toBeVisible();
   await expect(page.locator('.trip-meta')).toContainText('家族');
   await expect(page.locator('.trip-meta')).toContainText('日帰り・ゆっくり');
-  const memory=page.getByRole('combobox',{name:'印象に残ったスポット'});
-  const memoryId=await memory.locator('option').last().getAttribute('value');
-  await memory.selectOption(memoryId!);
+  const memoryCarousel=page.getByTestId('memory-carousel');
+  const memorySlides=page.getByTestId('memory-slide');
+  expect(await memorySlides.count()).toBe(selectedMemoryCount);
+  expect(await memoryCarousel.evaluate(element=>element.scrollWidth>element.clientWidth)).toBeTruthy();
+  const memory=memorySlides.last();
+  const memoryId=await memory.getAttribute('data-memory-item-id');
   const boundary='あ'.repeat(199)+'😀';
-  await page.locator('.memory-section textarea').fill(boundary+'い');
-  await expect(page.locator('.memory-section textarea')).toHaveValue(boundary);
-  await expect(page.locator('.memory-section .comment-editor small')).toHaveText('200/200');
+  await memory.locator('textarea').fill(boundary+'い');
+  await expect(memory.locator('textarea')).toHaveValue(boundary);
+  await expect(memory.locator('.comment-editor small')).toHaveText('200/200');
   const candidate=page.getByTestId('route-item').filter({has:page.locator('.spot-kind',{hasText:'新しい候補'})}).first();
   const originalName=(await candidate.locator('h3').innerText()).trim();
   const retained='外しても、写真と一緒に残したい旅のメモ。';
@@ -268,8 +272,7 @@ test('条件・印象スポット・200字・候補の追加除外変更と順�
   await page.reload();
   await expect(page.getByTestId('brochure')).toBeVisible();
   expect(await page.getByTestId('route-item').locator('h3').allTextContents()).toEqual(expectedOrder);
-  await expect(memory).toHaveValue(memoryId!);
-  await expect(page.locator('.memory-section textarea')).toHaveValue(boundary);
+  await expect(page.locator(`[data-memory-item-id="${memoryId}"] textarea`)).toHaveValue(boundary);
   await expect(restored.locator('textarea')).toHaveValue(retained);
   await expect(restored.locator('img')).toHaveAttribute('src',photoUrl);
   const deleted=page.waitForResponse(r=>r.url().includes('/photo')&&r.request().method()==='DELETE');

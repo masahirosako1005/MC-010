@@ -297,7 +297,6 @@ img { display: block; max-width: 100%; }
 .mini-brand { color: var(--ink); text-decoration: none; font-family: var(--font-rounded); font-size: 1.2rem; font-weight: 900; white-space: nowrap; border-bottom: 4px solid var(--orange); }
 .toolbar-actions { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
 .toolbar-button { border-color: var(--line); }
-.toolbar-button b { color: var(--coral); }
 .template-select { position: relative; display: flex; align-items: center; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .template-select svg { position: absolute; left: 10px; width: 19px; pointer-events: none; }
 .template-select select { min-height: 44px; max-width: 230px; padding: 7px 34px 7px 36px; border: 0; color: var(--ink); background: transparent; font-weight: 800; }
@@ -369,9 +368,27 @@ img { display: block; max-width: 100%; }
 .section-ribbon::after { content: ""; position: absolute; right: -15px; top: 0; border-top: 27px solid var(--coral); border-right: 16px solid transparent; border-bottom: 27px solid var(--coral); }
 .section-ribbon span { display: block; font-size: .63rem; font-weight: 900; letter-spacing: .14em; }
 .section-ribbon h2 { margin: 0; font-family: var(--font-rounded); font-size: 1.7rem; }
-.memory-select { display: grid; gap: 6px; margin-bottom: 14px; font-size: .78rem; font-weight: 800; }
-.memory-select select { min-height: 44px; padding: 8px 11px; border: 1px solid #d49ea0; border-radius: 8px; color: var(--ink); background: white; font-weight: 800; }
-.memory-section > h3 { margin: 14px 0 10px; font-family: var(--font-rounded); font-size: 1.25rem; }
+.memory-carousel-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.memory-carousel-heading > strong { font-size: .82rem; }
+.memory-carousel-heading small { color: var(--ink-soft); font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.memory-carousel-heading small b { color: var(--coral); }
+.memory-carousel-track {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: var(--coral) rgb(255 255 255 / 52%);
+  scrollbar-width: thin;
+}
+.memory-carousel-track:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.memory-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.memory-slide > h3 { margin: 14px 0 10px; font-family: var(--font-rounded); font-size: 1.25rem; }
+.memory-carousel-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 2px; }
+.memory-carousel-controls .icon-button { border-color: #d49ea0; background: rgb(255 255 255 / 72%); }
+.memory-carousel-controls span { min-width: 48px; text-align: center; color: var(--ink-soft); font-size: .78rem; font-weight: 900; }
 .memory-facts {
   display: flex;
   flex-wrap: wrap;
@@ -440,6 +457,8 @@ img { display: block; max-width: 100%; }
 .png-mode .comment-static p { margin: 9px 0 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .png-mode .comment-editor { display: none; }
 .png-mode .memory-section { position: static; align-self: start; }
+.png-mode .memory-carousel-track { display: block; overflow: visible; padding-bottom: 0; }
+.png-mode .memory-slide + .memory-slide { margin-top: 24px; padding-top: 24px; border-top: 2px dashed #d3aaa8; }
 .png-mode .survey-note { display: none; }
 .brochure-header h1 { text-wrap: balance; }
 .section-heading span, .replace-option small { color: var(--accent-ink); }
@@ -654,7 +673,6 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .generating-note { font-size: .85rem; }
   .mini-brand { width: 94px; white-space: normal; line-height: 1.05; }
   .toolbar-button { padding-inline: 9px; }
-  .toolbar-button b { display: none; }
   .brochure { padding-inline: 10px; }
   .brochure-header { padding-inline: 5px; }
   .brochure-overline { font-size: .62rem; }
@@ -701,4 +719,6 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .app-shell, .editor-main { margin: 0; padding: 0; background: white; width: 100%; }
   .brochure { border: 0; box-shadow: none; }
   .memory-section { position: static; }
+  .memory-carousel-track { display: block; overflow: visible; }
+  .memory-slide + .memory-slide { margin-top: 24px; padding-top: 24px; border-top: 2px dashed #d3aaa8; }
 }

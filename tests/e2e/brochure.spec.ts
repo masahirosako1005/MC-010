@@ -143,6 +143,13 @@ test('ログインから編集・保存復元・再生成・共有まで',async(
   const response=await page.request.get('/api/session');
   const state=await response.json();
   expect(state.brochure.items.some((i:{comment:string;photoUrl:string|null})=>i.comment===comment&&i.photoUrl===photoSrc)).toBeTruthy();
+  await page.getByTestId('html-preview').filter({visible:true}).first().click();
+  await expect(page.getByTestId('html-preview-toolbar')).toBeVisible();
+  await expect(page.getByTestId('survey-disclosure')).toBeHidden();
+  await expect(page.locator('.comment-editor').first()).toBeHidden();
+  await expect(page.locator('.comment-static').first()).toBeVisible();
+  await page.getByRole('button',{name:'編集画面へ戻る',exact:true}).click();
+  await expect(page.getByTestId('html-preview-toolbar')).toBeHidden();
   await context.grantPermissions(['clipboard-read','clipboard-write']);
   await page.getByRole('button',{name:'招待文をコピー',exact:true}).filter({visible:true}).first().click();
   const copied=await page.evaluate(()=>navigator.clipboard.readText());

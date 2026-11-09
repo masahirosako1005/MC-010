@@ -8,6 +8,7 @@ import {
   CircleAlert,
   Clipboard,
   Download,
+  Eye,
   Image as ImageIcon,
   LoaderCircle,
   LogOut,
@@ -498,6 +499,9 @@ interface EditorProps {
 function BrochureEditor(props: EditorProps) {
   const { session, draft, saveState, statusMessage, onChange, onReplace, onSave, onLogout, onStatus, onPhotoUpdate } = props;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const previewReturnY = useRef(0);
+  const previewCloseRef = useRef<HTMLButtonElement>(null);
   const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
   const [addSpotOpen, setAddSpotOpen] = useState(false);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
@@ -515,6 +519,31 @@ function BrochureEditor(props: EditorProps) {
     .filter((item) => item.kind === 'visited' && item.selected)
     .sort((a, b) => a.order - b.order), [draft.items]);
   const currentInvitation = useMemo(() => currentInvitationText(draft, spotsById), [draft, spotsById]);
+
+  useEffect(() => {
+    if (!previewOpen) return undefined;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    previewCloseRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeHtmlPreview();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [previewOpen]);
+
+  function openHtmlPreview() {
+    previewReturnY.current = window.scrollY;
+    setPreviewOpen(true);
+  }
+
+  function closeHtmlPreview() {
+    setPreviewOpen(false);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: previewReturnY.current, behavior: 'instant' });
+      const triggers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-testid="html-preview"]'));
+      triggers.find((trigger) => trigger.offsetParent !== null)?.focus();
+    });
+  }
 
   function updateItem(id: string, updater: (item: BrochureItem) => BrochureItem) {
     onChange((current) => ({
@@ -697,8 +726,18 @@ function BrochureEditor(props: EditorProps) {
   />;
 
   return (
-    <div className="app-shell">
-      <header className="editor-toolbar" data-export-exclude="true">
+    <div className={`app-shell${previewOpen ? ' preview-mode' : ''}`}>
+      {previewOpen ? (
+        <header className="preview-toolbar" data-testid="html-preview-toolbar">
+          <div className="preview-toolbar-title">
+            <Eye aria-hidden="true" />
+            <span><strong>HTMLプレビュー</strong><small>相手に見える内容</small></span>
+          </div>
+          <button ref={previewCloseRef} className="button button-outline" onClick={closeHtmlPreview}>
+            <ChevronLeft aria-hidden="true" />編集画面へ戻る
+          </button>
+        </header>
+      ) : <header className="editor-toolbar" data-export-exclude="true">
         <a className="mini-brand" href="#brochure-top" aria-label="パンフレットの先頭へ">今度はあなたと</a>
         <div className="toolbar-actions">
           <button className="button toolbar-button trip-settings-entry" data-testid="trip-settings-open" aria-label="旅の条件を変更" onClick={() => setSettingsOpen(true)}>
@@ -709,6 +748,9 @@ function BrochureEditor(props: EditorProps) {
             {saveState === 'saving' ? <LoaderCircle className="spin" aria-hidden="true" /> : saveState === 'saved' || saveState === 'clean' ? <Check aria-hidden="true" /> : <Save aria-hidden="true" />}
             {saveLabel}
           </button>
+          <button className="button button-outline preview-button" data-testid="html-preview" onClick={openHtmlPreview}>
+            <Eye aria-hidden="true" /><span>プレビュー</span>
+          </button>
           <button className="button button-outline" onClick={() => void copyInvitation()} disabled={sharing !== null}>
             <Clipboard aria-hidden="true" /><span>招待文をコピー</span>
           </button>
@@ -717,11 +759,11 @@ function BrochureEditor(props: EditorProps) {
           </button>
           <button className="icon-button logout-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
         </div>
-      </header>
-      <div className={`status-strip state-${saveState}`} role="status" aria-live="polite">
+      </header>}
+      {!previewOpen && <div className={`status-strip state-${saveState}`} role="status" aria-live="polite">
         {saveState === 'error' ? <CircleAlert aria-hidden="true" /> : saveState === 'dirty' ? <PencilLine aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
         <span>{statusMessage || '写真・コメント・訪問順をパンフレット上で編集できます。'}</span>
-      </div>
+      </div>}
       <main className="editor-main">
         <article id="brochure-top" ref={brochureRef} data-testid="brochure" className={`brochure template-${draft.template}`}>
           <BrochureHeader brochure={draft} />
@@ -779,13 +821,14 @@ function BrochureEditor(props: EditorProps) {
           </footer>
         </article>
       </main>
-      <div className="mobile-share-bar" data-export-exclude="true">
+      {!previewOpen && <div className="mobile-share-bar" data-export-exclude="true">
         <button className="button save-button" onClick={() => void onSave()} disabled={saveState === 'saving' || saveState === 'clean' || saveState === 'saved'}><Save aria-hidden="true" />{saveLabel}</button>
+        <button className="button button-outline preview-button" data-testid="html-preview" onClick={openHtmlPreview}><Eye aria-hidden="true" />プレビュー</button>
         <button className="button button-outline" onClick={() => void copyInvitation()}><Clipboard aria-hidden="true" />コピー</button>
-          <button className="button button-primary" onClick={() => void exportPng()}><Download aria-hidden="true" />PNG</button>
-          <button className="icon-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
-      </div>
-      {replaceItemId && (
+        <button className="button button-primary" onClick={() => void exportPng()}><Download aria-hidden="true" />PNG</button>
+        <button className="icon-button" aria-label="ログアウト" title="ログアウト" disabled={saveState === 'saving'} onClick={() => void onLogout()}><LogOut aria-hidden="true" /></button>
+      </div>}
+      {!previewOpen && replaceItemId && (
         <SpotReplaceDialog
           mode="replace"
           itemId={replaceItemId}
@@ -810,7 +853,7 @@ function BrochureEditor(props: EditorProps) {
           }}
         />
       )}
-      {addSpotOpen && (
+      {!previewOpen && addSpotOpen && (
         <SpotReplaceDialog
           mode="add"
           brochure={draft}

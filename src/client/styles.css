@@ -450,7 +450,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
 .route-section { min-width: 0; }
 .section-heading { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; }
 .section-heading > svg { width: 42px; height: 42px; padding: 6px; border-radius: 50% 50% 50% 8px; background: var(--yellow); }
-.section-heading span { color: var(--orange); font-size: .62rem; font-weight: 900; letter-spacing: .15em; }
+.section-heading span { color: var(--accent-ink); font-size: .62rem; font-weight: 900; letter-spacing: .15em; }
 .section-heading h2 { margin: 0; font-family: var(--font-rounded); font-size: 1.8rem; }
 .mini-action { margin-left: auto; min-height: 44px; background: var(--yellow-soft); border-color: var(--yellow); font-size: .8rem; }
 .route-heading-actions { margin-left: auto; display: flex; gap: 7px; }

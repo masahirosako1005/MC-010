@@ -288,7 +288,7 @@ export function App() {
   if (screen === 'checking') return <CheckingScreen />;
   if (screen === 'login') return <LoginScreen onLogin={openSession} notice={statusMessage} />;
   if (screen === 'generating') return <GeneratingScreen />;
-  if (screen === 'no-history') return <NoHistoryScreen name={session?.user.displayName ?? ''} onLogout={logout} />;
+  if (screen === 'no-history') return <NoHistoryScreen name={session?.user.displayName ?? ''} notice={statusMessage} onLogout={logout} />;
   if (!session || !draft) return <CheckingScreen />;
 
   return (
@@ -452,7 +452,7 @@ function GeneratingScreen() {
   );
 }
 
-function NoHistoryScreen({ name, onLogout }: { name: string; onLogout: () => void }) {
+function NoHistoryScreen({ name, notice, onLogout }: { name: string; notice: string; onLogout: () => void }) {
   return (
     <main className="center-screen paper-bg">
       <section className="empty-paper">
@@ -460,11 +460,14 @@ function NoHistoryScreen({ name, onLogout }: { name: string; onLogout: () => voi
         <p className="eyebrow">{name ? `${name}さん` : 'ログイン済み'}</p>
         <h1>訪問履歴が見つかりません</h1>
         <p>パンフレットは、実際の訪問記録をもとに作成します。架空の履歴は追加していません。</p>
+        {notice && <p className="form-error" role="alert">{notice}</p>}
         <button className="button button-outline" onClick={onLogout}><LogOut aria-hidden="true" />別のメールで確認</button>
       </section>
     </main>
   );
 }
+
+interface PendingPhoto { file: File; preview: string }
 
 interface EditorProps {
   session: SessionData;
@@ -486,6 +489,11 @@ function BrochureEditor(props: EditorProps) {
   const [addSpotOpen, setAddSpotOpen] = useState(false);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<Record<string, string>>({});
+  const pendingPhotosRef = useRef<Record<string, PendingPhoto>>({});
+  const [pendingPhotos, setPendingPhotos] = useState(pendingPhotosRef.current);
+  useEffect(() => () => {
+    for (const photo of Object.values(pendingPhotosRef.current)) URL.revokeObjectURL(photo.preview);
+  }, []);
   const [sharing, setSharing] = useState<'copy' | 'png' | null>(null);
   const brochureRef = useRef<HTMLElement>(null);
   const spotsById = useMemo(() => new Map(session.spots.map((spot) => [spot.id, spot])), [session.spots]);
@@ -555,6 +563,25 @@ function BrochureEditor(props: EditorProps) {
     setAddSpotOpen(false);
   }
 
+  function rememberPendingPhoto(itemId: string, file: File) {
+    const previous = pendingPhotosRef.current[itemId];
+    if (previous?.file === file) return;
+    const next = { ...pendingPhotosRef.current, [itemId]: { file, preview: URL.createObjectURL(file) } };
+    pendingPhotosRef.current = next;
+    setPendingPhotos(next);
+    if (previous) URL.revokeObjectURL(previous.preview);
+  }
+
+  function clearPendingPhoto(itemId: string, file?: File) {
+    const previous = pendingPhotosRef.current[itemId];
+    if (!previous || (file && previous.file !== file)) return;
+    const next = { ...pendingPhotosRef.current };
+    delete next[itemId];
+    pendingPhotosRef.current = next;
+    setPendingPhotos(next);
+    URL.revokeObjectURL(previous.preview);
+  }
+
   async function uploadPhoto(item: BrochureItem, file: File) {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setPhotoError((errors) => ({ ...errors, [item.id]: 'JPEG・PNG・WebPの写真を選んでください。' }));
@@ -564,6 +591,7 @@ function BrochureEditor(props: EditorProps) {
       setPhotoError((errors) => ({ ...errors, [item.id]: '写真は5MB以下にしてください。' }));
       return;
     }
+    rememberPendingPhoto(item.id, file);
     setPhotoBusyId(item.id);
     setPhotoError((errors) => ({ ...errors, [item.id]: '' }));
     const form = new FormData();
@@ -571,6 +599,7 @@ function BrochureEditor(props: EditorProps) {
     try {
       const result = await api<{ photoUrl: string }>(`/api/items/${encodeURIComponent(item.id)}/photo`, { method: 'POST', body: form });
       onPhotoUpdate(item.id, result.photoUrl);
+      clearPendingPhoto(item.id, file);
       onStatus(saveState === 'dirty' || saveState === 'error'
         ? '写真を保存しました。ほかの未保存変更は「変更を保存」で確定してください。'
         : '写真を保存しました。再ログインしても復元されます。');
@@ -588,6 +617,7 @@ function BrochureEditor(props: EditorProps) {
       await api<{ photoUrl: null }>(`/api/items/${encodeURIComponent(item.id)}/photo`, { method: 'DELETE' });
       setPhotoBusyId(null);
       onPhotoUpdate(item.id, null);
+      clearPendingPhoto(item.id);
       onStatus('追加した写真を削除しました。');
     } catch (error) {
       setPhotoBusyId(null);
@@ -684,6 +714,7 @@ function BrochureEditor(props: EditorProps) {
               onRemovePhoto={removePhoto}
               busyId={photoBusyId}
               photoError={photoError}
+              pendingPhotos={pendingPhotos}
             />
             <section className="route-section" aria-labelledby="route-title">
               <div className="section-heading route-heading">
@@ -712,6 +743,7 @@ function BrochureEditor(props: EditorProps) {
                       onRemovePhoto={() => void removePhoto(item)}
                       busy={photoBusyId === item.id}
                       error={photoError[item.id]}
+                      pendingPhoto={pendingPhotos[item.id]}
                     />
                   ))}
                 </ol>
@@ -826,10 +858,11 @@ interface MemoryProps {
   onRemovePhoto: (item: BrochureItem) => Promise<void>;
   busyId: string | null;
   photoError: Record<string, string>;
+  pendingPhotos: Record<string, PendingPhoto>;
 }
 
 function MemoryPanel(props: MemoryProps) {
-  const { item, visitedItems, visits, survey, spotsById, onChoose, onComment, onPhoto, onRemovePhoto, busyId, photoError } = props;
+  const { item, visitedItems, visits, survey, spotsById, onChoose, onComment, onPhoto, onRemovePhoto, busyId, photoError, pendingPhotos } = props;
   const spot = item ? spotsById.get(item.spotId) : undefined;
   const visit = item
     ? visits.filter((entry) => entry.spotId === item.spotId).sort((a, b) => b.visitedAt.localeCompare(a.visitedAt))[0]
@@ -855,6 +888,7 @@ function MemoryPanel(props: MemoryProps) {
             spot={spot}
             busy={busyId === item.id}
             error={photoError[item.id]}
+            pendingPhoto={pendingPhotos[item.id]}
             onPhoto={(file) => void onPhoto(item, file)}
             onRemove={() => void onRemovePhoto(item)}
           />
@@ -896,17 +930,18 @@ interface RouteItemProps {
   onRemovePhoto: () => void;
   busy: boolean;
   error?: string;
+  pendingPhoto?: PendingPhoto;
 }
 
 function RouteItem(props: RouteItemProps) {
-  const { item, index, count, spot, onComment, onMove, onReplace, onRemove, canRemove, onPhoto, onRemovePhoto, busy, error } = props;
+  const { item, index, count, spot, onComment, onMove, onReplace, onRemove, canRemove, onPhoto, onRemovePhoto, busy, error, pendingPhoto } = props;
   if (!spot) return null;
   const isVisited = item.kind === 'visited';
   return (
     <li className={`route-item ${isVisited ? 'is-visited' : 'is-candidate'}`} data-testid="route-item">
       <div className="route-number" aria-label={`${index + 1}番目`}>{index + 1}</div>
       {index < count - 1 && <div className="route-connector" aria-hidden="true" />}
-      <PhotoEditor item={item} spot={spot} busy={busy} error={error} onPhoto={onPhoto} onRemove={onRemovePhoto} compact />
+      <PhotoEditor item={item} spot={spot} busy={busy} error={error} pendingPhoto={pendingPhoto} onPhoto={onPhoto} onRemove={onRemovePhoto} compact />
       <div className="route-copy">
         <div className="spot-heading">
           <div>
@@ -935,17 +970,13 @@ function RouteItem(props: RouteItemProps) {
   );
 }
 
-function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = false }: {
-  item: BrochureItem; spot: Spot; busy: boolean; error?: string; onPhoto: (file: File) => void; onRemove: () => void; compact?: boolean;
+function PhotoEditor({ item, spot, busy, error, pendingPhoto, onPhoto, onRemove, compact = false }: {
+  item: BrochureItem; spot: Spot; busy: boolean; error?: string; pendingPhoto?: PendingPhoto; onPhoto: (file: File) => void; onRemove: () => void; compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const pendingFile = useRef<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const baseSrc = item.photoUrl || spot.image;
-  const src = preview || baseSrc;
-  useEffect(() => { setPreview(null); pendingFile.current = null; }, [baseSrc]);
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  const src = pendingPhoto?.preview || baseSrc;
   useEffect(() => setFailed(false), [src]);
   return (
     <div className={`photo-editor ${compact ? 'compact' : ''}`}>
@@ -960,12 +991,7 @@ function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = fal
           accept="image/jpeg,image/png,image/webp"
           onChange={(event) => {
             const file = event.target.files?.[0];
-            if (file) {
-              const valid = ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 5 * 1024 * 1024;
-              pendingFile.current = valid ? file : null;
-              setPreview(valid ? URL.createObjectURL(file) : null);
-              onPhoto(file);
-            }
+            if (file) onPhoto(file);
             event.target.value = '';
           }}
         />
@@ -975,7 +1001,7 @@ function PhotoEditor({ item, spot, busy, error, onPhoto, onRemove, compact = fal
         </button>
         {item.photoUrl && <button className="icon-button danger" disabled={busy} aria-label={`${spot.name}の追加写真を削除`} title="追加写真を削除" onClick={onRemove}><Trash2 aria-hidden="true" /></button>}
       </div>
-      {error && <div data-export-exclude="true"><p className="photo-error" role="alert">{error}</p>{pendingFile.current && <button className="button photo-retry" disabled={busy} onClick={() => { if (pendingFile.current) onPhoto(pendingFile.current); }}>写真の保存を再試行</button>}</div>}
+      {error && <div data-export-exclude="true"><p className="photo-error" role="alert">{error}</p>{pendingPhoto && <button className="button photo-retry" disabled={busy} onClick={() => onPhoto(pendingPhoto.file)}>写真の保存を再試行</button>}</div>}
     </div>
   );
 }

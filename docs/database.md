@@ -37,7 +37,7 @@ PostgreSQL 17以降。`db/migrations/001_initial.sql` が初期構造、`002_bro
 |GET /photos/:id|本人所有の画像だけ配信。|
 |GET /health|DB疎通。|
 
-エラーは `{error:{code,message}}`、内部パス・SQL・stackを返さない。photoは同一オリジン認可付きURL。共有はプレーンテキスト・ローカルPNGに加え、後述006の共有URLと対象写真用APIを提供する。
+エラーは `{error:{code,message}}`、内部パス・SQL・stackを返さない。photoは同一オリジン認可付きURL。共有は後述006の共有URLと対象写真用APIを使う。最新UIでは招待文欄・テキストコピー・PNG保存を削除したが、既存invitation生成/保存/返却の契約は維持する。
 
 ## 生成と保持
 

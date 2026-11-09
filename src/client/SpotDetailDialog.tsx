@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Ticket, LoaderCircle, X } from 'lucide-react';
+import { CheckCircle2, Gift, Ticket, LoaderCircle, X } from 'lucide-react';
 import type { Spot } from '../shared/types';
 import type { CouponDisplay, GiftClaim, SpotDetail } from '../shared/admin-types';
 import { EXPERIENCE_CATEGORIES, spotSupportsExperienceCategory } from '../shared/experience-categories';
 import './spot-details.css';
 
 export function GiftBadge({ available }: { available?: boolean }) {
-  return available ? <span className="gift-badge"><Ticket aria-hidden="true" />クーポンあり</span> : null;
+  return available ? <span className="gift-badge"><Gift aria-hidden="true" />クーポンあり</span> : null;
 }
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {

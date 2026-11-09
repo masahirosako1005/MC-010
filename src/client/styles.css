@@ -652,6 +652,8 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
 .category-card .spot-kind { align-self: flex-start; border-color: var(--category-color); color: var(--ink-soft); }
 .category-card h3 { margin: 7px 0 0; font-family: var(--font-rounded); font-size: clamp(1rem, 1.45vw, 1.24rem); line-height: 1.3; }
 .category-card .spot-description { margin: 7px 0 10px; font-size: .78rem; }
+.category-card .spot-overview { display: block; overflow-wrap: anywhere; line-height: 1.7; }.spot-overview > strong, .spot-recommendation > strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: .76rem; font-weight: 800; }
+.spot-recommendation { margin: 0 0 14px; padding: 9px 10px; border-left: 3px solid var(--category-color); border-radius: 5px; background: rgb(255 255 255 / 72%); color: var(--ink-soft); font-size: .78rem; line-height: 1.7; overflow-wrap: anywhere; }
 .category-card .comment-block { margin-top: auto; }
 .category-card .comment-editor textarea { min-height: 80px; font-size: .78rem; }
 .category-card .comment-label { background: var(--category-color); font-size: .7rem; }
@@ -661,7 +663,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
 .category-empty-body svg { width: 44px; height: 44px; }
 .category-empty-body p { margin: 0; font-size: .82rem; }
 
-.brochure-support-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-top: 30px; }
+.brochure-support-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-top: 30px; }
 .model-plan, .brochure-support-grid .memory-section, .brochure-support-grid .invitation-panel { min-width: 0; margin: 0; padding: 22px 18px 18px; border-radius: 10px; }
 .model-plan { border: 2px solid #83c9e0; background: var(--blue-soft); }
 .support-heading { display: flex; align-items: center; gap: 9px; }
@@ -673,6 +675,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
 .model-plan-list li { min-width: 0; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 8px; border-radius: 9px; background: rgb(255 255 255 / 83%); }
 .plan-number { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50% 50% 50% 8px; color: white; background: #1684ad; font-family: var(--font-rounded); font-weight: 900; }
 .plan-copy { min-width: 0; display: grid; }
+.plan-coupon { grid-column: 2 / -1; justify-self: end; display: inline-flex; max-width: 100%; }
 .plan-copy small { color: #126f97; font-size: .66rem; font-weight: 900; }
 .plan-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; }
 .model-plan-list .order-actions .icon-button { min-width: 40px; width: 40px; min-height: 40px; height: 40px; }
@@ -833,7 +836,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: 1.1fr 1fr .8fr .7fr;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
     padding: 8px max(8px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
     border-top: 1px solid var(--line);
@@ -902,9 +905,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .mobile-share-bar { grid-template-columns: 1fr 1fr; }
   .mobile-share-bar .save-button { grid-column: 1; grid-row: 1; }
   .mobile-share-bar .preview-button { grid-column: 2; grid-row: 1; }
-  .mobile-share-bar .preview-button + .button { grid-column: 1; grid-row: 2; }
-  .mobile-share-bar .button-primary { grid-column: 2; grid-row: 2; }
-  .app-shell:not(.preview-mode) .brochure { padding-bottom: 132px; }
+  .app-shell:not(.preview-mode) .brochure { padding-bottom: 80px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -920,7 +921,7 @@ html { scroll-padding-top: 130px; scroll-padding-bottom: 95px; }
   .memory-slide + .memory-slide { margin-top: 24px; padding-top: 24px; border-top: 2px dashed #d3aaa8; }
   .category-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
   .category-card { width: auto; }
-  .brochure-support-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .brochure-support-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .brochure-support-grid .invitation-panel { grid-column: auto; }
 }
 

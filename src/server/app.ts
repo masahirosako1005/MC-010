@@ -15,6 +15,8 @@ import { creationSchema, loginSchema, regenerationSchema, saveSchema, uuidSchema
 import { auditSpot, createAdminRouter } from './admin.js';
 import { createGiftAdminRouter, createGiftRouter } from './gifts.js';
 import { createOwnerShareRouter, createPublicShareRouter, createShareAdminRouter } from './sharing.js';
+import { createMcpKeyRouter } from './mcp-keys.js';
+import { createMcpRouter } from './mcp.js';
 
 declare global { namespace Express { interface Request { userId?: string; accountRole?: 'visitor' | 'town_admin' } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
@@ -59,6 +61,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
       if(req.get('X-Requested-With')!=='kondo'||!allowed.has(req.get('origin')??''))return next(new AppError(403,'origin_rejected','画面を再読み込みしてから操作してください。'));
     }next();
   });
+  app.use('/mcp',createMcpRouter(db));
   app.use(express.json({limit:'512kb',strict:true}));app.use(cookieParser());
   const attempts=new Map<string,{count:number,until:number}>();
   app.get('/api/health',route(async(_req,res)=>{await db.query('SELECT 1');res.json({ok:true});}));
@@ -88,6 +91,7 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   });
   app.get('/api/session',route(async(req,res)=>res.json(await getSessionData(db,req.userId!))));
   app.post('/api/logout',route(async(req,res)=>{await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(req.cookies.kondo_session)]);res.clearCookie('kondo_session',{path:'/',sameSite:'strict',httpOnly:true});res.json({ok:true});}));
+  app.use('/api/admin',createMcpKeyRouter(db));
   app.use('/api/admin',createGiftAdminRouter(db));
   app.use('/api/admin',createShareAdminRouter(db));
   app.use('/api/admin',createAdminRouter(db));

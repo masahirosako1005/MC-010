@@ -13,7 +13,11 @@ try{
   const userId=login.data.user.id;
   const original=(await db.query('SELECT count(*)::int AS count FROM visits WHERE user_id=$1',[userId])).rows[0].count;
   assert.equal(login.data.visits.length,original);
-  const first=await request('/api/brochure/ensure',{},login.cookie),second=await request('/api/brochure/ensure',{},login.cookie);
+  const first=await request('/api/brochure/ensure',{},login.cookie);
+  assert.equal((await request('/api/logout',{},login.cookie)).status,200);
+  const relogin=await request('/api/login',{email:'sample@example.test',code:'1111'});
+  assert.equal(relogin.status,200);assert.equal(relogin.data.brochure.id,first.data.brochure.id);
+  const second=await request('/api/brochure/ensure',{},relogin.cookie);
   assert.equal(first.status,200);assert.equal(first.data.brochure.id,second.data.brochure.id);
   const visited=new Set(login.data.visits.map(v=>v.spotId));
   for(const item of first.data.brochure.items)assert.equal(item.kind==='visited',visited.has(item.spotId));

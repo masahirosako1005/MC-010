@@ -855,9 +855,7 @@ function BrochureHeader({ brochure, heroImage, memoryNames }: { brochure: Brochu
       </div>
       {memoryNames.length > 0 && <p className="brochure-origin"><Stamp aria-hidden="true" /><span><strong>このしおりのきっかけ</strong>{memoryNames.slice(0, 2).join('・')}{memoryNames.length > 2 ? ` ほか${memoryNames.length - 2}か所` : ''}の思い出をもとにつくりました。</span></p>}
       <dl className="trip-meta">
-        <div><dt><UsersRound aria-hidden="true" />旅の相手</dt><dd>{brochure.companion}</dd></div>
         <div><dt><Sparkles aria-hidden="true" />旅のテーマ</dt><dd>{brochure.theme}</dd></div>
-        <div><dt><MapIcon aria-hidden="true" />日程</dt><dd>{brochure.duration === 'day' ? '日帰り' : '一泊二日'}・{brochure.tripStyle === 'slow' ? 'ゆっくり' : 'アクティブ'}</dd></div>
       </dl>
     </header>
   );

@@ -45,7 +45,7 @@ test('町ログインから概況・登録一覧・スポット作成編集・�
   await editor.getByRole('button', { name: '保存する', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText('スポットを保存しました');
   await page.screenshot({ path: info.outputPath('admin-spot-editor.png'), fullPage: true });
-  for (const width of [320, 390, 844, 1440]) { await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+  for (const width of [320, 390, 844, 1440]) { await page.setViewportSize({ width, height: 900 }); await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
   await page.getByRole('button', { name: 'ログアウト', exact: true }).click();
   await townLogin(page);
   await page.getByRole('button', { name: 'スポット管理', exact: true }).click();

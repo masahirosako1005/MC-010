@@ -40,14 +40,18 @@ export function SharedSpotLikeButton({ spotId, spotName, actions }: {
   spotId: string; spotName: string; actions: ReturnType<typeof useSharedSpotLikes>;
 }) {
   const state = actions.spots?.find(spot => spot.spotId === spotId);
+  const noLongerListed = actions.spots !== null && !state;
   const error = actions.error && (!actions.errorSpot || actions.errorSpot === spotId) ? actions.error : '';
   return <>
     <button type="button" className="spot-like-button" aria-label={`${spotName}にいいね`}
       aria-pressed={state?.liked ?? false} title={state?.liked ? 'いいねを取り消す' : 'いいね'}
       disabled={!state || actions.busy !== null} onClick={() => void actions.toggle(spotId)}>
-      {actions.busy === spotId || (!state && !error) ? <LoaderCircle className="spin" aria-hidden="true" /> : <Heart aria-hidden="true" />}
+      {actions.busy === spotId || (actions.spots === null && !error) ? <LoaderCircle className="spin" aria-hidden="true" /> : <Heart aria-hidden="true" />}
       <span aria-live="polite">{state ? state.count : '—'}</span>
     </button>
+    {noLongerListed && <div className="spot-like-error"><p role="status">掲載内容が更新されました。</p>
+      <button type="button" className="spot-like-retry" onClick={() => window.location.reload()}>しおりを再読み込み</button>
+    </div>}
     {error && <div className="spot-like-error"><p role="alert">{error}</p>
       <button type="button" className="spot-like-retry" onClick={state ? () => void actions.toggle(spotId) : actions.reload}>再試行</button>
     </div>}

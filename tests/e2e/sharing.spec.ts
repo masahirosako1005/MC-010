@@ -62,7 +62,17 @@ test('相手別の招待・表示計測・所有者限定クーポンと一度�
     expect((await metadata()).viewCount).toBe(before);
     const guestPage = await guest.newPage();
     await guestPage.goto(url);
+    await expect(guestPage.getByRole('heading', { name: /あなたに\s*旅の案内が届いてます/ })).toBeVisible();
+    await expect(guestPage.getByTestId('brochure')).toHaveCount(0);
+    expect((await metadata()).viewCount).toBe(before);
     await expect(guestPage.getByTestId('brochure')).toBeVisible();
+    const heart = guestPage.getByRole('button', { name: spot.name + 'にいいね', exact: true });
+    await expect(heart).toBeEnabled();
+    const likeBefore = Number(await heart.innerText());
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+    await expect(heart).toHaveText(String(likeBefore + 1));
+    await expect(guestPage.locator('.spot-detail-dialog')).toHaveCount(0);
     await expect(guestPage.locator('.gift-badge')).toHaveCount(0);
     await guestPage.getByRole('button', { name: spot.name + 'の詳細を表示', exact: true }).click();
     await expect(guestPage.locator('.spot-detail-dialog')).toBeVisible();
@@ -71,7 +81,12 @@ test('相手別の招待・表示計測・所有者限定クーポンと一度�
     await guestPage.keyboard.press('Escape');
     await guestPage.screenshot({ path: info.outputPath('shared-anonymous.png'), fullPage: true });
     await guestPage.reload();
+    await guestPage.getByRole('button', { name: 'しおりを開く', exact: true }).click();
     await expect(guestPage.getByTestId('brochure')).toBeVisible();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+    await heart.click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+    await expect(heart).toHaveText(String(likeBefore));
     await expect.poll(async () => (await metadata()).viewCount).toBe(before + 2);
     expect((await other.request.post(origin + '/api/login', { headers, data: { email: 'second@example.test', code: '1111' } })).status()).toBe(200);
     const otherPage = await other.newPage(); await otherPage.goto(url);
@@ -102,4 +117,23 @@ test('相手別の招待・表示計測・所有者限定クーポンと一度�
     await expect(adminPage.getByRole('heading', { name: '公開URLアクセス数', exact: true })).toBeVisible();
     await adminPage.screenshot({ path: info.outputPath('admin-sharing.png'), fullPage: true });
   } finally { await Promise.all([admin.close(), guest.close(), other.close()]); }
+});
+
+
+test('公開案内と本文取得後の掲載変更をスマホ枠内でも回復できる', async ({ page, request }, info) => {
+  const origin=process.env.E2E_BASE_URL!;
+  const headers={Origin:origin,'X-Requested-With':'kondo'};
+  expect((await request.post('/api/login',{headers,data:{email:'demo@example.test',code:'1111'}})).status()).toBe(200);
+  expect((await request.post('/api/brochure/ensure',{headers,data:{}})).status()).toBe(200);
+  const share=(await (await request.post('/api/brochure/share',{headers,data:{}})).json()).share;
+  await page.route('**/api/shared/*/likes',route=>route.fulfill({json:{spots:[]}}));
+  await page.goto(share.path+'?view=mobile');
+  const frame=page.frameLocator('iframe.mobile-demo-app');
+  await expect(frame.getByRole('heading',{name:/あなたに\s*旅の案内が届いてます/})).toBeVisible();
+  await page.screenshot({path:info.outputPath('invitation-mobile-frame.png'),fullPage:true});
+  await frame.getByRole('button',{name:'しおりを開く',exact:true}).click();
+  await expect(frame.getByTestId('brochure')).toBeVisible();
+  await expect(frame.getByRole('button',{name:'しおりを再読み込み'})).toHaveCount(5);
+  await expect(frame.locator('.spot-like-button .spin')).toHaveCount(0);
+  await page.screenshot({path:info.outputPath('listing-changed-mobile-frame.png'),fullPage:true});
 });

@@ -736,6 +736,51 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect(JSON.stringify(report.body)).not.toContain(share.path.split('/').at(-1));
   });
 
+  it('公開スポットのいいねは閲覧者別に保存し、並列再送・取消と本文キャッシュを両立する', async () => {
+    type Likes = import('../src/shared/sharing-types.js').SharedSpotLikes;
+    const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
+    const share = (await post<{share:{path:string}}>('/api/brochure/share', owner.cookie)).body.share;
+    const base = '/api/shared/' + share.path.split('/').at(-1);
+    const spotId = brochure.items.find(item => item.selected)!.spotId;
+    expect((await api(base)).response.headers.get('x-public-cache')).toBe('MISS');
+    const first = await api<Likes>(base + '/likes');
+    const cookie = first.response.headers.get('set-cookie')!.split(';', 1)[0]!;
+    expect(first.response.headers.get('set-cookie')).toContain('HttpOnly');
+    expect(first.body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:0,liked:false});
+    const put = (liked:boolean, visitor=cookie) => api<Likes>(base + `/spots/${spotId}/like`, {method:'PUT',cookie:visitor,body:JSON.stringify({liked})});
+    const responses = await Promise.all([put(true),put(true),put(true)]);
+    for(const response of responses) expect(response.body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:1,liked:true});
+    const second = await api<Likes>(base + '/likes');
+    const otherCookie = second.response.headers.get('set-cookie')!.split(';', 1)[0]!;
+    expect(second.body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:1,liked:false});
+    expect((await put(true,otherCookie)).body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:2,liked:true});
+    expect((await api<Likes>(base + '/likes',{cookie})).body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:2,liked:true});
+    await put(false); await put(false);
+    expect((await api<Likes>(base + '/likes',{cookie})).body.spots.find(spot => spot.spotId === spotId)).toMatchObject({count:1,liked:false});
+    expect((await api(base)).response.headers.get('x-public-cache')).toBe('HIT');
+    const rows=await db.query('SELECT visitor_hash FROM share_spot_likes');
+    expect(rows.rows).toHaveLength(1);
+    expect(rows.rows[0].visitor_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(rows.rows[0].visitor_hash).not.toBe(otherCookie.split('=')[1]);
+  });
+
+  it('いいねはCookieなし・非掲載・不正入力・不正Origin・公開停止を拒否する', async () => {
+    const owner=await login(), brochure=(await ensure(owner.cookie)).body.brochure;
+    const share=(await post<{share:{path:string}}>('/api/brochure/share',owner.cookie)).body.share;
+    const base='/api/shared/'+share.path.split('/').at(-1);
+    const spotId=brochure.items.find(item=>item.selected)!.spotId;
+    const read=await api(base+'/likes'), cookie=read.response.headers.get('set-cookie')!.split(';',1)[0]!;
+    const route=base+`/spots/${spotId}/like`;
+    expect((await api(route,{method:'PUT',body:'{"liked":true}'})).response.status).toBe(403);
+    expect((await api(base+`/spots/${randomUUID()}/like`,{method:'PUT',cookie,body:'{"liked":true}'})).response.status).toBe(404);
+    expect((await api(route,{method:'PUT',cookie,body:'{"liked":"yes"}'})).response.status).toBe(400);
+    expect((await fetch(baseUrl+route,{method:'PUT',headers:{Cookie:cookie,Origin:'http://evil.test','Content-Type':'application/json','X-Requested-With':'kondo'},body:'{"liked":true}'})).status).toBe(403);
+    await api('/api/brochure/share',{method:'DELETE',cookie:owner.cookie,body:'{}'});
+    expect((await api(base+'/likes',{cookie})).response.status).toBe(404);
+    expect((await api(route,{method:'PUT',cookie,body:'{"liked":true}'})).response.status).toBe(404);
+    expect((await db.query('SELECT count(*)::int AS n FROM share_spot_likes')).rows[0].n).toBe(0);
+  });
+
   it('古いrevisionで再生成すると409を返し、保存済み編集を巻き戻さない', async () => {
     const owner = await login(), brochure = (await ensure(owner.cookie)).body.brochure;
     const local = payload(brochure), remote = payload(brochure);

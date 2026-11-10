@@ -153,7 +153,7 @@ pnpm run test:e2e
 
 `TEST_DATABASE_URL` がない場合、DB統合テストはskipとして明示されます。ブラウザテストは現在の「しおりを見る」・相手別の共有URLコピーへ更新し、削除済みの招待文欄・コピー・PNG操作が表示されないことも確認します。最新結果は [しおり・共有・クーポンの検証](docs/booklet-verification.md)、過去の実行結果と残存リスクは [検証記録](docs/verification.md) と [セキュリティ監査](docs/security.md)。
 
-最新の明示依頼による検証は単体/API統合71件（skipなし）、PC/スマホE2E20件が成功。check・build・audit・skill inventory、別DBへのCSV取込・冪等再投入も成功しました。再生成409の回復と隠しフォルダー配下の共有ページ配信を修正し、今回の独立レビューは未実施です。
+最新の明示依頼では、公開しおり・いいねの修正を含む単体/API統合84件（skipなし）とPC/スマホE2E22件が成功しました。check・build・audit・skill inventoryと別DBへのCSV取込・冪等再投入も成功。独立レビューの指摘と小画面の画像欄を修正しました。対象版と並行変更の範囲は [検証記録](docs/verification.md) を参照してください。
 
 Windowsのブラウザテストはインストール済みMicrosoft Edge、他OSはPlaywright Chromiumを既定にします。`PLAYWRIGHT_CHANNEL=chromium` などで切替可能です。この端末ではEdgeでPC/スマホを検証しました。
 

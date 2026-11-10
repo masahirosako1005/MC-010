@@ -185,13 +185,13 @@ test('小画面・横向き・動き軽減で横にはみ出さない',async({pa
   await expect(page.getByTestId('brochure')).toBeVisible();
   for(const size of [{width:320,height:568},{width:844,height:390},{width:1024,height:768}]){
     await page.setViewportSize(size);
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
     await page.getByTestId('trip-settings-open').click();
     await expect(page.getByTestId('trip-settings-screen')).toBeVisible();
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
     expect(await page.locator('.trip-companion-grid').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length)).toBe(3);
     await page.getByRole('radio',{name:'パートナー',exact:true}).check();
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
     await page.keyboard.press('Escape');
   }
 });

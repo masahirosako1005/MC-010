@@ -41,12 +41,17 @@ export async function getAdminSpots(db: Pick<pg.PoolClient, 'query'>): Promise<A
     (SELECT count(*)::int FROM visits v WHERE v.spot_id=s.id) AS visit_count,
     (SELECT count(DISTINCT v.user_id)::int FROM visits v WHERE v.spot_id=s.id) AS visitor_count,
     (SELECT count(*)::int FROM brochure_items i WHERE i.spot_id=s.id AND i.selected) AS brochure_count,
-    (SELECT count(*)::int FROM spot_gift_claims c WHERE c.spot_id=s.id) AS gift_claim_count
-    FROM spots s ORDER BY s.active DESC,s.external_id`);
+    (SELECT count(*)::int FROM spot_gift_claims c WHERE c.spot_id=s.id) AS gift_claim_count,
+    COALESCE(likes.count,0)::int AS like_count
+    FROM spots s LEFT JOIN (
+      SELECT l.spot_id,count(*)::int AS count FROM share_spot_likes l
+      JOIN brochure_shares sh ON sh.id=l.share_id JOIN brochures b ON b.id=sh.brochure_id JOIN users u ON u.id=b.user_id
+      WHERE u.account_role='visitor' GROUP BY l.spot_id
+    ) likes ON likes.spot_id=s.id ORDER BY s.active DESC,s.external_id`);
   return rows.map(r => ({ id: r.id, name: r.name, category: r.category, description: r.description,
     companionTags: r.companion_tags, themeTags: r.theme_tags, image: r.image, source: r.source, sourceUrl: r.source_url,
     active: r.active, hasGift: r.has_gift, giftClaimCount: r.gift_claim_count, revision: r.revision, updatedAt: r.updated_at.toISOString(),
-    visitCount: r.visit_count, visitorCount: r.visitor_count, brochureCount: r.brochure_count }));
+    visitCount: r.visit_count, visitorCount: r.visitor_count, brochureCount: r.brochure_count, likeCount: r.like_count }));
 }
 
 export function createAdminRouter(db: pg.Pool) {

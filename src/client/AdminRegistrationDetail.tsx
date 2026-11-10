@@ -42,8 +42,8 @@ export function AdminRegistrationDetail({ userId, scope, onBack, backLabel = '�
         </section>
         <section className="admin-panel"><h2>共有状況</h2>{data.share ? <dl className="admin-detail-facts"><div><dt>公開状態</dt><dd><span className={`admin-badge ${data.share.active ? 'is-active' : ''}`}>{data.share.active ? '公開中' : '公開停止'}</span></dd></div>
           <div><dt>公開URLコピー回数</dt><dd>{number(data.share.copyCount)}回</dd></div><div><dt>公開URLアクセス数</dt><dd>{number(data.share.viewCount)}回</dd></div>
-          <div><dt>最終コピー日時</dt><dd>{date(data.share.lastCopiedAt)}</dd></div><div><dt>URL発行日時</dt><dd>{date(data.share.createdAt)}</dd></div><div><dt>最終アクセス日時</dt><dd>{date(data.share.lastViewedAt)}</dd></div></dl> : <p className="admin-empty">共有URLはまだ発行されていません。</p>}
-          <p className="admin-muted">コピーは計測機能追加後のブラウザによるコピー成功回数です。手動コピーは含みません。アクセス数は本文表示時に計測し、再読み込みを含みます。閲覧人数・実来訪人数ではありません。</p>
+          <div><dt>いいね数</dt><dd>{number(data.share.likeCount)}件</dd></div><div><dt>最終コピー日時</dt><dd>{date(data.share.lastCopiedAt)}</dd></div><div><dt>URL発行日時</dt><dd>{date(data.share.createdAt)}</dd></div><div><dt>最終アクセス日時</dt><dd>{date(data.share.lastViewedAt)}</dd></div></dl> : <p className="admin-empty">共有URLはまだ発行されていません。</p>}
+          <p className="admin-muted">コピーは計測機能追加後のブラウザによるコピー成功回数です。手動コピーは含みません。アクセス数は本文表示時に計測し、再読み込みを含みます。閲覧人数・実来訪人数ではありません。いいね数はこのしおりの全スポットへの現在件数です。取消分を除き、公開停止・掲載終了したスポットの分も含みます。</p>
         </section>
       </>}
     </>}

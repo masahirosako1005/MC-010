@@ -24,6 +24,7 @@ export interface AdminShareRow {
   active: boolean;
   viewCount: number;
   copyCount: number;
+  likeCount: number;
   lastCopiedAt: string | null;
   createdAt: string;
   lastViewedAt: string | null;
@@ -34,6 +35,7 @@ export interface AdminSharePage {
   active: number;
   totalViews: number;
   totalCopies: number;
+  totalLikes: number;
   page: number;
   pageSize: number;
 }

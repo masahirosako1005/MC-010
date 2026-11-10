@@ -81,6 +81,7 @@ export function AdminSpotAnalytics({ spotId, onBack }: { spotId: string; onBack:
         </div>
         <div className="admin-metrics gift-claim-metrics">
           <Metric label="公開URLコピー回数" value={number(totals.shareCopies)} unit="回" detail="現在このスポットを掲載するしおりの合計（計測開始後）" />
+          <Metric label="いいね数" value={number(totals.likeCount)} unit="件" detail="このスポットへの現在件数（取消分を除く・掲載終了分を含む）" />
           <Metric label="公開URLアクセス数" value={number(totals.shareViews)} unit="回" detail="現在このスポットを掲載するしおりの合計（再読み込み含む）" />
         </div>
         <section className="admin-panel"><h2>掲載・編集の内訳</h2><dl className="admin-detail-facts">
@@ -114,7 +115,7 @@ export function AdminSpotAnalytics({ spotId, onBack }: { spotId: string; onBack:
         <section className="admin-panel admin-table-panel"><div className="admin-table-heading"><h2>このスポットを掲載しているしおり</h2><span>最新更新順・最大10冊</span></div>
           {data.recentBrochures.length ? <div className="admin-table-scroll" role="region" aria-label="スポット掲載しおり一覧（横にスクロールできます）" tabIndex={0}><table className="admin-table"><thead><tr><th scope="col">匿名利用者ID / 出所</th><th scope="col">旅の条件</th><th scope="col">初回作成</th><th scope="col">最終更新</th><th scope="col">操作</th></tr></thead><tbody>{data.recentBrochures.map(row => <tr key={row.id}><th scope="row"><code className="admin-anon-id">{row.userId}</code><small>{sourceLabel[row.source]}</small></th><td>{row.companion}<small>{durationLabel[row.duration]} · {styleLabel[row.tripStyle]}</small></td><td>{date(row.createdAt)}</td><td>{date(row.updatedAt)}</td><td><button className="button button-outline" aria-label={`${row.userId}の作成詳細を表示`} onClick={event => registration.open(row.userId, event.currentTarget)}>作成詳細</button></td></tr>)}</tbody></table></div> : <p className="admin-empty">現在このスポットを掲載しているしおりはありません。</p>}
         </section>
-        <section className="admin-analysis-note"><h2>集計の見方</h2><p>掲載数・条件・コピー・アクセスは、現在このスポットを掲載するしおりを基準に集計します。掲載しおりの初回作成は作成日で数え、再保存・再生成は新規作成に含みません。</p><p>アクセスはしおり全体の本文表示回数で、このスポット自体の閲覧数ではありません。掲載前の表示や再読み込みも含みます。コピーは計測機能追加後のブラウザによるコピー成功回数で、手動コピーは含みません。訪問記録、クーポン利用、アクセスはそれぞれ別の指標です。</p></section>
+        <section className="admin-analysis-note"><h2>集計の見方</h2><p>掲載数・条件・コピー・アクセスは、現在このスポットを掲載するしおりを基準に集計します。掲載しおりの初回作成は作成日で数え、再保存・再生成は新規作成に含みません。</p><p>アクセスはしおり全体の本文表示回数で、このスポット自体の閲覧数ではありません。掲載前の表示や再読み込みも含みます。コピーは計測機能追加後のブラウザによるコピー成功回数で、手動コピーは含みません。訪問記録、クーポン利用、アクセスはそれぞれ別の指標です。</p><p>いいねは、このスポットに対して現在保存されている件数です。取消分を除き、公開停止・掲載終了したしおりの分も含みます。同じ閲覧者による別のしおりへのいいねも別件で、人数ではありません。日別の操作履歴は保存していないため、期間指定の対象外です。</p></section>
       </>}
     </section>
     {registration.id && <AdminRegistrationDetail key={registration.id} userId={registration.id} scope={scope} onBack={registration.close} backLabel="スポット分析へ戻る" />}

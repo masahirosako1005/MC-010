@@ -30,6 +30,7 @@ export interface AdminSpot extends Spot {
   active: boolean; revision: number; updatedAt: string;
   visitCount: number; visitorCount: number; brochureCount: number;
   hasGift: boolean; giftClaimCount: number;
+  likeCount: number;
 }
 export interface AdminOverview {
   users: number; usersWithVisits: number; brochures: number; eligibleBrochures: number;

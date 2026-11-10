@@ -205,16 +205,20 @@ export function createShareAdminRouter(db: pg.Pool) {
     const result = await transaction(async client => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
       const from = `FROM brochure_shares s JOIN brochures b ON b.id=s.brochure_id JOIN users u ON u.id=b.user_id
-        WHERE ($1='all' OR u.source=$1)`;
+        WHERE u.account_role='visitor' AND ($1='all' OR u.source=$1)`;
       const totals = (await client.query(`SELECT count(*)::int AS total,count(*) FILTER(WHERE s.active)::int AS active,
         COALESCE(sum(s.view_count),0)::float8 AS views,COALESCE(sum(s.copy_count),0)::float8 AS copies ${from}`, [scope])).rows[0];
+      const likes = (await client.query(`SELECT count(*)::int AS count FROM share_spot_likes l
+        JOIN brochure_shares s ON s.id=l.share_id JOIN brochures b ON b.id=s.brochure_id JOIN users u ON u.id=b.user_id
+        WHERE u.account_role='visitor' AND ($1='all' OR u.source=$1)`, [scope])).rows[0];
       const pageSize = 25, currentPage = Math.min(page, Math.max(1, Math.ceil(totals.total / pageSize)));
-      const rows = (await client.query(`SELECT s.id,b.user_id,u.source,s.active,s.view_count,s.copy_count,s.created_at,s.last_viewed_at,s.last_copied_at ${from}
+      const rows = (await client.query(`SELECT s.id,b.user_id,u.source,s.active,s.view_count,s.copy_count,s.created_at,s.last_viewed_at,s.last_copied_at,
+        (SELECT count(*)::int FROM share_spot_likes l WHERE l.share_id=s.id) AS like_count ${from}
         ORDER BY s.created_at DESC,s.id LIMIT $2 OFFSET $3`, [scope, pageSize, (currentPage - 1) * pageSize])).rows;
       return { rows: rows.map(row => ({ id: row.id, userId: row.user_id, source: row.source, active: row.active,
-        viewCount: row.view_count, copyCount: row.copy_count, createdAt: row.created_at.toISOString(), lastViewedAt: row.last_viewed_at?.toISOString() ?? null,
+        viewCount: row.view_count, copyCount: row.copy_count, likeCount: row.like_count, createdAt: row.created_at.toISOString(), lastViewedAt: row.last_viewed_at?.toISOString() ?? null,
         lastCopiedAt: row.last_copied_at?.toISOString() ?? null })),
-        total: totals.total, active: totals.active, totalViews: totals.views, totalCopies: totals.copies, page: currentPage, pageSize } satisfies AdminSharePage;
+        total: totals.total, active: totals.active, totalViews: totals.views, totalCopies: totals.copies, totalLikes: likes.count, page: currentPage, pageSize } satisfies AdminSharePage;
     }, db);
     res.json(result);
   });

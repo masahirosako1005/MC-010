@@ -50,8 +50,10 @@ async function registrationDetail(db: Reader, id: string, source: DataScope): Pr
     template: row.template, createdAt: iso(row.created_at)!, updatedAt: iso(row.updated_at)!, regenerationCount: row.regeneration_count,
     selectedSpots: selected.length, memorySpots: result.items.filter(item => item.isMemory).length,
     photos: selected.filter(item => item.hasPhoto).length, comments: selected.filter(item => item.hasComment).length };
-  const shared = (await db.query('SELECT active,view_count,copy_count,created_at,last_viewed_at,last_copied_at FROM brochure_shares WHERE brochure_id=$1', [row.brochure_id])).rows[0];
-  if (shared) result.share = { active: shared.active, viewCount: shared.view_count, copyCount: shared.copy_count,
+  const shared = (await db.query(`SELECT s.active,s.view_count,s.copy_count,s.created_at,s.last_viewed_at,s.last_copied_at,
+    (SELECT count(*)::int FROM share_spot_likes l WHERE l.share_id=s.id) AS like_count
+    FROM brochure_shares s WHERE s.brochure_id=$1`, [row.brochure_id])).rows[0];
+  if (shared) result.share = { active: shared.active, viewCount: shared.view_count, copyCount: shared.copy_count, likeCount: shared.like_count,
     createdAt: iso(shared.created_at)!, lastViewedAt: iso(shared.last_viewed_at), lastCopiedAt: iso(shared.last_copied_at) };
   return result;
 }
@@ -83,7 +85,9 @@ async function spotAnalytics(db: Reader, id: string, source: DataScope, period: 
       (SELECT count(*)::int FROM brochure_shares s JOIN picked i ON i.brochure_id=s.brochure_id) AS shared_pages,
       (SELECT count(*)::int FROM brochure_shares s JOIN picked i ON i.brochure_id=s.brochure_id WHERE s.active) AS active_shared_pages,
       (SELECT COALESCE(sum(s.view_count),0)::float8 FROM brochure_shares s JOIN picked i ON i.brochure_id=s.brochure_id) AS share_views,
-      (SELECT COALESCE(sum(s.copy_count),0)::float8 FROM brochure_shares s JOIN picked i ON i.brochure_id=s.brochure_id) AS share_copies`, params)).rows[0];
+      (SELECT COALESCE(sum(s.copy_count),0)::float8 FROM brochure_shares s JOIN picked i ON i.brochure_id=s.brochure_id) AS share_copies,
+      (SELECT count(*)::int FROM share_spot_likes l JOIN brochure_shares s ON s.id=l.share_id
+        JOIN brochures b ON b.id=s.brochure_id JOIN audience a ON a.id=b.user_id WHERE l.spot_id=$1) AS like_count`, params)).rows[0];
   const groups = (await db.query(`SELECT d.dimension,d.key,count(*)::int AS count FROM brochure_items i
     JOIN brochures b ON b.id=i.brochure_id JOIN users u ON u.id=b.user_id
     CROSS JOIN LATERAL (VALUES ('companion',b.companion),('duration',b.duration),('style',b.trip_style),('category',COALESCE(i.pickup_category,'unassigned'))) AS d(dimension,key)
@@ -124,7 +128,7 @@ async function spotAnalytics(db: Reader, id: string, source: DataScope, period: 
     totals: { visits: total.visits, visitors: total.visitors, firstVisitedAt: iso(total.first_visited_at), lastVisitedAt: iso(total.last_visited_at),
       brochures: total.brochures, allBrochures: total.all_brochures, memoryBrochures: total.memory_brochures,
       visitedSelections: total.visited_selections, candidateSelections: total.candidate_selections, photos: total.photos, comments: total.comments,
-      couponUses: total.coupon_uses, sharedPages: total.shared_pages, activeSharedPages: total.active_shared_pages, shareViews: total.share_views, shareCopies: total.share_copies },
+      couponUses: total.coupon_uses, sharedPages: total.shared_pages, activeSharedPages: total.active_shared_pages, shareViews: total.share_views, shareCopies: total.share_copies, likeCount: total.like_count },
     breakdowns: { companions: group('companion'), durations: group('duration'), tripStyles: group('style'), categories: group('category') },
     period: { from: period.from, to: period.to, days, totals: days.reduce((sum, day) => ({ visits: sum.visits + day.visits,
       brochures: sum.brochures + day.brochures, couponUses: sum.couponUses + day.couponUses, shareViews: sum.shareViews + day.shareViews,

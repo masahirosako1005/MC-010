@@ -24,3 +24,15 @@
 .spot-like-error p { margin: 0 0 4px; }
 .spot-like-retry { min-height: 44px; padding: 6px 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
 @media print { .spot-like-actions { display: none !important; } }
+
+.shared-invitation { display: grid; place-items: center; min-height: 100vh; min-height: 100svh; padding: 24px; background: radial-gradient(ellipse at 50% 30%, var(--coral-soft), transparent 70%), var(--paper); }
+.shared-invitation-card { width: min(100%, 540px); padding: 36px 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); text-align: center; box-shadow: 0 12px 40px rgb(78 47 25 / 8%); }
+.shared-invitation-brand { display: inline-block; padding: 12px 8px; color: var(--ink-soft); font: 800 .9rem/1.4 var(--font-rounded); text-decoration: none; }
+.shared-invitation-brand:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; border-radius: 6px; }
+.shared-invitation-envelope { display: grid; place-items: center; width: 100px; height: 100px; margin: 20px auto 24px; border-radius: 50%; background: var(--coral-soft); color: var(--orange); }
+.shared-invitation-envelope svg { width: 52px; height: 52px; stroke-width: 1.5; }
+.shared-invitation h1 { margin: 0; color: var(--ink); font: 900 clamp(1.2rem, 4.8vw, 1.9rem)/1.7 var(--font-rounded); overflow-wrap: anywhere; }
+.shared-invitation h1 span { display: block; }
+.shared-invitation p { margin: 18px 0 24px; color: var(--ink-soft); font-size: .85rem; line-height: 1.6; }
+.shared-invitation-open { min-height: 48px; margin-inline: auto; }
+@media (max-width: 420px) { .shared-invitation { padding: 16px; } .shared-invitation-card { padding: 28px 16px; } }

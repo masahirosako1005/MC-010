@@ -1,5 +1,18 @@
 # 画像素材と生成記録
 
+## スマホ用マップ背景（2026-11-10）
+
+`public/assets/trip-overview-map-mobile-v1.webp` は既存の横長マップ背景を参照し、内蔵imagegen標準モードで縦長3:5へ再構成した同梱イラスト。960×1601、WebP quality 88、635,850 bytes。生成画像の構図・文字なし・画面全体を埋める風景は目視した。Sharpで配信用WebPへ変換し、元PNGは既定生成先に保持した。820px以下のマップで使用し、横長画像を縦長領域へcontainしていた上下余白をなくす。文字・ピン・点線はReact/SVGで別に重ねる。実行時は同梱画像のみを読み込み、外部AI・画像サービスへ接続しない。背景画像自体の確認とアプリ画面の目視/操作は区別する。
+
+生成プロンプト（built-in / reference-image edit）:
+
+```text
+Recompose this exact watercolor travel-map artwork as a MOBILE PORTRAIT background asset, aspect ratio 3:5 (for example 1152x1920), full-bleed art covering the entire canvas. This is a production illustration asset, not a phone mockup.
+Preserve the existing charming Japanese coastal village, saturated blue sea, ivory stone paths, orange roofs, flowers and detailed gouache/watercolor textures. Preserve five recognizable motifs: a red-capped white lighthouse on the LEFT in the upper third; a small craft market with people on the RIGHT near the top; a seafood lunch at a harbor eatery on the RIGHT in the middle; a souvenir shop and cobbled lane at LOWER LEFT; a peaceful ocean-view terrace with a seated person and bench at LOWER RIGHT. Connect the scenes naturally with a winding pale stone lane and sea glimpses; a single continuous landscape, no grid and no isolated photo cards.
+The original horizontal artwork was letterboxed in a taller mobile viewport, causing overlaid labels to float above the actual illustration. The new portrait asset must solve that composition issue: paint scenery all the way to the top and bottom edges, no horizontal artwork pasted into the middle, no blank ivory bands outside the landscape, no broad empty header/footer. Leave small, subtly textured calm zones WITHIN the scenic artwork for overlaid HTML callouts at left x25% y18%, right x75% y7%, right x75% y39%, left x25% y73%, right x75% y73%. The callouts will occupy about 44% of the width and 20% of the height, so put the characteristic subjects beside or between these areas and keep the scene distinguishable.
+NO text, no letters, no numbers, no category labels, no pins, no dots, no route lines, no watermark, no UI, no border. These will be added as accessible HTML/SVG. One beautiful full-height portrait coastal village illustration, matching the reference style and palette.
+```
+
 ## マップ風の旅の全体像（2026-11-10）
 
 `public/assets/trip-overview-map-v1.webp` はユーザー提供のマップ画像を参照して内蔵imagegen標準モードで生成した、架空の海辺の町の背景イラスト。1440×1080、WebP quality 88、610,846 bytes。生成PNGはプロジェクト外の既定生成先へ保持し、Sharpで同梱用WebPへ変換した。生成された背景画像の構図・文字なし・5つの場面は確認済みだが、アプリ画面の目視/操作確認とは区別する。利用者が追加する写真ではなく、実行時に外部AI・画像サービスへ接続しない同梱の画面素材。

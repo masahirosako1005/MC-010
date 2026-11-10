@@ -5,11 +5,11 @@ import type { BrochureItem, Spot } from '../shared/types';
 import './trip-map.css';
 
 const positions: Record<ExperienceCategory, { x: number; y: number; mobileX: number; mobileY: number }> = {
-  see: { x: 24, y: 25, mobileX: 25, mobileY: 18 },
-  play: { x: 60, y: 12, mobileX: 75, mobileY: 7 },
-  eat: { x: 82, y: 40, mobileX: 75, mobileY: 39 },
-  relax: { x: 76, y: 70, mobileX: 75, mobileY: 73 },
-  buy: { x: 24, y: 65, mobileX: 25, mobileY: 73 },
+  see: { x: 25, y: 16, mobileX: 25, mobileY: 16 },
+  play: { x: 65, y: 10, mobileX: 68, mobileY: 9 },
+  eat: { x: 80, y: 41, mobileX: 78, mobileY: 41 },
+  relax: { x: 73, y: 74, mobileX: 72, mobileY: 74 },
+  buy: { x: 25, y: 68, mobileX: 25, mobileY: 68 },
 };
 
 function routePath(points: Array<{ x: number; y: number }>) {
@@ -45,7 +45,6 @@ export function TripMap({ selected, spotsById, onOpen }: TripMapProps) {
     <figure className="trip-map-figure">
       <div className="trip-map-canvas">
         <picture className="trip-map-artwork">
-          <source media="(max-width: 820px)" srcSet="/assets/trip-overview-map-mobile-v1.webp" />
           <img className="trip-map-art" src="/assets/trip-overview-map-v1.webp" alt="" width="1440" height="1080" loading="lazy" />
         </picture>
         {Object.entries(routes).map(([layout, route]) => <svg key={layout} className={`trip-map-route trip-map-route-${layout}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

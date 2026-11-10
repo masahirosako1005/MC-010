@@ -150,3 +150,7 @@ spotsへactive/revision/updated_at、sourceへtownを追加。spot_photosは町�
 公開本文のmemoryVisitsは選択した訪問済み思い出の最新1件ずつに限定し、spotId/visitedAt/stampのみを返す。紙面の訪問日時とスタンプ表示を維持し、全履歴や回答本文は返さない。
 
 SPAは本文表示後にページごとのUUIDで計測し、記録失敗時は同じUUIDで1回再試行する。リロードは新UUID、作者のプレビューは計測APIを呼ばない。JS無効・通信失敗で記録されない場合や、閲覧者によるリクエストの作成はあり得るため、実人数やボットを排除した厳密な人間閲覧の指標ではない。閲覧者ID・IP・User-Agentは保存しない。
+
+## 公開スポットのいいね（009）
+
+`009_shared_spot_likes.sql` で `share_spot_likes` を追加する。共有ID（brochure_shares）・スポットID（spots）・閲覧者ハッシュを複合主キーとし、作成日時を保存する。共有またはスポットの削除時に関連いいねをCASCADE削除する。Cookie実値・IP・メール・氏名は保存しない。件数は対象共有の選択中スポットごとに集計する。新規テーブル追加のみで既存データは書き換えない。

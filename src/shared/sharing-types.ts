@@ -1,5 +1,8 @@
 import type { Brochure, Spot, Visit } from './types.js';
 
+export interface SharedSpotLike { spotId: string; count: number; liked: boolean }
+export interface SharedSpotLikes { spots: SharedSpotLike[] }
+
 export interface ShareSettings {
   id: string;
   path: string;

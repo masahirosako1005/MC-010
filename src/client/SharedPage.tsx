@@ -5,6 +5,7 @@ import { getSharedPageToken, isMobileDemoContentPath, MOBILE_APP_PATH } from '..
 import { BrochurePaper } from './App';
 import { SpotDetailDialog } from './SpotDetailDialog';
 import { shareRequest } from './sharing-api';
+import { SharedSpotLikeButton, useSharedSpotLikes } from './SharedSpotLikes';
 import './sharing.css';
 
 export function SharedPage() {
@@ -13,6 +14,7 @@ export function SharedPage() {
   const [data, setData] = useState<SharedBrochure | null>(null), [error, setError] = useState('');
   const [version, setVersion] = useState(0), [detailId, setDetailId] = useState<string | null>(null);
   const [requestId] = useState(() => crypto.randomUUID());
+  const likes = useSharedSpotLikes(token, Boolean(data));
   useEffect(() => {
     if (!token) { setError('共有URLが正しくありません。'); return; }
     const controller = new AbortController(); setError(''); setData(null);
@@ -44,7 +46,8 @@ export function SharedPage() {
     </header>
     {error ? <main className="shared-page-state"><h1>パンフレットを表示できませんでした</h1><p role="alert">{error}</p>{token && <button className="button" onClick={() => setVersion(value => value + 1)}><RefreshCw aria-hidden="true" />再試行</button>}</main>
       : !data ? <main className="shared-page-state" role="status">共有パンフレットを読み込んでいます</main>
-      : <main className="editor-main"><BrochurePaper draft={data.brochure} spots={data.spots} visits={data.memoryVisits} survey={null} onOpen={setDetailId} /></main>}
+      : <main className="editor-main"><BrochurePaper draft={data.brochure} spots={data.spots} visits={data.memoryVisits} survey={null} onOpen={setDetailId}
+        renderSpotAction={spot => <SharedSpotLikeButton spotId={spot.id} spotName={spot.name} actions={likes} />} /></main>}
     {spot && data && <SpotDetailDialog key={spot.id} spot={spot} photoUrl={item?.photoUrl} comment={item?.comment} canClaim={data.viewerIsOwner} readOnly={!data.viewerIsOwner} onClose={() => setDetailId(null)} />}
   </div>;
 }

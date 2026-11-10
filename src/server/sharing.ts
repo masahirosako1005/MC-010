@@ -1,10 +1,10 @@
-import { Router, type Request } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type pg from 'pg';
 import { z } from 'zod';
-import type { AdminSharePage, ShareSettings, SharedBrochure } from '../shared/sharing-types.js';
+import type { AdminSharePage, ShareSettings, SharedBrochure, SharedSpotLikes } from '../shared/sharing-types.js';
 import { getBrochure, getSpots, getVisits } from './brochures.js';
 import { transaction } from './db.js';
 import { AppError } from './errors.js';
@@ -35,6 +35,47 @@ async function optionalViewer(db: DB, req: Request): Promise<string | null> {
 
 export function createPublicShareRouter(db: pg.Pool, uploadDir: string, cache = new PublicContentCache()) {
   const router = Router(), root = path.resolve(uploadDir);
+  function likeVisitor(req: Request, res: Response, create = true): string {
+    const existing: unknown = req.cookies.kondo_like_visitor;
+    if (!create && (typeof existing !== 'string' || !/^[a-f0-9]{64}$/.test(existing))) {
+      throw new AppError(403, 'like_cookie_required', 'いいねを保存するにはCookieを有効にして、画面を再読み込みしてください。');
+    }
+    const visitor = typeof existing === 'string' && /^[a-f0-9]{64}$/.test(existing) ? existing : randomBytes(32).toString('hex');
+    if (visitor !== existing) res.cookie('kondo_like_visitor', visitor, {
+      httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: 365 * 24 * 60 * 60 * 1000, path: '/api/shared',
+    });
+    return createHash('sha256').update(visitor).digest('hex');
+  }
+  async function likeStates(client: DB, shareId: string, brochureId: string, visitor: string): Promise<SharedSpotLikes> {
+    const result = await client.query(`SELECT i.spot_id, count(l.visitor_hash)::int AS count,
+      COALESCE(bool_or(l.visitor_hash=$3),false) AS liked
+      FROM brochure_items i LEFT JOIN share_spot_likes l ON l.share_id=$1 AND l.spot_id=i.spot_id
+      WHERE i.brochure_id=$2 AND i.selected GROUP BY i.spot_id`, [shareId, brochureId, visitor]);
+    return { spots: result.rows.map(row => ({ spotId: row.spot_id, count: row.count, liked: row.liked })) };
+  }
+  router.get('/shared/:token/likes', async (req, res) => {
+    const result = await transaction(async client => {
+      await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+      const share = await publicShare(client, req.params.token);
+      return likeStates(client, share.id, share.brochure_id, likeVisitor(req, res));
+    }, db);
+    res.json(result);
+  });
+  router.put('/shared/:token/spots/:spotId/like', async (req, res) => {
+    const spotId = uuidSchema.parse(req.params.spotId);
+    const { liked } = z.object({ liked: z.boolean() }).strict().parse(req.body);
+    const result = await transaction(async client => {
+      const share = await publicShare(client, req.params.token, true);
+      const selected = await client.query('SELECT 1 FROM brochure_items WHERE brochure_id=$1 AND spot_id=$2 AND selected', [share.brochure_id, spotId]);
+      if (!selected.rowCount) throw new AppError(404, 'spot_not_found', '公開しおりに掲載されているスポットが見つかりません。');
+      const visitor = likeVisitor(req, res, false);
+      if (liked) await client.query(`INSERT INTO share_spot_likes(share_id,spot_id,visitor_hash) VALUES($1,$2,$3)
+        ON CONFLICT DO NOTHING`, [share.id, spotId, visitor]);
+      else await client.query('DELETE FROM share_spot_likes WHERE share_id=$1 AND spot_id=$2 AND visitor_hash=$3', [share.id, spotId, visitor]);
+      return likeStates(client, share.id, share.brochure_id, visitor);
+    }, db);
+    res.json(result);
+  });
   router.get('/shared/:token', async (req, res) => {
     const token = req.params.token;
     if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw notFound();

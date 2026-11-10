@@ -42,7 +42,7 @@ import {
   spotSupportsExperienceCategory,
   type ExperienceCategory,
 } from '../shared/experience-categories';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { TripSettingsScreen } from './TripSettingsScreen';
 import { AdminDashboard } from './AdminDashboard';
 import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
@@ -756,6 +756,7 @@ interface PaperProps {
   draft: Brochure; spots: Spot[]; visits: Array<Pick<Visit, 'spotId' | 'visitedAt' | 'stamp'>>; survey: SessionData['survey'];
   pendingPhotos?: Record<string, PendingPhoto>; photoBusyId?: string | null; photoError?: Record<string, string>;
   onOpen: (spotId: string) => void;
+  renderSpotAction?: (spot: Spot) => ReactNode;
   onComment?: (id: string, comment: string) => void;
   onReplace?: (itemId: string) => void;
   onPhoto?: (item: BrochureItem, file: File) => Promise<void>;
@@ -764,7 +765,7 @@ interface PaperProps {
   onOpenSettings?: () => void;
 }
 export function BrochurePaper({ draft, spots, visits, survey, pendingPhotos = {}, photoBusyId = null, photoError = {},
-  onOpen, onComment = () => {}, onReplace = () => {}, onPhoto: uploadPhoto = async () => {},
+  onOpen, renderSpotAction, onComment = () => {}, onReplace = () => {}, onPhoto: uploadPhoto = async () => {},
   onRemovePhoto: removePhoto = async () => {}, onMove = () => {}, onOpenSettings = () => {} }: PaperProps) {
   const spotsById = new Map(spots.map(spot => [spot.id, spot]));
   const selected = draft.items.filter(item => item.selected).sort((a, b) => a.order - b.order);
@@ -801,6 +802,7 @@ export function BrochurePaper({ draft, spots, visits, survey, pendingPhotos = {}
                     error={photoError[item.id]}
                     pendingPhoto={pendingPhotos[item.id]}
                     onOpen={() => onOpen(spot.id)}
+                    footerAction={renderSpotAction?.(spot)}
                   />
                 ) : <EmptyCategoryCard key={definition.id} category={definition.id} onOpenSettings={onOpenSettings} />;
               })}
@@ -872,6 +874,7 @@ function CategoryIcon({ category }: { category: ExperienceCategory }) {
 }
 
 interface CategoryPickupCardProps {
+  footerAction?: ReactNode;
   category: ExperienceCategory;
   item: BrochureItem;
   spot: Spot;
@@ -906,6 +909,7 @@ function CategoryPickupCard(props: CategoryPickupCardProps) {
           onChange={onComment}
         />
       </div>
+      {props.footerAction && <div className="spot-like-actions">{props.footerAction}</div>}
       <button data-export-exclude="true" className="button replace-button category-replace" onClick={onReplace}><RotateCcw aria-hidden="true" />{label}を変更</button>
     </article>
   );

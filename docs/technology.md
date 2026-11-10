@@ -1,6 +1,6 @@
 # 技術と検証環境
 
-2026-11-09。アプリの動作に必要なのはNode.js 26とPostgreSQL。Python、imagegen、指定スキルは制作・レビュー用で、アプリの実行依存ではない。
+2026-11-10 文書更新。アプリの動作に必要なのはNode.js 26とPostgreSQL。Python、imagegen、指定スキルは制作・レビュー用で、アプリの実行依存ではない。以下の環境・ハッシュの確認記録は2026-11-09のもので、今回再検証した結果ではない。
 
 |用途|採用|理由・境界|
 |---|---|---|
@@ -10,19 +10,16 @@
 |永続化|PostgreSQL 17 / pg|利用者分離、UNIQUE、行ロック、revision、migration。SQLite等への代替なし。|
 |画像|Multer 2 / Sharp 0.35|MIMEとmagicに加えて実デコード。再変換してmetadataを除去。|
 |CSV|csv-parse 7|BOM・引用符・改行列を扱い、取込前にキーと欠損を検証。|
-|共有|Clipboard API / html-to-image|文字列コピーと端末内PNG。公開共有先や外部ストレージなし。|
+|共有|共有URL / Clipboard API|保存済みの掲載内容・選択した思い出を同じローカルアプリで閲覧。共有写真は対象範囲を照合するAPIで配信し、外部ストレージへ送信しない。|
 |検証|Vitest 5 / Playwright 1.65 / Edge|実DB統合、ブラウザ一筆書き、ローカルダウンロード。|
 
 正確な依存バージョン・解決先は `pnpm-lock.yaml`。pnpm自体は11.25.0、直接依存は移行前のnpm lockfileで解決済みだった版へ正確に固定し、通常導入は `pnpm install --frozen-lockfile --ignore-scripts` とする。依存build scriptを実行する場合の許可は `pnpm-workspace.yaml` で現在の `esbuild@0.28.2` だけへ限定する。npm管理時にはWindows x64のSharpが配布済みoptional binaryで動くことを別の空ディレクトリで確認済み。pnpm移行後の確認範囲は [検証記録](verification.md) に分離する。
 
-## この端末の実環境
+招待文欄・招待文コピー・PNG保存の操作は現行UIから削除済み。過去のPNG出力記録を現在の機能説明へ流用しない。共有URL・写真の公開範囲とキャッシュは [仕様](spec.md) を参照する。
 
-- Windows x64、Node.js **26.13.0**、pnpm **11.25.0**、PostgreSQL **17.11**。
-- PlaywrightのPC/スマホともMicrosoft Edge **157.0.4341.42**のheadless実行。スマホはiPhone 13相当390×844のエミュレーションで、実機Safariではない。
-- PostgreSQLは `.tools/pgsql` の公式配布バイナリ。専用clusterは `.local/pgdata`、127.0.0.1:55432。Windowsサービス登録なし。
-- DB補助スクリプトの初期化・起動・状態確認・通常停止は、別の空clusterを55433番へ作って確認。Windows PowerShell 5.1の文字コード差を避けるため本文をASCIIとした。
-- 通常デモDBは `kondo_anatato`。最終再現には別の空DB `kondo_final_verify_20261109` と `.local/final-verify-uploads`、アプリ3003番を使用。既存の編集は消していない。
-- システムNodeの置換やグローバルスキル導入は行わず、各コマンドのPATHだけへローカルNodeを追加。Python補助キャッシュの例外は [スキル記録](skills.md) に記載。
+## 検証環境の位置づけ
+
+記録上の環境はWindows x64、Node.js 26.13.0、pnpm 11.25.0、PostgreSQL 17.11。PC/スマホ検証はEdgeのheadless実行で、スマホ実機の検証ではない。端末固有のDB名・ポート・保存先は開発担当者向けの [内部環境記録](internal/environment.md) へ分離する。テストの対象版と実施範囲は [検証記録](verification.md) を参照する。
 
 ## 配布元とアーカイブSHA256
 

@@ -31,9 +31,7 @@ zip: https://www.python.org/ftp/python/3.13.12/python-3.13.12-embed-amd64.zip
 
 UI検索はstdlibのローカルCSV検索で外部通信なし。persistの書込は明示時だけ。Security Audit validatorはJSON確認用。Superpowersにはworktree削除等の手順も含むが実行していない。ユーザー指示とAGENTS.mdを例文より優先する。
 
-標準helper初回実行で、共通helper配下に github_utils.cpython-313.pyc が1件生成された。以後は sys.dont_write_bytecode=True とし公開取得にGH tokenを渡さない。初回キャッシュの削除はポリシーで拒否され、そのキャッシュだけ残存。スキル本体のグローバル導入や既存SKILL.md変更はない。
-
-残存場所は `%USERPROFILE%/.codex/skills/.system/skill-installer/scripts/__pycache__/github_utils.cpython-313.pyc`（1,457 bytes、2026-11-09 11:51:32）。公開helperのコンパイル済み補助キャッシュで、スキルのグローバル導入物やアプリデータではない。再削除やプロジェクトへのコピーを行わず、2026-11-09の最終確認で存在だけ確認した。環境変数表記とし、端末のアカウント名は資料に記載しない。
+取得用helperの実行では `sys.dont_write_bytecode=True` とし、公開取得にGH tokenを渡さない。スキル本体のグローバル導入や既存SKILL.md変更は行わない。
 
 ## 再現
 

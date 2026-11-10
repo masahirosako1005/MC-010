@@ -201,4 +201,8 @@ E2Eはデモ利用者の保存内容を変更します。自分のデモ編集�
 
 ## 資料
 
-[仕様](docs/spec.md) / [デザイン](docs/design.md) / [DB・API](docs/database.md) / [取り込み](docs/data-import.md) / [技術](docs/technology.md) / [画像素材](docs/assets.md) / [指定スキル](docs/skills.md) / [セキュリティ](docs/security.md) / [検証](docs/verification.md) / [評価対応](docs/evaluation.md)
+[資料案内と公開範囲](docs/README.md) を入口とし、外部説明と開発・運用の内部記録を区別します。このREADMEは起動・開発用で、提供データの集計や検証履歴も含みます。外部向け資料には必要な部分だけを選んでください。
+
+外部説明: [仕様](docs/spec.md) / [デザイン](docs/design.md) / [技術](docs/technology.md) / [画像素材](docs/assets.md) / [セキュリティ方針](docs/security.md) / [評価対応](docs/evaluation.md)
+
+開発・保守: [DB・API](docs/database.md) / [指定スキル](docs/skills.md)。内部記録: [取り込み](docs/data-import.md) / [検証履歴](docs/verification.md) / [監査原本・追補](docs/audits/README.md) / [開発計画](docs/superpowers/README.md) / [端末環境](docs/internal/environment.md)

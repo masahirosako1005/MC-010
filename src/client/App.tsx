@@ -384,7 +384,7 @@ function CheckingScreen() {
 }
 
 function LoginScreen({ onLogin, notice }: { onLogin: (data: SessionData) => Promise<void>; notice: string }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('demo@example.test');
   const [code, setCode] = useState('1111');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(notice);
@@ -498,7 +498,7 @@ function GeneratingScreen() {
           ))}
         </ol>
         <div className="progress-track" aria-hidden="true"><span style={{ width: `${30 + step * 30}%` }} /></div>
-        <p className="generating-note">保存済みのパンフレットがある場合は、編集内容を上書きせずそのまま開きます。</p>
+        <p className="generating-note">保存済みのしおりがある場合は、編集内容を上書きせずそのまま開きます。</p>
       </section>
     </main>
   );
@@ -697,7 +697,7 @@ function BrochureEditor(props: EditorProps) {
       ) : <header className="editor-toolbar" data-export-exclude="true">
         <a className="mini-brand" href="#brochure-top" aria-label="パンフレットの先頭へ">今度はあなたと</a>
         <div className="toolbar-actions">
-          <button className="button toolbar-button trip-settings-entry" data-testid="trip-settings-open" aria-label="旅の条件を変更" onClick={() => setSettingsOpen(true)}>
+          <button className="button toolbar-button trip-settings-entry" data-testid="trip-settings-open" aria-label="旅の条件を変更" title="旅の条件を変更" onClick={() => setSettingsOpen(true)}>
             <UsersRound aria-hidden="true" /><span>旅の条件を変更</span>
           </button>
           <TemplateSelect value={draft.template} onChange={(template) => onChange((current) => ({ ...current, template }))} />
@@ -832,10 +832,10 @@ export function BrochurePaper({ draft, spots, visits, survey, pendingPhotos = {}
 
 function TemplateSelect({ value, onChange }: { value: Template; onChange: (value: Template) => void }) {
   return (
-    <label className="template-select">
+    <label className="template-select" title="デザインを変える">
       <MapIcon aria-hidden="true" />
       <span className="template-select-label">デザインを変える</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as Template)}>
+      <select aria-label="デザインを変える" value={value} onChange={(event) => onChange(event.target.value as Template)}>
         <option value="colorful">カラフルな旅行パンフレット</option>
         <option value="postcard">ポストカード</option>
       </select>

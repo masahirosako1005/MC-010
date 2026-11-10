@@ -1,0 +1,69 @@
+.mobile-demo {
+  --device-body: #25272c;
+  --device-edge: #73757c;
+  height: 100dvh;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px clamp(16px, 4vw, 64px) 16px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, var(--surface) 10%, var(--paper) 60%, var(--paper-deep));
+}
+
+.mobile-demo-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mobile-demo-heading { display: flex; align-items: center; gap: 12px; }
+.mobile-demo-mark { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--accent-ink); }
+.mobile-demo-mark svg { width: 24px; height: 24px; }
+.mobile-demo-heading h1 { margin: 0; font: 900 20px/1.5 var(--font-rounded); }
+.mobile-demo-heading p { margin: 2px 0 0; color: var(--ink-soft); font-size: 12px; letter-spacing: .04em; }
+.mobile-demo-heading p span { color: var(--accent-ink); }
+.mobile-demo-actions { display: flex; align-items: center; gap: 10px; }
+.mobile-demo-actions a { text-decoration: none; background: transparent; }
+.mobile-demo-actions .button { font-size: 13px; }
+.mobile-demo-stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 0 6px; }
+.mobile-demo-device-space { position: relative; flex: none; }
+
+.mobile-demo-phone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 414px;
+  height: 936px;
+  padding: 10px;
+  border: 2px solid var(--device-edge);
+  border-radius: 56px;
+  background: var(--device-body);
+  box-shadow: inset 0 0 0 2px #101114, 0 24px 48px rgb(50 31 24 / 18%), 0 5px 10px rgb(50 31 24 / 12%);
+  transform-origin: top left;
+}
+.mobile-demo-side-button { position: absolute; width: 4px; border-radius: 2px; background: var(--device-edge); }
+.mobile-demo-side-button-left { left: -5px; top: 150px; height: 70px; }
+.mobile-demo-side-button-right { right: -5px; top: 180px; height: 100px; }
+.mobile-demo-screen { height: 100%; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden; background: var(--paper); }
+.mobile-demo-status { position: relative; flex: 0 0 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; color: var(--ink); font: 700 14px/1 var(--font-body); }
+.mobile-demo-camera { position: absolute; top: 9px; left: 50%; width: 106px; height: 26px; transform: translateX(-50%); border-radius: 20px; background: #111215; }
+.mobile-demo-camera::after { content: ''; position: absolute; right: 10px; top: 8px; width: 10px; height: 10px; border: 3px solid #252b38; border-radius: 50%; background: #111b33; }
+.mobile-demo-status-icons { display: flex; gap: 5px; align-items: center; }
+.mobile-demo-status-icons svg { width: 16px; height: 16px; stroke-width: 2; }
+.mobile-demo-status-icons svg:last-child { width: 22px; height: 22px; }
+.mobile-demo-app { display: block; flex: 1; min-height: 0; width: 100%; border: 0; background: var(--paper); }
+.mobile-demo-home { flex: 0 0 24px; display: grid; place-items: center; }
+.mobile-demo-home span { display: block; width: 126px; height: 5px; border-radius: 10px; background: var(--ink); }
+.mobile-demo-footer { display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+.mobile-demo-live { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 3px var(--coral-soft); }
+.mobile-demo-footer-divider { margin: 0 3px; }
+
+@media (max-width: 600px) {
+  .mobile-demo { gap: 14px; padding: 12px 12px 14px; }
+  .mobile-demo-header { align-items: flex-start; gap: 8px; }
+  .mobile-demo-heading { gap: 8px; }
+  .mobile-demo-heading h1 { font-size: 16px; }
+  .mobile-demo-heading p { font-size: 10px; }
+  .mobile-demo-mark { display: none; }
+  .mobile-demo-actions { gap: 4px; }
+  .mobile-demo-actions .button { width: 44px; padding: 9px; }
+  .mobile-demo-actions .button span { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mobile-demo-footer { flex-wrap: wrap; gap: 8px; font-size: 10px; }
+  .mobile-demo-footer-divider, .mobile-demo-footer > span:last-child { display: none; }
+}

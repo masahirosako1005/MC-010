@@ -18,6 +18,7 @@ import { createOwnerShareRouter, createPublicShareRouter, createShareAdminRouter
 import { createMcpKeyRouter } from './mcp-keys.js';
 import { createMcpRouter } from './mcp.js';
 import { PublicContentCache, invalidatePublicContentOnWrite } from './public-content-cache.js';
+import { isMobileDemoContentPath } from '../shared/mobile-demo.js';
 
 declare global { namespace Express { interface Request { userId?: string; accountRole?: 'visitor' | 'town_admin' } } }
 const hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex');
@@ -51,9 +52,10 @@ export function createApp(db:pg.Pool=pool,uploadDir=path.resolve(process.env.UPL
   };
   const removeFile=async(key:string)=>{try{await unlink(filePath(key));}catch{/*孤児ファイルの整理はdocsに記載。公開配信はしない。*/}};
   app.use((_req,res,next)=>{
-    res.set({'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer',
+    const demoFrame=isMobileDemoContentPath(_req.path);
+    res.set({'X-Content-Type-Options':'nosniff','X-Frame-Options':demoFrame?'SAMEORIGIN':'DENY','Referrer-Policy':'no-referrer',
       'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
-      'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"});next();
+      'Content-Security-Policy':`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors ${demoFrame?"'self'":"'none'"}; base-uri 'none'; object-src 'none'`});next();
   });
   app.use('/api',(req,res,next)=>{
     res.set('Cache-Control','no-store');

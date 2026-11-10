@@ -1,0 +1,3337 @@
+{
+  "assembled_at": "2026-11-10T11:14:56.0569538+09:00",
+  "status": "incomplete",
+  "profile": "既存証拠の統合・確認計画と対応状況の一覧化",
+  "report_only": true,
+  "observed_head_at_assembly": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+  "evidence_source": {
+    "baseline_report": "../2026-11-10-ipa-cloudflare-source/REPORT.html",
+    "baseline_at": "2026-11-10T10:29:56.9162305+09:00",
+    "baseline_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+    "followup_at": "2026-11-10T11:03:41.3295637+09:00",
+    "followup_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+    "dirty": true
+  },
+  "counts": {
+    "OK": 18,
+    "NG": 0,
+    "要確認": 12,
+    "未実施": 22,
+    "対象外": 3
+  },
+  "groups": [
+    {
+      "area": "ソース確認",
+      "items": 22,
+      "counts": {
+        "OK": 12,
+        "NG": 0,
+        "要確認": 7,
+        "未実施": 0,
+        "対象外": 3
+      }
+    },
+    {
+      "area": "運用確認",
+      "items": 12,
+      "counts": {
+        "OK": 6,
+        "NG": 0,
+        "要確認": 4,
+        "未実施": 2,
+        "対象外": 0
+      }
+    },
+    {
+      "area": "画像の動作検査",
+      "items": 8,
+      "counts": {
+        "OK": 0,
+        "NG": 0,
+        "要確認": 0,
+        "未実施": 8,
+        "対象外": 0
+      }
+    },
+    {
+      "area": "APIの動作検査",
+      "items": 9,
+      "counts": {
+        "OK": 0,
+        "NG": 0,
+        "要確認": 0,
+        "未実施": 9,
+        "対象外": 0
+      }
+    },
+    {
+      "area": "画面の動作検査",
+      "items": 3,
+      "counts": {
+        "OK": 0,
+        "NG": 0,
+        "要確認": 0,
+        "未実施": 3,
+        "対象外": 0
+      }
+    },
+    {
+      "area": "負荷・限界試験",
+      "items": 1,
+      "counts": {
+        "OK": 0,
+        "NG": 0,
+        "要確認": 1,
+        "未実施": 0,
+        "対象外": 0
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "IPA-1.1",
+      "frameworks": [
+        "IPA-1.1",
+        "CFSA:data-isolation"
+      ],
+      "category": "入力でデータベースを不正に操作できないか",
+      "target": "API・管理集計・共有・MCP・取込のSQL",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者入力はSQLの命令文と分けて渡します。検索条件や共有写真の結合先などの可変部分は、プログラム内の固定候補だけです。",
+      "evidence": "src/server/app.ts:80-85; src/server/admin.ts:86-105; src/server/sharing.ts:21-25,81-87; src/server/analytics.ts:40-133; src/server/importer.ts:450-485",
+      "gap": "実DBでの拒否動作は今回未検証",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.2",
+      "frameworks": [
+        "IPA-1.2",
+        "CFSA:supply-chain"
+      ],
+      "category": "入力でパソコンの命令を勝手に実行できないか",
+      "target": "Web/APIからのプロセス起動",
+      "method": "起動機構の検索とpackage scripts・入口処理を確認",
+      "executed": "yes",
+      "result": "対象外",
+      "reason": "アプリのソースにOSコマンド起動の経路は検出されず、package.jsonの開発・起動処理も固定コマンドです。",
+      "evidence": "src/server・src/client・src/sharedのchild_process/execFile/spawn等の検索; package.json:11-24",
+      "gap": "外部コマンド実行機能を追加した場合は再監査",
+      "questions": [],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "対応不要（該当する機能なし）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "対象外",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.3",
+      "frameworks": [
+        "IPA-1.3",
+        "CFSA:data-isolation"
+      ],
+      "category": "許可されていないファイルを読み書きできないか",
+      "target": "個人写真・公式写真・共有写真・管理用ファイル",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "写真名はシステムが作った識別子と.webpに限定し、保存先を確認します。共有写真も公開範囲との照合後に限定した名前だけを使います。取込・migrationのファイル名は固定または管理ファイルです。",
+      "evidence": "src/server/app.ts:45-52,143-179; src/server/sharing.ts:81-93; src/server/importer.ts:291-309; src/server/db-cli.ts:9-15",
+      "gap": "保存先の権限・シンボリックリンク等の実環境はQ3で確認",
+      "questions": [
+        "Q3",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.4",
+      "frameworks": [
+        "IPA-1.4",
+        "CFSA:web-auth-session"
+      ],
+      "category": "ログインした本人を適切に確認できるか",
+      "target": "ログイン・ログアウト・セッション",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "32バイト乱数、ハッシュ保存、12時間の期限、ログアウト失効を確認しました。ただし固定コード1111と暗号化通信専用でないCookieは、ローカルデモでの利用が前提です。",
+      "evidence": "src/server/app.ts:73-98; src/server/index.ts:3-5; docs/security.md「個人情報と固定コード」",
+      "gap": "PCの利用者、外部への中継、実在の利用者データの有無が不明",
+      "questions": [
+        "Q1"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "利用責任者・端末管理者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.5",
+      "frameworks": [
+        "IPA-1.5",
+        "CFSA:client-side"
+      ],
+      "category": "コメントや名称から危険なプログラムを実行されないか",
+      "target": "編集画面・共有画面・管理画面・スポット詳細",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "コメント・名称・説明は通常のReactテキスト表示です。生のHTMLを挿入する経路は検出されません。画像の選択先は固定素材または検証済みのAPI参照です。",
+      "evidence": "src/client/App.tsx:844-861,904,1058,1072,1121-1124; SpotDetailDialog.tsx:89-94; src/server/admin.ts:19-28; app.ts:54-58",
+      "gap": "ブラウザーでの不正文字列の表示確認は未実施",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.6",
+      "frameworks": [
+        "IPA-1.6",
+        "CFSA:web-auth-session"
+      ],
+      "category": "別のサイトから勝手に保存などをさせられないか",
+      "target": "保存・共有・クーポン・管理更新・MCP",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "APIの変更操作は送信元と専用ヘッダーを要求し、CookieにはSameSite=Strictを設定します。MCPはCookieとは別の接続キーと送信元確認を使います。",
+      "evidence": "src/server/app.ts:60-69,86; src/server/mcp.ts:76-102; src/client/App.tsx:67-75; sharing-api.ts:1-5",
+      "gap": "送信元がない・違う・ヘッダー不足の場合の実際の拒否動作は未検証",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.7",
+      "frameworks": [
+        "IPA-1.7",
+        "CFSA:web-protocol"
+      ],
+      "category": "通信の付加情報を不正に書き換えられないか",
+      "target": "応答ヘッダー・Cookie・画像形式",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "保護ヘッダーと画像形式は固定値です。If-Matchは整数として保存版の確認に使います。MCPの待機時間表示も数値から作ります。",
+      "evidence": "src/server/app.ts:54-64,105-107; src/server/mcp.ts:85,94,115",
+      "gap": "実際の中継設定によるヘッダー変更は未確認",
+      "questions": [
+        "Q3",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.8",
+      "frameworks": [
+        "IPA-1.8"
+      ],
+      "category": "メールの宛先などを不正に変えられないか",
+      "target": "メール送信",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "対象外",
+      "reason": "メール送信機能やメール送信用の部品はありません。メールアドレスはログイン照合や取込の値として扱います。",
+      "evidence": "package.json:26-55; src/server/app.ts:79-82; ソースのSMTP・MIME送信機構の確認",
+      "gap": "メール送信機能を追加した場合は再監査",
+      "questions": [],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "対応不要（該当する機能なし）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "対象外",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.9",
+      "frameworks": [
+        "IPA-1.9",
+        "CFSA:client-side"
+      ],
+      "category": "偽の画面に重ねて意図しない操作をさせられないか",
+      "target": "全画面とスマホデモの埋込み例外",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "通常画面は他のページの枠内表示を拒否します。スマホデモの限定パスだけ、同じサイト内からの埋込みを許可しています。外部サイトへの許可はありません。",
+      "evidence": "src/server/app.ts:54-58; src/shared/mobile-demo.ts:1-11; src/client/MobileDemo.tsx:13-14,66",
+      "gap": "通常画面とデモ用画面それぞれの実ブラウザー検証は未実施",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.10",
+      "frameworks": [
+        "IPA-1.10",
+        "CFSA:memory-binary",
+        "CFSA:supply-chain"
+      ],
+      "category": "壊れた画像などで画像処理部品に問題が起きないか",
+      "target": "画像を処理するSharp・関連部品",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "形式・5MB・縦横6000px・2400万画素・単一静止画を確認し、画像を再変換します。ただしSharp等の内部処理と現在の部品の既知の問題は、この確認だけでは判断できません。",
+      "evidence": "src/server/app.ts:26-41; package.json:37; pnpm-lock.yaml:41-43",
+      "gap": "現行lockと実際に使用する画像処理部品の版、既知の問題、隔離環境での拒否動作が未確認",
+      "questions": [
+        "Q2"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A03",
+        "A04"
+      ],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "IPA-1.11",
+      "frameworks": [
+        "IPA-1.11",
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "他人のデータや管理者機能を勝手に使えないか",
+      "target": "所有者・役割・共有URL・分析接続の境界",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者はセッションから特定し、写真・編集・クーポンは本人の冊子と照合します。町管理機能は町権限を確認します。公開共有は有効なURLと掲載範囲を照合し、MCPは有効な町管理者キーを確認します。",
+      "evidence": "src/server/app.ts:90-179; src/server/brochures.ts:57-88; src/server/admin.ts:52-58; src/server/gifts.ts:20-24,43-81; src/server/sharing.ts:21-33,81-132; src/server/mcp-keys.ts:59-65",
+      "gap": "別利用者・期限切れ・失効直後の実行検査は未実施",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-01",
+      "frameworks": [
+        "SUP-01",
+        "CFSA:client-side"
+      ],
+      "category": "別のサイトからデータを読み取られないか",
+      "target": "CORS・送信元の制約",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "別サイトからの読取許可を発行せず、画面は同一サイトのAPIを使用します。MCPも送信元が付く場合は許可した値と照合します。",
+      "evidence": "src/server/app.ts:60-69; src/server/mcp.ts:78-86; src/client/sharing-api.ts:1-5",
+      "gap": "別サイトへのアクセス許可や中継設定を追加する場合は再監査",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-02",
+      "frameworks": [
+        "SUP-02",
+        "CFSA:client-side"
+      ],
+      "category": "ブラウザー側で情報が残ったり別サイトへ渡ったりしにくいか",
+      "target": "Cookie以外のブラウザー保存・キャッシュ・埋込み",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "API・MCP応答は保存しない設定、外部への参照元通知はしない設定です。画面内の保存領域・他ページとのメッセージ交換は検出されず、デモ埋込み先も固定の同一サイト内です。",
+      "evidence": "src/server/app.ts:54-61; src/server/mcp.ts:76-81; src/client/MobileDemo.tsx:13-14,66; AdminMcp.tsx:81",
+      "gap": "端末・ブラウザー自身の保存、コピー後の情報回収は保証しません",
+      "questions": [
+        "Q5",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-03",
+      "frameworks": [
+        "SUP-03",
+        "CFSA:cloud-deployment"
+      ],
+      "category": "秘密の設定やデモ用設定を適切に扱っているか",
+      "target": "秘密情報・固定デモ認証・接続キー",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "秘密の設定や写真・作業用領域はGitと開発サーバーの公開対象から除外する設定があります。接続キーは乱数で発行しハッシュだけを保存します。ただし固定ログインコードが安全かは利用範囲に依存します。",
+      "evidence": ".gitignore:1-19; vite.config.ts:9-11; src/server/app.ts:81,86; src/server/mcp-keys.ts:37-48; src/client/AdminMcp.tsx:91-97",
+      "gap": "実際の秘密値は未読。利用範囲、設定の管理方法はQ1で判断",
+      "questions": [
+        "Q1"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "利用責任者・端末管理者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-04",
+      "frameworks": [
+        "SUP-04",
+        "CFSA:data-isolation"
+      ],
+      "category": "エラー表示やログに個人情報が出ないか",
+      "target": "エラー・サーバーログ・操作記録",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "API・MCPの異常応答は定型文です。管理記録は操作者ID・操作種別・対象・日時に絞ります。CSV検証エラーも入力値を含めず、ファイル区分や行番号を案内する形式です。",
+      "evidence": "src/server/app.ts:183-191; src/server/mcp.ts:37-39,100,117-119; src/server/admin.ts:35-36; src/server/importer.ts:233-283; src/server/import-cli.ts:34-39",
+      "gap": "実際のログ本文・外部のログ収集設定は読んでいません",
+      "questions": [
+        "Q3"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-05",
+      "frameworks": [
+        "SUP-05",
+        "CFSA:supply-chain"
+      ],
+      "category": "使用部品に既知の危険な問題がないか",
+      "target": "MCP SDKを含む現在の依存部品",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "直接依存の版は固定され、lockfileに整合性情報があります。自動ビルドを許可する部品も限定されています。ただし現在のlockfileに対する最新の既知問題との照合は行っていません。",
+      "evidence": "package.json:6-10,26-55; pnpm-lock.yaml:7-89,94; pnpm-workspace.yaml:1-2",
+      "gap": "以前のnpm audit記録を現在のpnpm lockの結果としては扱えません",
+      "questions": [
+        "Q2"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A03",
+        "A04"
+      ],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "SUP-06",
+      "frameworks": [
+        "SUP-06",
+        "CFSA:cloud-deployment",
+        "CFSA:data-isolation"
+      ],
+      "category": "実際の接続設定・権限・バックアップからの復旧は適切か",
+      "target": "配備・通信・DB権限・バックアップ",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "アプリ・開発サーバー・ComposeのDBは設定上ローカル端末向けです。DBと画像を同じ時点に戻す手順もあります。ただし実際の接続範囲・権限・保管・復元結果はソースでは証明できません。",
+      "evidence": "src/server/index.ts:3-5; vite.config.ts:6-11; compose.yaml:8-9; docs/database.md:71-79",
+      "gap": "外部への中継、実際のDB/画像権限、バックアップの保護と復元証跡が不足",
+      "questions": [
+        "Q1",
+        "Q3"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02",
+        "A05"
+      ],
+      "owner": "利用責任者・端末管理者・運用・DB管理担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "CFSA-AVAIL-01",
+      "frameworks": [
+        "CFSA:resource-exhaustion"
+      ],
+      "category": "同時処理や大きなデータで停止しないか",
+      "target": "画像・CSV・共有キャッシュ・MCP集計",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "1回のJSON・画像・CSVサイズ、ログイン頻度、MCP頻度・集計期間・SQL時間には制限があります。一方、画像処理とキャッシュ未登録の読込み全体の同時数は制限できていると判断できません。CSVの20MiB判定は全体読込後です。",
+      "evidence": "src/server/app.ts:26,34-41,69,74-78; src/server/mcp.ts:89-103; src/server/analytics.ts:17-25,29-36; src/server/public-content-cache.ts:32-65; src/server/importer.ts:17,249-251,291-305",
+      "gap": "保存済みキャッシュ32MiB/128件は、処理中の全メモリーや同時数の上限ではありません",
+      "questions": [
+        "Q4"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A06"
+      ],
+      "owner": "負荷試験担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "CFSA-SHARE-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "共有URLの停止・同じURLでの再開が仕様に合うか",
+      "target": "共有情報・公開停止・同じURLでの再開",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者が「公開停止中だけ使えなくし、再開後は同じURLを使う」と明確化しました。停止はactive=false、再開はactive=trueだけを切り替えてtokenを維持するため、確認済みソースはこの仕様に一致します。",
+      "evidence": "src/server/sharing.ts:126-132,146-150（11:03の追加確認記録）",
+      "gap": "公開停止中の取得拒否、同じURLでの再開、キャッシュ失効の動作検証は未実施です。共有する情報の取扱いは別途判断します。",
+      "questions": [
+        "Q5"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "proof_kind": "期待仕様とソースの照合",
+      "remediation": "仕様変更は不要。停止・再開の動作確認が必要",
+      "action_ids": [
+        "A01"
+      ],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "11:03のソース記録を、明確化された期待仕様に照らして訂正しました。新たなソース監査・実行検査はしていません。"
+    },
+    {
+      "id": "CFSA-MCP-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "分析連携で渡す情報とキーの管理方針は適切か",
+      "target": "MCPの分析出力と管理キー",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "no",
+      "result": "対象外",
+      "reason": "利用者がデモ用途のため対象外と指定しました。今回の運用判断の対象から外しています。",
+      "evidence": "Q6の回答：デモのため対象外",
+      "gap": "実データ利用や連携先変更の際に再確認。実装の無効化を意味しません。",
+      "questions": [
+        "Q6"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "利用者の回答",
+      "proof_kind": "利用者による範囲指定",
+      "remediation": "今回の対応対象外",
+      "action_ids": [],
+      "owner": "—",
+      "retest": "対象外",
+      "evidence_scope": "ユーザー指定による除外。以前のソース記録は別ファイルに保存。"
+    },
+    {
+      "id": "CFSA-CACHE-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:resource-exhaustion"
+      ],
+      "category": "共有キャッシュから非公開情報や停止後の情報が出ないか",
+      "target": "共有本文・写真のキャッシュ",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "10:29のOKは、公開状態を毎回DBで照合する以前の方式に対する結果です。その後キャッシュ高速取得方式へ変更されているため、そのOKを変更後へ流用できません。",
+      "evidence": "src/server/sharing.ts:38-68,81-93; src/server/public-content-cache.ts:20-65,74-84; docs/spec.md:134-140",
+      "gap": "変更後の権限確認・公開停止・更新時の破棄・同時実行を再確認する必要があります。",
+      "questions": [
+        "Q4",
+        "Q5",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "変更後の再確認待ち",
+      "remediation": "変更後のソースと専用環境の動作を再確認",
+      "action_ids": [
+        "A08",
+        "A07"
+      ],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "旧方式の確認証拠と、11:03の追補で記録した変更事実を区別しています。"
+    },
+    {
+      "id": "CFSA-COUPON-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "クーポンを他人として使ったり重複記録したりできないか",
+      "target": "クーポン表示・本人申告・二重記録防止",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者本人の冊子・公開状態・コード発行済みを確認し、本人とスポットの組合せを一度だけ記録します。共有先の非作者には利用情報を返しません。本人の申告であり来訪の証明ではない仕様です。",
+      "evidence": "src/server/gifts.ts:20-24,43-81; db/migrations/004_spot_gift_claims.sql:3-8; src/server/sharing.ts:41-66; docs/spec.md:117-121",
+      "gap": "同時要求・再送時の実行検査は未実施。店舗での本人確認・実来訪の認定は対象外",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "未実施（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。"
+    },
+    {
+      "id": "OPS-01",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "アプリがローカル端末だけで待ち受けるか",
+      "target": "アプリがローカル端末だけで待ち受けるか",
+      "method": "OSメタデータと利用者の申告",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "3001番の待受はloopbackだけ。外部中継なしは利用者の回答として記録しました。",
+      "evidence": "OS待受メタデータ・Q1回答",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "設定実測＋申告",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施（外部からの接続試験なし）",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-02",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DBがローカル端末だけで待ち受けるか",
+      "target": "DBがローカル端末だけで待ち受けるか",
+      "method": "read-only設定のシステムメタデータ照会",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "listen_addresses=127.0.0.1、対象DBと専用データ保存先の一致を確認しました。",
+      "evidence": "読取専用のDB設定メタデータ",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-03",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "PUBLICにDB表の読取やスキーマ作成を許可していないか",
+      "target": "PUBLICにDB表の読取やスキーマ作成を許可していないか",
+      "method": "read-onlyの権限メタデータ照会",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "PUBLICへのpublicスキーマCREATE許可なし、PUBLICへSELECT許可されたアプリ表は0でした。",
+      "evidence": "DBシステムカタログの権限集計",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-04",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "同じPCの別利用者からDBを守れるか",
+      "target": "同じPCの別利用者からDBを守れるか",
+      "method": "認証方式・ロール属性の確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "loopbackのtrustルールがあり、確認に使ったpostgresロールはsuperuserです。同一端末を他人も使うかは未確定です。",
+      "evidence": "pg_hba_file_rulesとpg_rolesのメタデータ・Q1/Q3",
+      "gap": "loopbackのtrustルールがあり、確認に使ったpostgresロールはsuperuserです。同一端末を他人も使うかは未確定です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-05",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DB・写真保存フォルダーの権限を限定しているか",
+      "target": "DB・写真保存フォルダーの権限を限定しているか",
+      "method": "ACLの読取・SIDによる一般グループの許可確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "現在の保存フォルダーにはUsersの読取とAuthenticated UsersのModify等が継承されています。共用PCでの保護要件に応じた是正が必要です。",
+      "evidence": "Windows ACLの読取（フォルダーのみ）",
+      "gap": "現在の保存フォルダーにはUsersの読取とAuthenticated UsersのModify等が継承されています。共用PCでの保護要件に応じた是正が必要です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-06",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DBと写真のバックアップ一式が存在するか",
+      "target": "DBと写真のバックアップ一式が存在するか",
+      "method": "ファイルのメタデータ確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "完了世代のDBダンプ、写真フォルダー、manifestが存在し、ダンプは277,205バイトでした。",
+      "evidence": "バックアップの存在・サイズの確認",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "存在・サイズ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-07",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップ作成が正常終了した記録があるか",
+      "target": "バックアップ作成が正常終了した記録があるか",
+      "method": "作成記録の照合",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "manifestにcomplete、pg_dump終了0、19表、写真1件、作成時コピーのhash一致が記録されています。今回の再hashではありません。",
+      "evidence": "既存の保護されたmanifestの安全な項目",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "過去の作成記録",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-08",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップ本体のアクセス権が限定されているか",
+      "target": "バックアップ本体のアクセス権が限定されているか",
+      "method": "許可主体の照合",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "世代フォルダー・ダンプ・manifest・写真フォルダー・写真1件の5対象に、本人・Administrators・SYSTEM以外へのAllowはありませんでした。",
+      "evidence": "対象5件のWindows ACL。写真内容・ダンプ内容は未読",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "ACL実測",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-09",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップが暗号化されているか",
+      "target": "バックアップが暗号化されているか",
+      "method": "暗号化状態の確認は未実施",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "manifestはnot_verifiedです。暗号化の実状態は調べておらず、暗号化済みとは判断できません。",
+      "evidence": "既存manifestのencryption項目",
+      "gap": "manifestはnot_verifiedです。暗号化の実状態は調べておらず、暗号化済みとは判断できません。",
+      "questions": [],
+      "proof_kind": "不足している証拠",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A05"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-10",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップからDBと写真を復元できるか",
+      "target": "バックアップからDBと写真を復元できるか",
+      "method": "隔離環境への復元と整合確認が必要",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "manifestはrestoreDrillPerformed=falseです。専用環境への復元演習も今回は行っていません。",
+      "evidence": "既存manifest・追加確認の実施範囲",
+      "gap": "manifestはrestoreDrillPerformed=falseです。専用環境への復元演習も今回は行っていません。",
+      "questions": [],
+      "proof_kind": "不足している証拠",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A05"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-11",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "稼働アプリのDBロールが必要最小限か",
+      "target": "稼働アプリのDBロールが必要最小限か",
+      "method": "既存メタデータの照合",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "OSのアプリ接続とDB接続の照合時に対応する接続がなく、実際のアプリ接続ロールを確定できていません。確認に使ったpostgresと同一とは断定しません。",
+      "evidence": "OS接続メタデータとDB活動メタデータの照合結果",
+      "gap": "OSのアプリ接続とDB接続の照合時に対応する接続がなく、実際のアプリ接続ロールを確定できていません。確認に使ったpostgresと同一とは断定しません。",
+      "questions": [],
+      "proof_kind": "照合未成立",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "OPS-12",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "端末の共用と実在の利用者データの有無が確認できているか",
+      "target": "端末の共用と実在の利用者データの有無が確認できているか",
+      "method": "責任者による利用条件の確認",
+      "executed": "yes",
+      "result": "要確認",
+      "reason": "Q1の回答で外部接続なしは確認しましたが、端末共用と実データ有無は回答がありません。データの実値を提出する必要はありません。",
+      "evidence": "利用者のQ1回答",
+      "gap": "Q1の回答で外部接続なしは確認しましたが、端末共用と実データ有無は回答がありません。データの実値を提出する必要はありません。",
+      "questions": [],
+      "proof_kind": "未回答",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "通常の小さなJPEG・PNG・WebP",
+      "target": "通常の小さなJPEG・PNG・WebP",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：アップロード・再取得でき、WebPへ変換される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：アップロード・再取得でき、WebPへ変換される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "SVG、HTML、許可しない画像形式",
+      "target": "SVG、HTML、許可しない画像形式",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：415の形式エラーで拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415の形式エラーで拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "拡張子やMIMEだけを画像に見せたファイル",
+      "target": "拡張子やMIMEだけを画像に見せたファイル",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：実際の内容と合わなければ415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：実際の内容と合わなければ415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-04",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "壊れたJPEG・PNG・WebP",
+      "target": "壊れたJPEG・PNG・WebP",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：415で拒否され、アプリや保存済みの内容が壊れない。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否され、アプリや保存済みの内容が壊れない。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-05",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "入力5MiB超のファイル",
+      "target": "入力5MiB超のファイル",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：413の容量超過で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：413の容量超過で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-06",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "縦または横が6000px超",
+      "target": "縦または横が6000px超",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-07",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "2400万画素を超える画像",
+      "target": "2400万画素を超える画像",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "IMG-08",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "複数ページ・複数フレームの画像",
+      "target": "複数ページ・複数フレームの画像",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：許可する単一静止画として扱えないものは415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：許可する単一静止画として扱えないものは415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "ログイン・期限・ログアウト失効",
+      "target": "ログイン・期限・ログアウト失効",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：正常ログインができ、期限切れ・ログアウト後のセッションは拒否される。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：正常ログインができ、期限切れ・ログアウト後のセッションは拒否される。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "別利用者の編集・写真へのアクセス拒否",
+      "target": "別利用者の編集・写真へのアクセス拒否",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：利用者AがBのIDを指定しても読み書きできず、保存内容が変わらない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：利用者AがBのIDを指定しても読み書きできず、保存内容が変わらない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "管理者と一般利用者の役割分離",
+      "target": "管理者と一般利用者の役割分離",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：未認証・一般利用者は管理APIを使えず、町側から個人写真を取得できない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：未認証・一般利用者は管理APIを使えず、町側から個人写真を取得できない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-04",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "送信元・専用ヘッダーが不正な変更要求の拒否",
+      "target": "送信元・専用ヘッダーが不正な変更要求の拒否",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：不足・不一致の要求を拒否し、保存済み内容を変更しない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：不足・不一致の要求を拒否し、保存済み内容を変更しない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-05",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "共有先へ渡す情報の限定",
+      "target": "共有先へ渡す情報の限定",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：未掲載情報・アンケート・アカウント情報・非作者のクーポン情報が出ない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：未掲載情報・アンケート・アカウント情報・非作者のクーポン情報が出ない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-06",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "公開停止中の取得拒否と同じURLでの再開",
+      "target": "公開停止中の取得拒否と同じURLでの再開",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：停止中は同じURLの本文・写真を取得できず、再開後は同じURLで再び取得できる。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：停止後も再開後も旧URLの本文・写真を取得できず、新URLだけが使える。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A01"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-07",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "変更後のキャッシュ更新・失効",
+      "target": "変更後のキャッシュ更新・失効",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：キャッシュ使用後の保存・画像変更・停止が次の取得に反映され、変更前の情報を誤配信しない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：キャッシュ使用後の保存・画像変更・停止が次の取得に反映され、変更前の情報を誤配信しない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A08",
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-08",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "再送・並列要求の二重記録防止",
+      "target": "再送・並列要求の二重記録防止",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：同じ操作IDの再送で表示・コピー・クーポン記録を重複させない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：同じ操作IDの再送で表示・コピー・クーポン記録を重複させない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "API-09",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "保存の競合・不正入力時の拒否と保持",
+      "target": "保存の競合・不正入力時の拒否と保持",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：古いrevisionや不正ID・文字数を拒否し、保存済み内容と画面の必要な入力を保持する。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：古いrevisionや不正ID・文字数を拒否し、保存済み内容と画面の必要な入力を保持する。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "WEB-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "不正な文字列を命令として実行しない",
+      "target": "不正な文字列を命令として実行しない",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：コメント・名称・共有画面で文字として表示され、スクリプトが動かない。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：コメント・名称・共有画面で文字として表示され、スクリプトが動かない。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "WEB-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "通常画面とデモ画面の埋込み制約",
+      "target": "通常画面とデモ画面の埋込み制約",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：通常画面は埋込みを拒否し、限定デモ画面は同一サイト内だけ許可する。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：通常画面は埋込みを拒否し、限定デモ画面は同一サイト内だけ許可する。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "WEB-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "PC・スマホで保存・写真失敗・再試行・共有が安全に扱える",
+      "target": "PC・スマホで保存・写真失敗・再試行・共有が安全に扱える",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "未実施",
+      "reason": "期待結果：失敗時に保存済みと誤認せず、必要な入力・写真を保持して再試行できる。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：失敗時に保存済みと誤認せず、必要な入力・写真を保持して再試行できる。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "未実施",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    },
+    {
+      "id": "LOAD-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "負荷・限界試験",
+      "category": "想定負荷・上限超過時の拒否と復旧",
+      "target": "想定負荷・上限超過時の拒否と復旧",
+      "method": "別作業の試験結果を受領して判定",
+      "executed": "no",
+      "result": "要確認",
+      "reason": "利用者から負荷試験中と回答されています。条件・測定値・合否・復旧結果は未提出です。",
+      "evidence": "Q4の利用者回答",
+      "gap": "利用者から負荷試験中と回答されています。条件・測定値・合否・復旧結果は未提出です。",
+      "questions": [],
+      "proof_kind": "利用者申告",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "対応中（負荷試験中との申告）。結果の判定は未了",
+      "action_ids": [
+        "A06"
+      ],
+      "owner": "検証担当者",
+      "retest": "結果待ち",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。"
+    }
+  ],
+  "actions": [
+    {
+      "id": "A01",
+      "priority": "動作を含めた合格判断前",
+      "requirement": "仕様変更は不要。動作確認が必要",
+      "topic": "公開停止中の拒否と同じURLでの再開を確認する",
+      "owner": "開発担当者",
+      "status": "仕様変更不要／動作検証未実施",
+      "action": "既存URLを維持したまま、停止中の本文・写真の取得拒否と、再開後に同じURLで取得できることを確認する。別利用者は停止・再開を操作できないことも確認する。",
+      "acceptance": "停止中は同じURLの本文・写真を取得不可、再開後は同じURLで取得可能。キャッシュあり・なしで同じ結果になり、所有者だけが停止・再開できる。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A02",
+      "priority": "優先2",
+      "requirement": "利用条件の確認が必要。共用PCなら是正を検討",
+      "topic": "端末内のDB・写真権限と接続ロール",
+      "owner": "利用責任者・運用/DB管理担当者",
+      "status": "条件確認待ち",
+      "action": "共用・実データの有無を確認し、必要ならフォルダーACL、trust認証、アプリのDB権限を限定する。",
+      "acceptance": "許可する利用者だけがアクセスでき、稼働アプリの接続ロールと必要な権限が確認できる。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A03",
+      "priority": "公開・本格運用の判断前",
+      "requirement": "確認が必要。更新の必要性は照合結果で決定",
+      "topic": "現行依存部品の既知問題",
+      "owner": "開発担当者",
+      "status": "確認作業未実施",
+      "action": "現行lockfileとSharp/libvipsの版に対する既知の問題を照合し、影響と必要な更新を記録する。",
+      "acceptance": "対象版・照合日・結果が一致し、影響する未対処の問題がない。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A04",
+      "priority": "画像受付の安全性を判断する前",
+      "requirement": "確認が必要",
+      "topic": "画像8ケースの受入れ・拒否",
+      "owner": "検証担当者",
+      "status": "未実施",
+      "action": "IMG-01〜08を隔離環境で実施し、正常保存・不正画像拒否と失敗時のデータ保護を確認する。",
+      "acceptance": "全ケースに対象版・入力条件・期待結果・実結果・証拠がそろう。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A05",
+      "priority": "復旧可能と判断する前",
+      "requirement": "確認が必要",
+      "topic": "バックアップ暗号化とDB・写真の復元",
+      "owner": "運用/DB管理担当者",
+      "status": "未実施",
+      "action": "暗号化の実状態を確認し、新しい専用DB・写真保存先へ隔離環境で復元する。稼働中の組は上書きしない。",
+      "acceptance": "復元後にDB参照と写真が一致し、公開停止・キー失効などの巻戻りにも対処できる。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A06",
+      "priority": "利用量の上限を判断する前",
+      "requirement": "試験結果の確認が必要",
+      "topic": "負荷試験の結果と上限",
+      "owner": "負荷試験担当者",
+      "status": "対応中（利用者申告）",
+      "action": "試験対象版・条件・応答時間・失敗率・資源量・上限超過後の回復結果を受領して判定する。",
+      "acceptance": "決めた運用上限で基準を満たし、超過時に安全に拒否・復旧できる。",
+      "retest": "結果未受領"
+    },
+    {
+      "id": "A07",
+      "priority": "動作を含めた合格判断前",
+      "requirement": "確認が必要",
+      "topic": "API・画面の拒否動作と保存・再試行",
+      "owner": "検証担当者",
+      "status": "未実施",
+      "action": "API-01〜09とWEB-01〜03を専用DB・架空利用者・隔離環境で実施する。",
+      "acceptance": "各ケースに期待結果・実結果・証拠がそろい、失敗時は修正後に再確認する。",
+      "retest": "未実施"
+    },
+    {
+      "id": "A08",
+      "priority": "変更後のキャッシュを合格と判断する前",
+      "requirement": "変更後の再確認が必要",
+      "topic": "公開キャッシュ高速取得方式の差分",
+      "owner": "開発・検証担当者",
+      "status": "再確認待ち",
+      "action": "変更後のソースを確認し、認可・公開停止・保存・写真変更・同時読込のケースを検査する。",
+      "acceptance": "変更後の同じ版に対するソースの根拠と、失効・更新の動作証拠がそろう。",
+      "retest": "未実施"
+    }
+  ],
+  "unique_confirmed_issues": [],
+  "coverage": {
+    "ipa_categories": 11,
+    "source_checklist_items": 22,
+    "operational_checks": 12,
+    "image_tests": 8,
+    "api_tests": 9,
+    "browser_tests": 3,
+    "load_test_items": 1,
+    "code_fixes_performed_by_this_audit": 0,
+    "post_fix_retests_passed": 0
+  },
+  "exclusions": [
+    "利用者指定で今回のMCP分析連携の運用判断は対象外",
+    "Cloudflareのアカウント・WAF・DNS・CDN設定",
+    "秘密情報・元CSV・実在個人データ・写真内容"
+  ],
+  "limitations": [
+    "OKは各行の方法・日時・版で確認した範囲の判断です。現在の全実装や動作の合格を示しません。",
+    "元のソース監査後に共有キャッシュ等が変更されています。変更後の再確認がない項目を合格済みと扱いません。",
+    "NG以外にも要確認・未実施が残っています。全体の確認・対応・再確認は未完了です。",
+    "Q5は利用者が「公開停止中だけ使えなくし、再開後は同じURLを使う」と明確化しました。以前のNG判定は要件の解釈違いのため取り消しました。ソース上は仕様一致ですが、停止中の拒否・再開・キャッシュの動作検証は未実施です。",
+    "今回の作業は既存結果のレポート化です。新しい製品テスト・負荷試験・復元演習・アプリ修正は実施していません。",
+    "復元・画像・ブラウザー・API等の実行検査には同梱監査スキルのOS隔離条件が必要です。現在はそれらを満たす実行検査の証拠がありません。"
+  ],
+  "plain_status": {
+    "OK": "確認済みの範囲で基準を満たす",
+    "NG": "具体的に基準・期待仕様を満たしていない",
+    "要確認": "判断材料不足・条件未回答・試験結果待ち",
+    "未実施": "検査の実結果がまだない",
+    "対象外": "機能がない、または利用者が今回の対象から除外"
+  },
+  "clarification": {
+    "at": "2026-11-10T11:14:56.0569538+09:00",
+    "user_intent": "意図は「公開停止中だけ使えなくし、再開後は同じURLを使う」",
+    "ng_withdrawn": "F-01",
+    "reason": "期待仕様の解釈違い。明確化された意図と確認済みソースが一致",
+    "new_source_audit": false,
+    "new_tests": false,
+    "application_changed": false
+  },
+  "withdrawn_issues": [
+    {
+      "id": "F-01",
+      "item_id": "CFSA-SHARE-01",
+      "action_id": "A01",
+      "description": "再開後も旧URLが使えるという期待仕様との不一致",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "validated_by": "ソース照合",
+      "runtime_validated": false,
+      "status": "withdrawn",
+      "reason": "期待仕様の解釈違い。明確化された意図と確認済みソースが一致",
+      "clarified_at": "2026-11-10T11:14:56.0569538+09:00"
+    }
+  ],
+  "presentation": {
+    "status_labels": {
+      "OK": "OK",
+      "NG": "NG",
+      "要確認": "商用化の検討事項",
+      "未実施": "商用化の検討事項",
+      "対象外": "対象外"
+    },
+    "detail_labels": {
+      "要確認": "判断材料・結果待ち",
+      "未実施": "検査結果の記録なし"
+    },
+    "counts": {
+      "OK": 18,
+      "NG": 0,
+      "商用化の検討事項": 34,
+      "対象外": 3
+    },
+    "note": "「商用化の検討事項」は、追加の判断材料が必要な項目と、検査結果の記録がない項目をまとめた区分です。OK・検証済みに変更した意味ではありません。現在の利用条件に応じた対応の必要性は、各項目の説明に従って判断してください。",
+    "original_assessment_preserved": true,
+    "breakdown": {
+      "判断材料・結果待ち": 12,
+      "検査結果の記録なし": 22
+    }
+  },
+  "presentation_rows": [
+    {
+      "id": "IPA-1.1",
+      "frameworks": [
+        "IPA-1.1",
+        "CFSA:data-isolation"
+      ],
+      "category": "入力でデータベースを不正に操作できないか",
+      "target": "API・管理集計・共有・MCP・取込のSQL",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者入力はSQLの命令文と分けて渡します。検索条件や共有写真の結合先などの可変部分は、プログラム内の固定候補だけです。",
+      "evidence": "src/server/app.ts:80-85; src/server/admin.ts:86-105; src/server/sharing.ts:21-25,81-87; src/server/analytics.ts:40-133; src/server/importer.ts:450-485",
+      "gap": "実DBでの拒否動作は今回未検証",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.2",
+      "frameworks": [
+        "IPA-1.2",
+        "CFSA:supply-chain"
+      ],
+      "category": "入力でパソコンの命令を勝手に実行できないか",
+      "target": "Web/APIからのプロセス起動",
+      "method": "起動機構の検索とpackage scripts・入口処理を確認",
+      "executed": "yes",
+      "result": "対象外",
+      "reason": "アプリのソースにOSコマンド起動の経路は検出されず、package.jsonの開発・起動処理も固定コマンドです。",
+      "evidence": "src/server・src/client・src/sharedのchild_process/execFile/spawn等の検索; package.json:11-24",
+      "gap": "外部コマンド実行機能を追加した場合は再監査",
+      "questions": [],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "対応不要（該当する機能なし）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "対象外",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.3",
+      "frameworks": [
+        "IPA-1.3",
+        "CFSA:data-isolation"
+      ],
+      "category": "許可されていないファイルを読み書きできないか",
+      "target": "個人写真・公式写真・共有写真・管理用ファイル",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "写真名はシステムが作った識別子と.webpに限定し、保存先を確認します。共有写真も公開範囲との照合後に限定した名前だけを使います。取込・migrationのファイル名は固定または管理ファイルです。",
+      "evidence": "src/server/app.ts:45-52,143-179; src/server/sharing.ts:81-93; src/server/importer.ts:291-309; src/server/db-cli.ts:9-15",
+      "gap": "保存先の権限・シンボリックリンク等の実環境はQ3で確認",
+      "questions": [
+        "Q3",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.4",
+      "frameworks": [
+        "IPA-1.4",
+        "CFSA:web-auth-session"
+      ],
+      "category": "ログインした本人を適切に確認できるか",
+      "target": "ログイン・ログアウト・セッション",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "32バイト乱数、ハッシュ保存、12時間の期限、ログアウト失効を確認しました。ただし固定コード1111と暗号化通信専用でないCookieは、ローカルデモでの利用が前提です。",
+      "evidence": "src/server/app.ts:73-98; src/server/index.ts:3-5; docs/security.md「個人情報と固定コード」",
+      "gap": "PCの利用者、外部への中継、実在の利用者データの有無が不明",
+      "questions": [
+        "Q1"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "利用責任者・端末管理者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "IPA-1.5",
+      "frameworks": [
+        "IPA-1.5",
+        "CFSA:client-side"
+      ],
+      "category": "コメントや名称から危険なプログラムを実行されないか",
+      "target": "編集画面・共有画面・管理画面・スポット詳細",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "コメント・名称・説明は通常のReactテキスト表示です。生のHTMLを挿入する経路は検出されません。画像の選択先は固定素材または検証済みのAPI参照です。",
+      "evidence": "src/client/App.tsx:844-861,904,1058,1072,1121-1124; SpotDetailDialog.tsx:89-94; src/server/admin.ts:19-28; app.ts:54-58",
+      "gap": "ブラウザーでの不正文字列の表示確認は実施記録なし",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.6",
+      "frameworks": [
+        "IPA-1.6",
+        "CFSA:web-auth-session"
+      ],
+      "category": "別のサイトから勝手に保存などをさせられないか",
+      "target": "保存・共有・クーポン・管理更新・MCP",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "APIの変更操作は送信元と専用ヘッダーを要求し、CookieにはSameSite=Strictを設定します。MCPはCookieとは別の接続キーと送信元確認を使います。",
+      "evidence": "src/server/app.ts:60-69,86; src/server/mcp.ts:76-102; src/client/App.tsx:67-75; sharing-api.ts:1-5",
+      "gap": "送信元がない・違う・ヘッダー不足の場合の実際の拒否動作は未検証",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.7",
+      "frameworks": [
+        "IPA-1.7",
+        "CFSA:web-protocol"
+      ],
+      "category": "通信の付加情報を不正に書き換えられないか",
+      "target": "応答ヘッダー・Cookie・画像形式",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "保護ヘッダーと画像形式は固定値です。If-Matchは整数として保存版の確認に使います。MCPの待機時間表示も数値から作ります。",
+      "evidence": "src/server/app.ts:54-64,105-107; src/server/mcp.ts:85,94,115",
+      "gap": "実際の中継設定によるヘッダー変更は未確認",
+      "questions": [
+        "Q3",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.8",
+      "frameworks": [
+        "IPA-1.8"
+      ],
+      "category": "メールの宛先などを不正に変えられないか",
+      "target": "メール送信",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "対象外",
+      "reason": "メール送信機能やメール送信用の部品はありません。メールアドレスはログイン照合や取込の値として扱います。",
+      "evidence": "package.json:26-55; src/server/app.ts:79-82; ソースのSMTP・MIME送信機構の確認",
+      "gap": "メール送信機能を追加した場合は再監査",
+      "questions": [],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "対応不要（該当する機能なし）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "対象外",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.9",
+      "frameworks": [
+        "IPA-1.9",
+        "CFSA:client-side"
+      ],
+      "category": "偽の画面に重ねて意図しない操作をさせられないか",
+      "target": "全画面とスマホデモの埋込み例外",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "通常画面は他のページの枠内表示を拒否します。スマホデモの限定パスだけ、同じサイト内からの埋込みを許可しています。外部サイトへの許可はありません。",
+      "evidence": "src/server/app.ts:54-58; src/shared/mobile-demo.ts:1-11; src/client/MobileDemo.tsx:13-14,66",
+      "gap": "通常画面とデモ用画面それぞれの実ブラウザー検証は実施記録なし",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "IPA-1.10",
+      "frameworks": [
+        "IPA-1.10",
+        "CFSA:memory-binary",
+        "CFSA:supply-chain"
+      ],
+      "category": "壊れた画像などで画像処理部品に問題が起きないか",
+      "target": "画像を処理するSharp・関連部品",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "形式・5MB・縦横6000px・2400万画素・単一静止画を確認し、画像を再変換します。ただしSharp等の内部処理と現在の部品の既知の問題は、この確認だけでは判断できません。",
+      "evidence": "src/server/app.ts:26-41; package.json:37; pnpm-lock.yaml:41-43",
+      "gap": "現行lockと実際に使用する画像処理部品の版、既知の問題、隔離環境での拒否動作が未確認",
+      "questions": [
+        "Q2"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A03",
+        "A04"
+      ],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "IPA-1.11",
+      "frameworks": [
+        "IPA-1.11",
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "他人のデータや管理者機能を勝手に使えないか",
+      "target": "所有者・役割・共有URL・分析接続の境界",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者はセッションから特定し、写真・編集・クーポンは本人の冊子と照合します。町管理機能は町権限を確認します。公開共有は有効なURLと掲載範囲を照合し、MCPは有効な町管理者キーを確認します。",
+      "evidence": "src/server/app.ts:90-179; src/server/brochures.ts:57-88; src/server/admin.ts:52-58; src/server/gifts.ts:20-24,43-81; src/server/sharing.ts:21-33,81-132; src/server/mcp-keys.ts:59-65",
+      "gap": "別利用者・期限切れ・失効直後の実行検査結果の記録なし",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "SUP-01",
+      "frameworks": [
+        "SUP-01",
+        "CFSA:client-side"
+      ],
+      "category": "別のサイトからデータを読み取られないか",
+      "target": "CORS・送信元の制約",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "別サイトからの読取許可を発行せず、画面は同一サイトのAPIを使用します。MCPも送信元が付く場合は許可した値と照合します。",
+      "evidence": "src/server/app.ts:60-69; src/server/mcp.ts:78-86; src/client/sharing-api.ts:1-5",
+      "gap": "別サイトへのアクセス許可や中継設定を追加する場合は再監査",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "SUP-02",
+      "frameworks": [
+        "SUP-02",
+        "CFSA:client-side"
+      ],
+      "category": "ブラウザー側で情報が残ったり別サイトへ渡ったりしにくいか",
+      "target": "Cookie以外のブラウザー保存・キャッシュ・埋込み",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "API・MCP応答は保存しない設定、外部への参照元通知はしない設定です。画面内の保存領域・他ページとのメッセージ交換は検出されず、デモ埋込み先も固定の同一サイト内です。",
+      "evidence": "src/server/app.ts:54-61; src/server/mcp.ts:76-81; src/client/MobileDemo.tsx:13-14,66; AdminMcp.tsx:81",
+      "gap": "端末・ブラウザー自身の保存、コピー後の情報回収は保証しません",
+      "questions": [
+        "Q5",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "SUP-03",
+      "frameworks": [
+        "SUP-03",
+        "CFSA:cloud-deployment"
+      ],
+      "category": "秘密の設定やデモ用設定を適切に扱っているか",
+      "target": "秘密情報・固定デモ認証・接続キー",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "秘密の設定や写真・作業用領域はGitと開発サーバーの公開対象から除外する設定があります。接続キーは乱数で発行しハッシュだけを保存します。ただし固定ログインコードが安全かは利用範囲に依存します。",
+      "evidence": ".gitignore:1-19; vite.config.ts:9-11; src/server/app.ts:81,86; src/server/mcp-keys.ts:37-48; src/client/AdminMcp.tsx:91-97",
+      "gap": "実際の秘密値は未読。利用範囲、設定の管理方法はQ1で判断",
+      "questions": [
+        "Q1"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "利用責任者・端末管理者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "SUP-04",
+      "frameworks": [
+        "SUP-04",
+        "CFSA:data-isolation"
+      ],
+      "category": "エラー表示やログに個人情報が出ないか",
+      "target": "エラー・サーバーログ・操作記録",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "API・MCPの異常応答は定型文です。管理記録は操作者ID・操作種別・対象・日時に絞ります。CSV検証エラーも入力値を含めず、ファイル区分や行番号を案内する形式です。",
+      "evidence": "src/server/app.ts:183-191; src/server/mcp.ts:37-39,100,117-119; src/server/admin.ts:35-36; src/server/importer.ts:233-283; src/server/import-cli.ts:34-39",
+      "gap": "実際のログ本文・外部のログ収集設定は読んでいません",
+      "questions": [
+        "Q3"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "SUP-05",
+      "frameworks": [
+        "SUP-05",
+        "CFSA:supply-chain"
+      ],
+      "category": "使用部品に既知の危険な問題がないか",
+      "target": "MCP SDKを含む現在の依存部品",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "直接依存の版は固定され、lockfileに整合性情報があります。自動ビルドを許可する部品も限定されています。ただし現在のlockfileに対する最新の既知問題との照合は行っていません。",
+      "evidence": "package.json:6-10,26-55; pnpm-lock.yaml:7-89,94; pnpm-workspace.yaml:1-2",
+      "gap": "以前のnpm audit記録を現在のpnpm lockの結果としては扱えません",
+      "questions": [
+        "Q2"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A03",
+        "A04"
+      ],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "SUP-06",
+      "frameworks": [
+        "SUP-06",
+        "CFSA:cloud-deployment",
+        "CFSA:data-isolation"
+      ],
+      "category": "実際の接続設定・権限・バックアップからの復旧は適切か",
+      "target": "配備・通信・DB権限・バックアップ",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "アプリ・開発サーバー・ComposeのDBは設定上ローカル端末向けです。DBと画像を同じ時点に戻す手順もあります。ただし実際の接続範囲・権限・保管・復元結果はソースでは証明できません。",
+      "evidence": "src/server/index.ts:3-5; vite.config.ts:6-11; compose.yaml:8-9; docs/database.md:71-79",
+      "gap": "外部への中継、実際のDB/画像権限、バックアップの保護と復元証跡が不足",
+      "questions": [
+        "Q1",
+        "Q3"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A02",
+        "A05"
+      ],
+      "owner": "利用責任者・端末管理者・運用・DB管理担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "CFSA-AVAIL-01",
+      "frameworks": [
+        "CFSA:resource-exhaustion"
+      ],
+      "category": "同時処理や大きなデータで停止しないか",
+      "target": "画像・CSV・共有キャッシュ・MCP集計",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "1回のJSON・画像・CSVサイズ、ログイン頻度、MCP頻度・集計期間・SQL時間には制限があります。一方、画像処理とキャッシュ未登録の読込み全体の同時数は制限できていると判断できません。CSVの20MiB判定は全体読込後です。",
+      "evidence": "src/server/app.ts:26,34-41,69,74-78; src/server/mcp.ts:89-103; src/server/analytics.ts:17-25,29-36; src/server/public-content-cache.ts:32-65; src/server/importer.ts:17,249-251,291-305",
+      "gap": "保存済みキャッシュ32MiB/128件は、処理中の全メモリーや同時数の上限ではありません",
+      "questions": [
+        "Q4"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "判断材料が不足。確認後に修正の必要性を決定",
+      "action_ids": [
+        "A06"
+      ],
+      "owner": "負荷試験担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "CFSA-SHARE-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "共有URLの停止・同じURLでの再開が仕様に合うか",
+      "target": "共有情報・公開停止・同じURLでの再開",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者が「公開停止中だけ使えなくし、再開後は同じURLを使う」と明確化しました。停止はactive=false、再開はactive=trueだけを切り替えてtokenを維持するため、確認済みソースはこの仕様に一致します。",
+      "evidence": "src/server/sharing.ts:126-132,146-150（11:03の追加確認記録）",
+      "gap": "公開停止中の取得拒否、同じURLでの再開、キャッシュ失効の動作検証の記録なしです。共有する情報の取扱いは別途判断します。",
+      "questions": [
+        "Q5"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "proof_kind": "期待仕様とソースの照合",
+      "remediation": "仕様変更は不要。停止・再開の動作確認が必要",
+      "action_ids": [
+        "A01"
+      ],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "11:03のソース記録を、明確化された期待仕様に照らして訂正しました。新たなソース監査・実行検査はしていません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "CFSA-MCP-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "分析連携で渡す情報とキーの管理方針は適切か",
+      "target": "MCPの分析出力と管理キー",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "no",
+      "result": "対象外",
+      "reason": "利用者がデモ用途のため対象外と指定しました。今回の運用判断の対象から外しています。",
+      "evidence": "Q6の回答：デモのため対象外",
+      "gap": "実データ利用や連携先変更の際に再確認。実装の無効化を意味しません。",
+      "questions": [
+        "Q6"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "利用者の回答",
+      "proof_kind": "利用者による範囲指定",
+      "remediation": "今回の対応対象外",
+      "action_ids": [],
+      "owner": "—",
+      "retest": "対象外",
+      "evidence_scope": "ユーザー指定による除外。以前のソース記録は別ファイルに保存。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "CFSA-CACHE-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:resource-exhaustion"
+      ],
+      "category": "共有キャッシュから非公開情報や停止後の情報が出ないか",
+      "target": "共有本文・写真のキャッシュ",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "10:29のOKは、公開状態を毎回DBで照合する以前の方式に対する結果です。その後キャッシュ高速取得方式へ変更されているため、そのOKを変更後へ流用できません。",
+      "evidence": "src/server/sharing.ts:38-68,81-93; src/server/public-content-cache.ts:20-65,74-84; docs/spec.md:134-140",
+      "gap": "変更後の権限確認・公開停止・更新時の破棄・同時実行を再確認する必要があります。",
+      "questions": [
+        "Q4",
+        "Q5",
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "変更後の再確認待ち",
+      "remediation": "変更後のソースと専用環境の動作を再確認",
+      "action_ids": [
+        "A08",
+        "A07"
+      ],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "旧方式の確認証拠と、11:03の追補で記録した変更事実を区別しています。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "CFSA-COUPON-01",
+      "frameworks": [
+        "CFSA:data-isolation",
+        "CFSA:web-auth-session"
+      ],
+      "category": "クーポンを他人として使ったり重複記録したりできないか",
+      "target": "クーポン表示・本人申告・二重記録防止",
+      "method": "入力から保護の仕組み・処理先までソースを確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "利用者本人の冊子・公開状態・コード発行済みを確認し、本人とスポットの組合せを一度だけ記録します。共有先の非作者には利用情報を返しません。本人の申告であり来訪の証明ではない仕様です。",
+      "evidence": "src/server/gifts.ts:20-24,43-81; db/migrations/004_spot_gift_claims.sql:3-8; src/server/sharing.ts:41-66; docs/spec.md:117-121",
+      "gap": "同時要求・再送時の実行検査結果の記録なし。店舗での本人確認・実来訪の認定は対象外",
+      "questions": [
+        "Q7"
+      ],
+      "area": "ソース確認",
+      "evidence_at": "2026-11-10T10:29:56.9162305+09:00",
+      "evidence_ref": "f38aed862667f8206c221352281943c2c0d87e87",
+      "proof_kind": "ソースを読んだ記録",
+      "remediation": "追加修正の指示なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "開発担当者",
+      "retest": "実施記録なし（実動作は確認していません）",
+      "evidence_scope": "2026-11-10 10:29のソース記録。今回の整理で再監査した結果ではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-01",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "アプリがローカル端末だけで待ち受けるか",
+      "target": "アプリがローカル端末だけで待ち受けるか",
+      "method": "OSメタデータと利用者の申告",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "3001番の待受はloopbackだけ。外部中継なしは利用者の回答として記録しました。",
+      "evidence": "OS待受メタデータ・Q1回答",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "設定実測＋申告",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし（外部からの接続試験なし）",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-02",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DBがローカル端末だけで待ち受けるか",
+      "target": "DBがローカル端末だけで待ち受けるか",
+      "method": "read-only設定のシステムメタデータ照会",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "listen_addresses=127.0.0.1、対象DBと専用データ保存先の一致を確認しました。",
+      "evidence": "読取専用のDB設定メタデータ",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-03",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "PUBLICにDB表の読取やスキーマ作成を許可していないか",
+      "target": "PUBLICにDB表の読取やスキーマ作成を許可していないか",
+      "method": "read-onlyの権限メタデータ照会",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "PUBLICへのpublicスキーマCREATE許可なし、PUBLICへSELECT許可されたアプリ表は0でした。",
+      "evidence": "DBシステムカタログの権限集計",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-04",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "同じPCの別利用者からDBを守れるか",
+      "target": "同じPCの別利用者からDBを守れるか",
+      "method": "認証方式・ロール属性の確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "loopbackのtrustルールがあり、確認に使ったpostgresロールはsuperuserです。同一端末を他人も使うかは未確定です。",
+      "evidence": "pg_hba_file_rulesとpg_rolesのメタデータ・Q1/Q3",
+      "gap": "loopbackのtrustルールがあり、確認に使ったpostgresロールはsuperuserです。同一端末を他人も使うかは未確定です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "OPS-05",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DB・写真保存フォルダーの権限を限定しているか",
+      "target": "DB・写真保存フォルダーの権限を限定しているか",
+      "method": "ACLの読取・SIDによる一般グループの許可確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "現在の保存フォルダーにはUsersの読取とAuthenticated UsersのModify等が継承されています。共用PCでの保護要件に応じた是正が必要です。",
+      "evidence": "Windows ACLの読取（フォルダーのみ）",
+      "gap": "現在の保存フォルダーにはUsersの読取とAuthenticated UsersのModify等が継承されています。共用PCでの保護要件に応じた是正が必要です。",
+      "questions": [],
+      "proof_kind": "実環境メタデータ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "OPS-06",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "DBと写真のバックアップ一式が存在するか",
+      "target": "DBと写真のバックアップ一式が存在するか",
+      "method": "ファイルのメタデータ確認",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "完了世代のDBダンプ、写真フォルダー、manifestが存在し、ダンプは277,205バイトでした。",
+      "evidence": "バックアップの存在・サイズの確認",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "存在・サイズ",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-07",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップ作成が正常終了した記録があるか",
+      "target": "バックアップ作成が正常終了した記録があるか",
+      "method": "作成記録の照合",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "manifestにcomplete、pg_dump終了0、19表、写真1件、作成時コピーのhash一致が記録されています。今回の再hashではありません。",
+      "evidence": "既存の保護されたmanifestの安全な項目",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "過去の作成記録",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-08",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップ本体のアクセス権が限定されているか",
+      "target": "バックアップ本体のアクセス権が限定されているか",
+      "method": "許可主体の照合",
+      "executed": "yes",
+      "result": "OK",
+      "reason": "世代フォルダー・ダンプ・manifest・写真フォルダー・写真1件の5対象に、本人・Administrators・SYSTEM以外へのAllowはありませんでした。",
+      "evidence": "対象5件のWindows ACL。写真内容・ダンプ内容は未読",
+      "gap": "この証拠で確認した範囲だけの判断です。",
+      "questions": [],
+      "proof_kind": "ACL実測",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "追加対応なし（確認範囲内）",
+      "action_ids": [],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": ""
+    },
+    {
+      "id": "OPS-09",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップが暗号化されているか",
+      "target": "バックアップが暗号化されているか",
+      "method": "暗号化状態の確認は実施記録なし",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "manifestはnot_verifiedです。暗号化の実状態は調べておらず、暗号化済みとは判断できません。",
+      "evidence": "既存manifestのencryption項目",
+      "gap": "manifestはnot_verifiedです。暗号化の実状態は調べておらず、暗号化済みとは判断できません。",
+      "questions": [],
+      "proof_kind": "不足している証拠",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A05"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "OPS-10",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "バックアップからDBと写真を復元できるか",
+      "target": "バックアップからDBと写真を復元できるか",
+      "method": "隔離環境への復元と整合確認が必要",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "manifestはrestoreDrillPerformed=falseです。専用環境への復元演習も今回は行っていません。",
+      "evidence": "既存manifest・追加確認の実施範囲",
+      "gap": "manifestはrestoreDrillPerformed=falseです。専用環境への復元演習も今回は行っていません。",
+      "questions": [],
+      "proof_kind": "不足している証拠",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A05"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "OPS-11",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "稼働アプリのDBロールが必要最小限か",
+      "target": "稼働アプリのDBロールが必要最小限か",
+      "method": "既存メタデータの照合",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "OSのアプリ接続とDB接続の照合時に対応する接続がなく、実際のアプリ接続ロールを確定できていません。確認に使ったpostgresと同一とは断定しません。",
+      "evidence": "OS接続メタデータとDB活動メタデータの照合結果",
+      "gap": "OSのアプリ接続とDB接続の照合時に対応する接続がなく、実際のアプリ接続ロールを確定できていません。確認に使ったpostgresと同一とは断定しません。",
+      "questions": [],
+      "proof_kind": "照合未成立",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "OPS-12",
+      "frameworks": [
+        "SUP-06"
+      ],
+      "area": "運用確認",
+      "category": "端末の共用と実在の利用者データの有無が確認できているか",
+      "target": "端末の共用と実在の利用者データの有無が確認できているか",
+      "method": "責任者による利用条件の確認",
+      "executed": "yes",
+      "result": "商用化の検討事項",
+      "reason": "Q1の回答で外部接続なしは確認しましたが、端末共用と実データ有無は回答がありません。データの実値を提出する必要はありません。",
+      "evidence": "利用者のQ1回答",
+      "gap": "Q1の回答で外部接続なしは確認しましたが、端末共用と実データ有無は回答がありません。データの実値を提出する必要はありません。",
+      "questions": [],
+      "proof_kind": "未回答",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A02"
+      ],
+      "owner": "運用・DB管理担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    },
+    {
+      "id": "IMG-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "通常の小さなJPEG・PNG・WebP",
+      "target": "通常の小さなJPEG・PNG・WebP",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：アップロード・再取得でき、WebPへ変換される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：アップロード・再取得でき、WebPへ変換される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "SVG、HTML、許可しない画像形式",
+      "target": "SVG、HTML、許可しない画像形式",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：415の形式エラーで拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415の形式エラーで拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "拡張子やMIMEだけを画像に見せたファイル",
+      "target": "拡張子やMIMEだけを画像に見せたファイル",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：実際の内容と合わなければ415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：実際の内容と合わなければ415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-04",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "壊れたJPEG・PNG・WebP",
+      "target": "壊れたJPEG・PNG・WebP",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：415で拒否され、アプリや保存済みの内容が壊れない。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否され、アプリや保存済みの内容が壊れない。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-05",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "入力5MiB超のファイル",
+      "target": "入力5MiB超のファイル",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：413の容量超過で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：413の容量超過で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-06",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "縦または横が6000px超",
+      "target": "縦または横が6000px超",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-07",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "2400万画素を超える画像",
+      "target": "2400万画素を超える画像",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "IMG-08",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画像の動作検査",
+      "category": "複数ページ・複数フレームの画像",
+      "target": "複数ページ・複数フレームの画像",
+      "method": "隔離環境の架空画像で受入れ・拒否を確認",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：許可する単一静止画として扱えないものは415で拒否される。実結果の証拠はありません。",
+      "evidence": "Q2で検査計画を定義。画像の実行検査なし",
+      "gap": "期待結果：許可する単一静止画として扱えないものは415で拒否される。実結果の証拠はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A04"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "ログイン・期限・ログアウト失効",
+      "target": "ログイン・期限・ログアウト失効",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：正常ログインができ、期限切れ・ログアウト後のセッションは拒否される。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：正常ログインができ、期限切れ・ログアウト後のセッションは拒否される。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "別利用者の編集・写真へのアクセス拒否",
+      "target": "別利用者の編集・写真へのアクセス拒否",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：利用者AがBのIDを指定しても読み書きできず、保存内容が変わらない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：利用者AがBのIDを指定しても読み書きできず、保存内容が変わらない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "管理者と一般利用者の役割分離",
+      "target": "管理者と一般利用者の役割分離",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：未認証・一般利用者は管理APIを使えず、町側から個人写真を取得できない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：未認証・一般利用者は管理APIを使えず、町側から個人写真を取得できない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-04",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "送信元・専用ヘッダーが不正な変更要求の拒否",
+      "target": "送信元・専用ヘッダーが不正な変更要求の拒否",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：不足・不一致の要求を拒否し、保存済み内容を変更しない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：不足・不一致の要求を拒否し、保存済み内容を変更しない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-05",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "共有先へ渡す情報の限定",
+      "target": "共有先へ渡す情報の限定",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：未掲載情報・アンケート・アカウント情報・非作者のクーポン情報が出ない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：未掲載情報・アンケート・アカウント情報・非作者のクーポン情報が出ない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-06",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "公開停止中の取得拒否と同じURLでの再開",
+      "target": "公開停止中の取得拒否と同じURLでの再開",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：停止中は同じURLの本文・写真を取得できず、再開後は同じURLで再び取得できる。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：停止後も再開後も旧URLの本文・写真を取得できず、新URLだけが使える。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A01"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-07",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "変更後のキャッシュ更新・失効",
+      "target": "変更後のキャッシュ更新・失効",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：キャッシュ使用後の保存・画像変更・停止が次の取得に反映され、変更前の情報を誤配信しない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：キャッシュ使用後の保存・画像変更・停止が次の取得に反映され、変更前の情報を誤配信しない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A08",
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-08",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "再送・並列要求の二重記録防止",
+      "target": "再送・並列要求の二重記録防止",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：同じ操作IDの再送で表示・コピー・クーポン記録を重複させない。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：同じ操作IDの再送で表示・コピー・クーポン記録を重複させない。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "API-09",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "APIの動作検査",
+      "category": "保存の競合・不正入力時の拒否と保持",
+      "target": "保存の競合・不正入力時の拒否と保持",
+      "method": "専用DB・架空利用者による隔離環境での検査",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：古いrevisionや不正ID・文字数を拒否し、保存済み内容と画面の必要な入力を保持する。実結果は未確認です。",
+      "evidence": "Q7・追加確認の検査計画",
+      "gap": "期待結果：古いrevisionや不正ID・文字数を拒否し、保存済み内容と画面の必要な入力を保持する。実結果は未確認です。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "WEB-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "不正な文字列を命令として実行しない",
+      "target": "不正な文字列を命令として実行しない",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：コメント・名称・共有画面で文字として表示され、スクリプトが動かない。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：コメント・名称・共有画面で文字として表示され、スクリプトが動かない。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "WEB-02",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "通常画面とデモ画面の埋込み制約",
+      "target": "通常画面とデモ画面の埋込み制約",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：通常画面は埋込みを拒否し、限定デモ画面は同一サイト内だけ許可する。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：通常画面は埋込みを拒否し、限定デモ画面は同一サイト内だけ許可する。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "WEB-03",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "画面の動作検査",
+      "category": "PC・スマホで保存・写真失敗・再試行・共有が安全に扱える",
+      "target": "PC・スマホで保存・写真失敗・再試行・共有が安全に扱える",
+      "method": "隔離環境と架空データでブラウザー操作",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "期待結果：失敗時に保存済みと誤認せず、必要な入力・写真を保持して再試行できる。実ブラウザーでの確認記録はありません。",
+      "evidence": "Q7・追加確認の実施範囲",
+      "gap": "期待結果：失敗時に保存済みと誤認せず、必要な入力・写真を保持して再試行できる。実ブラウザーでの確認記録はありません。",
+      "questions": [],
+      "proof_kind": "検査計画",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "下記の対応表で管理",
+      "action_ids": [
+        "A07"
+      ],
+      "owner": "検証担当者",
+      "retest": "実施記録なし",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "検査結果の記録なし"
+    },
+    {
+      "id": "LOAD-01",
+      "frameworks": [
+        "CFSA:validation-plan"
+      ],
+      "area": "負荷・限界試験",
+      "category": "想定負荷・上限超過時の拒否と復旧",
+      "target": "想定負荷・上限超過時の拒否と復旧",
+      "method": "別作業の試験結果を受領して判定",
+      "executed": "no",
+      "result": "商用化の検討事項",
+      "reason": "利用者から負荷試験中と回答されています。条件・測定値・合否・復旧結果は未提出です。",
+      "evidence": "Q4の利用者回答",
+      "gap": "利用者から負荷試験中と回答されています。条件・測定値・合否・復旧結果は未提出です。",
+      "questions": [],
+      "proof_kind": "利用者申告",
+      "evidence_at": "2026-11-10T11:03:41.3295637+09:00",
+      "evidence_ref": "a4274c2e33e069b1877b4c8656a0b1287a29ab7a",
+      "remediation": "対応中（負荷試験中との申告）。結果の判定は未了",
+      "action_ids": [
+        "A06"
+      ],
+      "owner": "検証担当者",
+      "retest": "結果待ち",
+      "evidence_scope": "11:03の追加確認記録を参照。今回の整理で再測定したものではありません。",
+      "assessment_detail": "判断材料・結果待ち"
+    }
+  ],
+  "presentation_actions": [
+    {
+      "id": "A01",
+      "priority": "動作を含めた合格判断前",
+      "requirement": "仕様変更は不要。動作確認が必要",
+      "topic": "公開停止中の拒否と同じURLでの再開を確認する",
+      "owner": "開発担当者",
+      "status": "仕様変更不要／動作検証の記録なし",
+      "action": "既存URLを維持したまま、停止中の本文・写真の取得拒否と、再開後に同じURLで取得できることを確認する。別利用者は停止・再開を操作できないことも確認する。",
+      "acceptance": "停止中は同じURLの本文・写真を取得不可、再開後は同じURLで取得可能。キャッシュあり・なしで同じ結果になり、所有者だけが停止・再開できる。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A02",
+      "priority": "優先2",
+      "requirement": "利用条件の確認が必要。共用PCなら是正を検討",
+      "topic": "端末内のDB・写真権限と接続ロール",
+      "owner": "利用責任者・運用/DB管理担当者",
+      "status": "条件確認待ち",
+      "action": "共用・実データの有無を確認し、必要ならフォルダーACL、trust認証、アプリのDB権限を限定する。",
+      "acceptance": "許可する利用者だけがアクセスでき、稼働アプリの接続ロールと必要な権限が確認できる。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A03",
+      "priority": "公開・本格運用の判断前",
+      "requirement": "確認が必要。更新の必要性は照合結果で決定",
+      "topic": "現行依存部品の既知問題",
+      "owner": "開発担当者",
+      "status": "確認作業実施記録なし",
+      "action": "現行lockfileとSharp/libvipsの版に対する既知の問題を照合し、影響と必要な更新を記録する。",
+      "acceptance": "対象版・照合日・結果が一致し、影響する未対処の問題がない。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A04",
+      "priority": "画像受付の安全性を判断する前",
+      "requirement": "確認が必要",
+      "topic": "画像8ケースの受入れ・拒否",
+      "owner": "検証担当者",
+      "status": "実施記録なし",
+      "action": "IMG-01〜08を隔離環境で実施し、正常保存・不正画像拒否と失敗時のデータ保護を確認する。",
+      "acceptance": "全ケースに対象版・入力条件・期待結果・実結果・証拠がそろう。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A05",
+      "priority": "復旧可能と判断する前",
+      "requirement": "確認が必要",
+      "topic": "バックアップ暗号化とDB・写真の復元",
+      "owner": "運用/DB管理担当者",
+      "status": "実施記録なし",
+      "action": "暗号化の実状態を確認し、新しい専用DB・写真保存先へ隔離環境で復元する。稼働中の組は上書きしない。",
+      "acceptance": "復元後にDB参照と写真が一致し、公開停止・キー失効などの巻戻りにも対処できる。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A06",
+      "priority": "利用量の上限を判断する前",
+      "requirement": "試験結果の確認が必要",
+      "topic": "負荷試験の結果と上限",
+      "owner": "負荷試験担当者",
+      "status": "対応中（利用者申告）",
+      "action": "試験対象版・条件・応答時間・失敗率・資源量・上限超過後の回復結果を受領して判定する。",
+      "acceptance": "決めた運用上限で基準を満たし、超過時に安全に拒否・復旧できる。",
+      "retest": "結果未受領"
+    },
+    {
+      "id": "A07",
+      "priority": "動作を含めた合格判断前",
+      "requirement": "確認が必要",
+      "topic": "API・画面の拒否動作と保存・再試行",
+      "owner": "検証担当者",
+      "status": "実施記録なし",
+      "action": "API-01〜09とWEB-01〜03を専用DB・架空利用者・隔離環境で実施する。",
+      "acceptance": "各ケースに期待結果・実結果・証拠がそろい、失敗時は修正後に再確認する。",
+      "retest": "実施記録なし"
+    },
+    {
+      "id": "A08",
+      "priority": "変更後のキャッシュを合格と判断する前",
+      "requirement": "変更後の再確認が必要",
+      "topic": "公開キャッシュ高速取得方式の差分",
+      "owner": "開発・検証担当者",
+      "status": "再確認待ち",
+      "action": "変更後のソースを確認し、認可・公開停止・保存・写真変更・同時読込のケースを検査する。",
+      "acceptance": "変更後の同じ版に対するソースの根拠と、失効・更新の動作証拠がそろう。",
+      "retest": "実施記録なし"
+    }
+  ]
+}

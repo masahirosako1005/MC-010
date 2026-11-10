@@ -1,0 +1,48 @@
+.rally-demo {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: #f8f8f8;
+}
+
+.rally-demo-screen {
+  position: relative;
+  width: min(100%, 587px, calc(100vh * 587 / 990));
+  width: min(100%, 587px, calc(100dvh * 587 / 990));
+  isolation: isolate;
+}
+
+.rally-demo-image {
+  width: 100%;
+  height: auto;
+}
+
+.rally-demo-cta {
+  position: absolute;
+  left: 6%;
+  bottom: calc(56.3% + 8px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 93.2%;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--ink);
+  box-shadow: 0 4px 16px rgb(50 31 24 / 24%);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.rally-demo-cta svg { flex: none; width: 22px; height: 22px; }
+.rally-demo-cta:hover { background: var(--coral-soft); }
+.rally-demo-cta:active { background: var(--yellow-soft); }
+.rally-demo-cta:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }

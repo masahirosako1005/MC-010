@@ -8,7 +8,7 @@
 |UI UX Pro Max|https://github.com/nextlevelbuilder/ui-ux-pro-max-skill / 4f2dbb67e64969a9a30ab00742f2d55d66ddec2b|.agents/skills/ui-ux-pro-max と公式同梱6関連スキル|
 |Cloudflare Security Audit|https://github.com/cloudflare/security-audit-skill / c1c8a8c1471069fb0e188eeaff69b8e8db6564a8|.agents/skills/security-audit|
 
-公式導入分は計23個のSKILL.md。プロジェクト固有スキルを含む現在の総数は25個のSKILL.md・295ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
+公式導入分は計23個のSKILL.md。プロジェクト固有スキルを含む現在の総数は27個のSKILL.md・297ファイル。ライセンス同梱。各ファイルSHA256は docs/skill-installation.json。新規チャットでは自動検出可能で、今回は主担当がファイルを読んで適用した。
 
 ## プロジェクト固有の統合スキル
 
@@ -16,6 +16,7 @@
 |---|---|---|
 |`web-security-audit`|IPA「安全なウェブサイトの作り方」公式11分類と補足観点、およびCloudflare-authored `security-audit` の信頼境界ベースのソース監査を統合する。|動的スキャナーを要件とせず、`preflight` / `source` / `full`を分離。同じ根本原因はframework横断で1件へ統合し、同一データから`REPORT.md`とoffline `REPORT.html`を生成する。Cloudflare account、WAF、DNS、CDN、edge設定は対象外。|
 |[`project-operations`](../.agents/skills/project-operations/SKILL.md)|本プロジェクトのDBバックアップ・復元とログ確認。|Windows・PostgreSQL・ローカル運用専用。DBと写真を一組で保存し、復元は原則別の空DBへ行う。ログは安全な項目だけを抽出する。詳細は分野別references。自動実行・常時監視・アプリ変更・追加テストは行わない。|
+|[`project-demo-prepare`](../.agents/skills/project-demo-prepare/SKILL.md)|`demo@example.test` の来訪履歴を確保し、しおり作成履歴をクリアするデモ準備。|`fixture:demo` 専用。seedと同じ訪問2件を不足分だけ追加し、本人の冊子・編集・写真参照・共有履歴・セッションを単一transactionで削除する。他利用者・元CSV・写真実体・クーポンを保持し、対象アプリだけをHidden再起動する。|
 
 IPAの規範項目は公式ページ <https://www.ipa.go.jp/security/vuln/websecurity/about.html> を基準とする。CORS、ブラウザ分離ヘッダー、秘密情報、ログ、依存関係、deployment/backupは`SUP-*`補足項目として分け、IPA公式11分類であるかのように扱わない。Cloudflare vendorスキルと固定SHAは変更していない。
 
@@ -70,4 +71,10 @@ node scripts/skill-inventory.mjs
 プロジェクト独自の[project-cache-clear](../.agents/skills/project-cache-clear/SKILL.md)を追加した。CLI取込・DB直接更新後や古い公開内容への運用対処として、3001番の対象アプリを同定し、既存のビルド済みアプリだけを1回Hidden再起動してメモリー内キャッシュを空にする手順。停止前の起動設定確認、PID再照合、最小HTTP確認、起動失敗時の終了条件を含む。通常の更新時の自動クリア、ブラウザ/CDN、DB・写真の削除、アプリのビルド/反映には使わない。
 
 「project-cache-clearで公開キャッシュをクリアして」で利用できる。今回の依頼はスキル作成のため、実際のキャッシュクリア・再起動・DB操作・HTTP参照は実施していない。新規SKILL.mdのSHA256だけをinventoryへ追加し、公式vendorと既存の登録値を保持する。新しい実行スクリプトや定期実行設定は追加していない。AGENTS.mdに従い、validator・inventory照合・テスト・独立レビューは未実施。アプリコード変更がないためbuildも対象外。
+
+## 通常デモの準備（2026-11-10）
+
+プロジェクト独自の[project-demo-prepare](../.agents/skills/project-demo-prepare/SKILL.md)を追加した。既存のseed・認証照合・冊子処理・migrationを根拠とする手順書で、`demo@example.test`（`fixture:demo`）にseedと同じ2件のデモ来訪履歴を不足分だけ確保し、本人のしおり・編集・写真参照・共有表示/コピー履歴・セッションを単一transactionで削除する。メール/別名の衝突、訪問キーの不一致、想定外の依存関係では変更を止める。他利用者・提供CSV・アンケート・クーポン・写真実体は保持する。DB書き込み前に対象アプリだけを停止し、成功・失敗にかかわらず元の設定でHidden起動して配信状態を確認する。
+
+利用例は「project-demo-prepareでdemo@example.testのデモ準備をして」。今回はスキル作成のみで、DB接続・データ変更・アプリ停止/再起動・HTTP参照は未実施。新規SKILL.mdのSHA256だけをinventoryへ追加し、既存の登録値と公式vendorを保持する。実行スクリプト・定期実行設定は追加していない。AGENTS.mdに従い、validator・inventory照合・テスト・独立レビューは未実施。アプリコード変更がないためビルド・再起動も対象外。
 

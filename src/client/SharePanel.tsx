@@ -2,6 +2,7 @@ import { Eye, LoaderCircle, RefreshCw, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ShareSettings } from '../shared/sharing-types';
 import type { Companion } from '../shared/types';
+import { isMobileDemoContentPath } from '../shared/mobile-demo';
 import { shareRequest } from './sharing-api';
 import './sharing.css';
 
@@ -46,12 +47,13 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
     try {
       const result = await shareRequest<{ share: ShareSettings }>('/api/brochure/share', { method: 'POST', body: '{}' });
       setShare(result.share);
-      const url = new URL(result.share.path, window.location.origin).href;
+      const url = new URL(result.share.path, window.location.origin);
+      if (isMobileDemoContentPath(window.location.pathname)) url.searchParams.set('view', 'mobile');
       try {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(url.href);
         setNotice(companion === '一人' ? 'しおりの共有URLをコピーしました。' : `${companion}を誘うURLをコピーしました。`);
       } catch {
-        window.prompt('共有URLを選択してコピーしてください。', url);
+        window.prompt('共有URLを選択してコピーしてください。', url.href);
         setNotice('共有URLを発行しました。');
         return;
       }

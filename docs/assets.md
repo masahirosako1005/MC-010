@@ -29,7 +29,13 @@ IMPORTANT: remove ALL overlaid interface elements from the reference: NO title, 
 Reserve small calm light-colored areas near the vignette upper edges so category labels can later be overlaid at top-left x20% y30%, top-center x57% y13%, middle-right x82% y42%, bottom-right x75% y75%, and bottom-left x22% y77%. Do not obscure the distinctive subjects. Polished detailed colorful editorial illustration, high-resolution clean edges, faithful to the reference's scenic map feeling, no photoreal collage, no grid of photos, no watermark, no logos.
 ```
 
-`public/assets/*.png` は架空スポット向けに内蔵imagegen標準モードで生成したラスターイラスト。実在施設の写真ではありません。外部写真素材・外部画像URL・SVG代替は使用していません。各スポットの紹介・タグも提供不足を補うデモ用の補足であり、実施設の営業情報・位置・距離を主張しません。
+## デモ入口のユーザー提供画像（2026-11-10）
+
+`public/assets/rally-demo-home.png` はユーザーがデモページの背景として指定したスタンプラリーホーム画面のPNG（587×990）。提供画像をそのまま複製して使用し、生成・加工はしていない。`/demo/rally` だけで表示する画面素材で、利用者がしおりへ追加する写真とは別に扱う。メインビジュアル左下の「旅のしおりをつくる」はReactのリンクとして重ねる。
+
+## 架空スポットの画像
+
+以下の既存7点のPNGは架空スポット向けに内蔵imagegen標準モードで生成したラスターイラスト。実在施設の写真ではありません。外部写真素材・外部画像URL・SVG代替は使用していません。各スポットの紹介・タグも提供不足を補うデモ用の補足であり、実施設の営業情報・位置・距離を主張しません。
 
 すべて2026-11-09に生成後目視確認。実行時は同梱ローカル画像のみを読み込みます。画像の復元は同じGit版の `public/assets` から行い、ユーザー追加写真を上書きしません。画面イメージは `docs/design-mockups` に別保管。
 

@@ -530,6 +530,10 @@
       "sha256": "78d8731878ae44eb888da385eca3b4a9f67c680e899956186d23c531b02c0afa"
     },
     {
+      "path": ".agents/skills/project-demo-prepare/SKILL.md",
+      "sha256": "1cd6e749363296a301ec20fbc36ce8fc1548debf776d3e9c64d307336740c00e"
+    },
+    {
       "path": ".agents/skills/project-operations/references/backup-restore.md",
       "sha256": "4be909fe79fd03f5153f44a27688282a630089c1ccc749c19af743933c2a0f5a"
     },

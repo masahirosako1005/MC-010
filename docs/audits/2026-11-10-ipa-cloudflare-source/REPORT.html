@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MC-010 安全性確認レポート — 2026年11月10日</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5c667a;
+      --line: #d7dce5;
+      --panel: #f7f8fb;
+      --ok: #166534;
+      --ok-bg: #dcfce7;
+      --ng: #991b1b;
+      --ng-bg: #fee2e2;
+      --verify: #854d0e;
+      --verify-bg: #fef3c7;
+      --not-run: #475569;
+      --not-run-bg: #e2e8f0;
+      --out: #1e40af;
+      --out-bg: #dbeafe;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; }
+    header, main, footer { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+    header { padding: 48px 0 24px; border-bottom: 2px solid var(--ink); }
+    main { padding: 16px 0 48px; }
+    footer { padding: 20px 0 36px; color: var(--muted); border-top: 1px solid var(--line); }
+    h1 { margin: 8px 0; font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.15; }
+    h2 { margin-top: 36px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+    h3 { margin-bottom: 6px; }
+    a { color: #164e9a; }
+    a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+    .eyebrow { margin: 0; color: var(--muted); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .summary { max-width: 80ch; color: var(--muted); }
+    .status { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: .25rem .7rem; font-weight: 800; white-space: nowrap; }
+    .status-complete, .status-ok { color: var(--ok); background: var(--ok-bg); }
+    .status-incomplete, .status-ng { color: var(--ng); background: var(--ng-bg); }
+    .status-needs-validation { color: var(--verify); background: var(--verify-bg); }
+    .status-not-run { color: var(--not-run); background: var(--not-run-bg); }
+    .status-out-of-scope { color: var(--out); background: var(--out-bg); }
+    .metadata, .counts { display: grid; gap: 12px; margin: 20px 0; }
+    .metadata { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .metadata div, .count-card, .finding, .empty { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+    dt { color: var(--muted); font-size: .85rem; font-weight: 700; }
+    dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+    .counts { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+    .count-card strong { display: block; font-size: 1.75rem; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    caption { padding: 12px 14px; text-align: left; font-weight: 700; background: var(--panel); }
+    th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+    th { background: var(--panel); font-size: .9rem; }
+    ul { padding-left: 1.4rem; }
+    code { font-family: ui-monospace, "Cascadia Mono", monospace; font-size: .92em; }
+    .note { padding: 12px 14px; border-left: 4px solid var(--out); background: var(--panel); }
+    .stack > * + * { margin-top: 12px; }
+    @media (max-width: 640px) {
+      header { padding-top: 28px; }
+      header, main, footer { width: min(100% - 20px, 1180px); }
+      .metadata, .counts { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { color: #000; font-size: 10pt; }
+      header, main, footer { width: 100%; }
+      .table-wrap { overflow: visible; border: 0; }
+      table { min-width: 0; font-size: 8pt; }
+      tr, .finding { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  
+    .reader-summary{padding:20px;border-left:5px solid var(--verify);background:var(--verify-bg);margin:20px 0}
+    .reader-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px;margin:20px 0}
+    .reader-counts div{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel)}
+    .reader-counts strong{display:block;font-size:1.7rem}.reader-counts small{display:block}
+    .question{border:1px solid var(--line);border-radius:12px;padding:20px;margin:20px 0;scroll-margin-top:20px}
+    .question h3{font-size:1.2rem;margin:0 0 14px}.question h4{margin-bottom:8px}
+    .question li+li{margin-top:7px}.owner{background:var(--panel);padding:12px}
+    .pass-condition{border-left:4px solid var(--ok);padding:12px;background:var(--ok-bg)}
+    .action-condition{border-left:4px solid var(--verify);padding:12px;background:var(--verify-bg)}
+    .small-note{font-size:.9rem;color:var(--muted)}.technical{margin:24px 0;border:1px solid var(--line);padding:16px;border-radius:12px}
+    .technical>summary{cursor:pointer;font-size:1.1rem;font-weight:700}.technical>summary:focus-visible{outline:3px solid #f59e0b}
+    .reader-table{min-width:760px}.reader-table th,.reader-table td{padding:12px}
+    .reader-table td:nth-child(3){white-space:nowrap}.question-index{min-width:680px}
+    @media print{.technical:not([open]){display:none}.question{break-inside:auto}.reader-table,.question-index{min-width:0}.reader-counts{grid-template-columns:repeat(5,1fr)}.reader-summary{break-inside:avoid}}
+
+  </style>
+</head>
+<body>
+  
+  <header>
+    <p class="eyebrow">現在のソースを確認した結果と、次の判断に必要なこと</p>
+    <h1>MC-010 安全性確認レポート — 2026年11月10日</h1>
+    <p class="note">この本文は10:29時点のソース監査記録です。その後の回答、権限・バックアップの実環境確認、共有URLの実装確認は<a href="../2026-11-10-audit-followup/REPORT.html">最新の追補レポート</a>をご覧ください。</p>
+    <p><span class="status verify">総合状態: complete（ソース監査の工程のみ）</span></p>
+    <p class="note"><code>complete/incomplete</code>は監査工程の完了状態であり、脆弱性の有無を表しません。ソース監査の工程は完了していますが、動作と運用の安全性を承認した意味ではありません。</p>
+    <p class="summary">現在のプログラムと関連文書を読み、22項目を確認しました。確認した範囲では、修正が必要だと確定した問題はありません。8項目は運用・実環境・公開方針などの事実が不足しているため「要確認」です。実際の画面操作・API呼出し・DB接続・画像処理・依存部品の最新問題照合は行っていません。公開や本格運用を安全と承認できる段階ではありません。</p>
+    <details class="technical"><summary>監査日時・対象の版・実施範囲を確認する</summary><dl class="metadata">
+      <div><dt>実行日時</dt><dd>2026-11-10T10:29:56.9162305+09:00</dd></div>
+      <div><dt>リポジトリ</dt><dd>MC-010</dd></div>
+      <div><dt>Source ref</dt><dd>f38aed862667f8206c221352281943c2c0d87e87</dd></div>
+      <div><dt>Worktree</dt><dd>dirty。src/client・src/server等に既存の未コミット変更を含みます。SHAだけでは今回の対象を再現できないため、ファイルhashを別途記録</dd></div>
+      <div><dt>プロファイル</dt><dd>source（IPA＋Cloudflareのソース確認）</dd></div>
+      <div><dt>実行モード</dt><dd>source-only。読取・ソース追跡のみ。実行検査なし</dd></div>
+      <div><dt>許可された境界</dt><dd>現在のMC-010のアプリソース、関連schema/migration、manifest/lockfile、設計・運用文書の確認とレポート作成</dd></div>
+      <div><dt>Incomplete reason</dt><dd>source工程の不足なし。動作・実配備等は要確認として明記。full audit・動作検査は未実施</dd></div>
+    </dl></details>
+  </header>
+
+  <main>
+
+<section aria-labelledby="reader-heading"><h2 id="reader-heading">対応は必要ですか？</h2><div class="reader-summary"><p>確認の対応が必要です。まずQ1の「誰が・どこから・どのデータで使うか」に答えてください。現在の固定コード1111はローカルデモ専用です。要確認8項目は、原因・確認先が重なるためQ1〜Q6の6つの作業にまとめています。Q7は動作を含めた判断に必要な追加の検査計画で、今回の22項目の件数には含めません。</p></div><div class="reader-counts">
+<div>確認した範囲で問題なし<strong>12項目</strong><small>OK</small></div><div>問題が確定<strong>0項目</strong><small>NG</small></div><div>追加の確認が必要<strong>8項目</strong><small>要確認</small></div><div>ソース項目の未実施<strong>0項目</strong><small>未実施</small></div><div>該当する機能なし<strong>2項目</strong><small>対象外</small></div></div><p>OKは記述上の保護を確認したという意味です。要確認は問題が確定した意味ではなく、判断に必要な事実が不足しています。未実施0は22のソース項目を読んだ集計であり、動作検査を実施したという意味ではありません。実施していない動作検査はQ7と制約欄に記録しています。</p></section>
+<section aria-labelledby="question-list"><h2 id="question-list">確認する作業の一覧</h2><div class="table-wrap"><table class="question-index"><caption>担当者と実施時期</caption><thead><tr><th scope="col">番号</th><th scope="col">何を確認すればよいか</th><th scope="col">担当</th><th scope="col">いつ確認するか</th></tr></thead><tbody><tr><td><a href="#q1">Q1</a></td><td>このデモを誰が、どこから、どのデータで使っていますか？</td><td>利用責任者とパソコン・ネットワークの管理担当者</td><td>最優先。外部公開・共用・実在の利用者データの投入を判断する前</td></tr><tr><td><a href="#q2">Q2</a></td><td>現在の使用部品に該当する既知の問題はなく、画像を安全に拒否できますか？</td><td>開発担当者</td><td>本格運用・部品更新・画像受付を安全と判断する前</td></tr><tr><td><a href="#q3">Q3</a></td><td>実際の保護設定と権限は適切で、データと写真を一緒に復元できますか？</td><td>システム運用担当者・DB管理担当者・データ管理責任者</td><td>本物のデータを預かる前。復旧方法や配備構成が変わったとき</td></tr><tr><td><a href="#q4">Q4</a></td><td>何人・どれだけの処理まで受け付け、超えた場合にどう止めますか？</td><td>利用責任者・開発担当者・運用担当者</td><td>利用人数や取込データ量を増やす前</td></tr><tr><td><a href="#q5">Q5</a></td><td>共有URLを持つ人に、何がいつまで見えてよいですか？</td><td>利用責任者・データ管理責任者・共有する本人</td><td>共有機能を使う前。公開範囲や停止・再開の方針を決めるとき</td></tr><tr><td><a href="#q6">Q6</a></td><td>分析連携先へ、この集計を渡してよいですか？</td><td>データ管理責任者・町管理者・接続キーの管理担当者</td><td>分析連携を有効にする前。接続先・データの範囲・担当者が変わったとき</td></tr><tr><td><a href="#q7">Q7（集計外）</a></td><td>実際に動かしたときも、ソース上の保護が働きますか？</td><td>検査環境の管理担当者・開発担当者</td><td>動作を含めた安全性や本格運用を承認する前</td></tr></tbody></table></div></section>
+<section aria-labelledby="question-details"><h2 id="question-details">何を確認すれば判断できるか</h2><p>確認結果をQ番号ごとに記録してください。秘密値や個人情報の本文は不要です。「問題なしの条件」と「対処の条件」を照らし合わせ、情報が不足する場合は要確認を残します。</p><article class="question" id="q1"><h3>Q1 — このデモを誰が、どこから、どのデータで使っていますか？</h3><p class="owner"><strong>担当：</strong>利用責任者とパソコン・ネットワークの管理担当者<br><strong>時期：</strong>最優先。外部公開・共用・実在の利用者データの投入を判断する前</p><p><strong>対応項目：</strong>IPA-1.4、SUP-03、SUP-06</p><h4>何を確認するか</h4><ul><li>同じパソコン内だけの利用ですか。LAN・トンネル・リバースプロキシ・ポート転送で他の端末から接続できる状態ですか。</li><li>パソコンを他人が操作できたり、他人が同じ端末からアプリへ接続できたりしますか。</li><li>DBに実在する人のメール、訪問履歴、写真などが入っていますか。実値ではなく「あり／なし」だけを確認してください。</li></ul><h4>どう確認するか</h4><ol><li>管理担当者が起動設定・中継設定・ファイアウォールの設定画面と、端末を使う人の範囲を確認します。</li><li>データ管理責任者が架空データだけか実データを含むかを回答します。秘密の設定値や個人情報をレポートに貼る必要はありません。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>外部への中継がなく、信頼する人だけが同じパソコンで扱い、架空のデモデータだけを使うと確認できれば、その限定範囲について判断できます。固定コードを本番向けに安全と認める判断にはなりません。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>外部・共用・実データのいずれかを含む場合は、現在のデモ設定での利用を見直します。実運用を続けるなら固定コードを廃止し、本人確認・暗号化通信・環境ごとの認証情報・存在確認を抑えるログイン応答を整えて再確認します。</p><p><strong>残す証拠：</strong>利用範囲図、端末利用者の範囲、外部中継なしの確認記録、データが架空かどうかの回答。設定やデータが変われば再判断します。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q2"><h3>Q2 — 現在の使用部品に該当する既知の問題はなく、画像を安全に拒否できますか？</h3><p class="owner"><strong>担当：</strong>開発担当者<br><strong>時期：</strong>本格運用・部品更新・画像受付を安全と判断する前</p><p><strong>対応項目：</strong>IPA-1.10、SUP-05</p><h4>何を確認するか</h4><ul><li>今回のpnpm-lock.yamlと、実行環境のSharp・画像処理の内部部品の版は何ですか。</li><li>その版に当てはまる既知の問題を、いつ、どの情報と照合しましたか。前回の別lockfileの結果を流用していませんか。</li><li>壊れた画像、形式を偽った画像、5MB超、6000px超、2400万画素超、複数ページの画像を拒否できますか。</li></ul><h4>どう確認するか</h4><ol><li>資格情報や秘密の設定を渡さない検査環境で、現在のlockfileに対する依存部品の問題を照合し、影響するもの・しないものと理由を記録します。依存部品の自動更新は行わず、必要性を判断します。</li><li>OSで通信・書込先・処理量・時間を制限した環境と架空の小さな検査用画像を使い、正常画像は保存でき、不正な画像は拒否され、利用者の保存済み内容が壊れないことを確認します。実写真や稼働中アプリでは実施しません。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>現在の版と照合結果が一致し、未対処で影響する既知の問題がなく、画像の受入れ・拒否検査も完了すれば、その版と検査条件について判断できます。未知の欠陥が一切ないことを示すものではありません。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>該当する既知の問題があれば、影響範囲を確認して更新・機能制限などを行います。異常画像を受け入れる、処理が落ちる、他人のデータへ影響する場合も原因を修正し再検査します。件数ゼロの照合だけでは画像検査を省けません。</p><p><strong>残す証拠：</strong>lockfileのhash、実部品の版、照合日時と参照情報、各画像の期待結果・実結果、必要な更新と再確認結果。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q3"><h3>Q3 — 実際の保護設定と権限は適切で、データと写真を一緒に復元できますか？</h3><p class="owner"><strong>担当：</strong>システム運用担当者・DB管理担当者・データ管理責任者<br><strong>時期：</strong>本物のデータを預かる前。復旧方法や配備構成が変わったとき</p><p><strong>対応項目：</strong>SUP-06、IPA-1.3、IPA-1.7、SUP-04</p><h4>何を確認するか</h4><ul><li>中継する仕組みがある場合、プログラムが設定した保護ヘッダーや送信元の条件を変更していませんか。</li><li>アプリのDB権限や画像フォルダー・バックアップの権限は、担当者と必要な処理だけに限定されていますか。DBが管理者権限で動いていませんか。</li><li>バックアップの取得日・対象・保管担当者・暗号化・保存期間を把握していますか。最後に別環境へ復元できたのはいつですか。</li></ul><h4>どう確認するか</h4><ol><li>運用担当者が構成図と設定記録を確認し、必要なら隔離した非本番環境で保護ヘッダー・送信元・写真配信の制約が保持されることを確認します。</li><li>DB管理者と保管担当者が権限表を確認します。秘密値・実ログ・個人データを提出せず、誰が何をできるかを記録します。</li><li>別の検査用DBと画像保存先で、同じ時点のDBと画像を復元し、冊子と写真の対応、公開停止状態、キーの失効状態を確認します。古いバックアップで公開URLやキーが再び有効にならないかも判断します。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>必要な保護設定が有効で、権限が用途に合い、同じ時点のDBと写真の復元に成功し、復元による共有・キー状態の巻戻りにも対処できれば判断できます。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>権限が過大、無関係な人が写真やバックアップを読める、復元不能、共有停止やキー失効が意図せず取り消される場合は、権限・保管・復旧手順を整えて再確認します。</p><p><strong>残す証拠：</strong>秘密値を除いた構成・権限表、バックアップの対象と日時・保護方法、復元日時、写真表示・公開停止・キー状態の確認結果。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q4"><h3>Q4 — 何人・どれだけの処理まで受け付け、超えた場合にどう止めますか？</h3><p class="owner"><strong>担当：</strong>利用責任者・開発担当者・運用担当者<br><strong>時期：</strong>利用人数や取込データ量を増やす前</p><p><strong>対応項目：</strong>CFSA-AVAIL-01、CFSA-CACHE-01</p><h4>何を確認するか</h4><ul><li>想定する同時利用、画像アップロード数、CSVサイズ、MCP利用頻度はどの程度ですか。</li><li>許容する待ち時間・メモリー・ディスク・同時処理数を決めていますか。上限超過時は拒否・待機のどちらにしますか。</li><li>CSVはファイルを全て読み込んだ後に20MiBを確認します。キャッシュの32MiB・128件上限とは別に、進行中の読込・画像処理の負担を抑えられますか。</li></ul><h4>どう確認するか</h4><ol><li>まず運用上の上限と許容する応答時間を文書化します。この監査では、その値を根拠なく設定していません。</li><li>OSの資源制限がある隔離環境で、架空データを少量から段階的に増やして測ります。利用中のアプリやDBへ負荷をかけません。</li><li>上限を超えた要求を安全に断り、処理の失敗から復旧でき、既存の保存内容を壊さないことを確認します。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>決めた利用量で許容範囲に収まり、超過時の拒否・待機と復旧が確認できれば、その運用上限について判断できます。キャッシュ上限があるだけでは合格になりません。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>想定量で停止する、メモリーが上限を超える、待ちが終わらない場合は、同時処理制限・読込前のサイズ確認・取込方式・時間上限などを必要な箇所に追加して再計測します。</p><p><strong>残す証拠：</strong>想定量と合格基準、試した段階ごとの結果、メモリー・時間・失敗率、拒否動作と復旧記録。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q5"><h3>Q5 — 共有URLを持つ人に、何がいつまで見えてよいですか？</h3><p class="owner"><strong>担当：</strong>利用責任者・データ管理責任者・共有する本人<br><strong>時期：</strong>共有機能を使う前。公開範囲や停止・再開の方針を決めるとき</p><p><strong>対応項目：</strong>CFSA-SHARE-01、CFSA-CACHE-01</p><h4>何を確認するか</h4><ul><li>掲載写真・コメント、選択した思い出の最新訪問日時・スタンプ状態を、URLを知る人がログインなしで見てよいですか。</li><li>同じURLへ、後から保存した内容も反映してよいですか。受取人によるURLの転送や写真の保存を許容できますか。</li><li>停止後に再開すると、以前渡した同じURLも再び使える仕様でよいですか。漏れた旧URLを永久に無効化する必要はありますか。</li><li>DB直接更新や複数のアプリプロセスを使う運用はありますか。その場合、各キャッシュを消す手順がありますか。</li></ul><h4>どう確認するか</h4><ol><li>責任者が公開してよい項目と受取人の範囲を明文化し、共有する本人が内容を確認できる運用かを判断します。</li><li>隔離環境で架空の冊子を作り、未ログイン・作者・別利用者で表示内容を比較します。未掲載情報・アンケート・クーポン情報が共有先へ出ないことを確認します。</li><li>一度キャッシュを使った後、保存・写真差替・公開停止を行い、新しい取得で更新される／拒否されることを確認します。再開で旧URLが使えることも確認します。既に表示・保存された内容は回収できません。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>公開する項目・転送可能性・継続更新・同じURLでの再開を責任者と本人が承認し、対象外情報の除外と公開停止後の新規取得拒否を確認できれば、その共有方針に対して判断できます。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>特定の受取人だけに限定したい、訪問日を出したくない、再開しても漏れた旧URLは無効にしたい場合は、現在の仕様が要望に合いません。認証・公開項目・URL更新などを必要な範囲で変更します。直接DB更新時はキャッシュ破棄も必要です。</p><p><strong>残す証拠：</strong>公開項目とURLの取扱いへの承認、架空の各利用者での比較、停止・更新・再開・キャッシュ破棄の検査結果。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q6"><h3>Q6 — 分析連携先へ、この集計を渡してよいですか？</h3><p class="owner"><strong>担当：</strong>データ管理責任者・町管理者・接続キーの管理担当者<br><strong>時期：</strong>分析連携を有効にする前。接続先・データの範囲・担当者が変わったとき</p><p><strong>対応項目：</strong>CFSA-MCP-01</p><h4>何を確認するか</h4><ul><li>接続した分析ツールへ提供データの集計値が渡ることを承認していますか。必要ならデモデータだけに制限しますか。</li><li>1人や少数件の内訳、日別・条件別の組合せから、個人を推測できる可能性を許容しますか。何件未満は非表示にする方針が必要ですか。</li><li>キーを保管・使用できる担当者と接続先は誰ですか。異動・紛失・利用終了時に失効する担当者と期限を決めていますか。</li></ul><h4>どう確認するか</h4><ol><li>実データを外部ツールへ送らず、まず指標名・粒度・返却項目と架空の例を使い、提供可能な範囲の承認を得ます。</li><li>小さな集計を含む架空データで、日付や条件を変えた比較から個人の行動が推測されないか確認します。必要な最小件数は責任者が決めます。</li><li>隔離環境の架空キーで、無効・期限切れ・失効済み・町権限を外したキーが拒否され、個人の本文や画像・共有URLを返さないことを確認します。実キーを文書やチャットに載せません。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>提供先・項目・小さな集計の扱いが承認され、キーの保管・期限・失効運用が決まり、権限確認と出力の検査が通れば、その連携範囲について判断できます。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>提供が未承認なら連携利用を保留します。少数集計を許容しない場合は件数の丸め・非表示・粒度制限などを追加します。キーが漏れた場合は失効し、保管方法を見直します。</p><p><strong>残す証拠：</strong>提供範囲・接続先・少数集計の承認、キーを扱う担当と失効手順、架空データとキーでの拒否・出力確認結果。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article>
+<article class="question" id="q7"><h3>Q7 — 実際に動かしたときも、ソース上の保護が働きますか？</h3><p class="owner"><strong>担当：</strong>検査環境の管理担当者・開発担当者<br><strong>時期：</strong>動作を含めた安全性や本格運用を承認する前</p><p><strong>対応項目：</strong>全項目のうち動作確認が必要なもの</p><h4>何を確認するか</h4><ul><li>利用中のDBと写真から切り離した、架空利用者2人・町管理者・専用画像保存先を用意できますか。</li><li>通信・環境変数・書込先・CPU・メモリー・プロセス数・ファイル量・時間をOSで制限できる検査環境がありますか。</li></ul><h4>どう確認するか</h4><ol><li>上記の環境を用意してから、利用者AとBを取り違えた編集・写真取得、未認証・一般利用者による管理機能アクセス、失効後の操作を確認します。</li><li>送信元・専用ヘッダーの不足、不正入力と画像、重複した操作ID、競合する保存を確認し、拒否時に他人のデータや保存済み内容が変わらないことを確認します。</li><li>共有内容・キャッシュ更新・MCPの出力・通常画面とスマホデモ画面の埋込み制約も、それぞれの期待結果と比較します。</li></ol><p class="pass-condition"><strong>問題なしと判断できる条件：</strong>各ケースに期待結果・実結果・証拠がそろい、失敗を修正して再確認できれば、実施した範囲の動作について判断できます。</p><p class="action-condition"><strong>対処が必要となる条件・具体策：</strong>環境を用意できない間は動作未検証のままです。実施せずに合格と記載しません。今回のソース監査は完了していますが、これらの動作検査は行っていません。</p><p><strong>残す証拠：</strong>検査環境の制限、データが架空であること、実施日時、対象の版、ケース別の合否と証拠、修正と再確認結果。</p><p class="small-note">回答や証拠が不足する場合：要確認のままです。推測でOKに変えません。</p></article></section>
+<section aria-labelledby="reader-items"><h2 id="reader-items">22項目の読みやすい一覧</h2><div class="table-wrap"><table class="reader-table" id="reader-matrix"><caption>確認対象・判定理由・次の確認</caption><thead><tr><th scope="col">ID</th><th scope="col">調べたこと</th><th scope="col">判定</th><th scope="col">理由</th><th scope="col">次の確認</th></tr></thead><tbody><tr><td>IPA-1.1</td><td>入力でデータベースを不正に操作できないか</td><td>OK</td><td>利用者入力はSQLの命令文と分けて渡します。検索条件や共有写真の結合先などの可変部分は、プログラム内の固定候補だけです。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.2</td><td>入力でパソコンの命令を勝手に実行できないか</td><td>対象外</td><td>アプリのソースにOSコマンド起動の経路は検出されず、package.jsonの開発・起動処理も固定コマンドです。</td><td>今は追加対応なし。機能追加時に再確認</td></tr>
+<tr><td>IPA-1.3</td><td>許可されていないファイルを読み書きできないか</td><td>OK</td><td>写真名はシステムが作った識別子と.webpに限定し、保存先を確認します。共有写真も公開範囲との照合後に限定した名前だけを使います。取込・migrationのファイル名は固定または管理ファイルです。</td><td><a href="#q3">Q3</a>・<a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.4</td><td>ログインした本人を適切に確認できるか</td><td>要確認</td><td>32バイト乱数、ハッシュ保存、12時間の期限、ログアウト失効を確認しました。ただし固定コード1111と暗号化通信専用でないCookieは、ローカルデモでの利用が前提です。</td><td><a href="#q1">Q1</a></td></tr>
+<tr><td>IPA-1.5</td><td>コメントや名称から危険なプログラムを実行されないか</td><td>OK</td><td>コメント・名称・説明は通常のReactテキスト表示です。生のHTMLを挿入する経路は検出されません。画像の選択先は固定素材または検証済みのAPI参照です。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.6</td><td>別のサイトから勝手に保存などをさせられないか</td><td>OK</td><td>APIの変更操作は送信元と専用ヘッダーを要求し、CookieにはSameSite=Strictを設定します。MCPはCookieとは別の接続キーと送信元確認を使います。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.7</td><td>通信の付加情報を不正に書き換えられないか</td><td>OK</td><td>保護ヘッダーと画像形式は固定値です。If-Matchは整数として保存版の確認に使います。MCPの待機時間表示も数値から作ります。</td><td><a href="#q3">Q3</a>・<a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.8</td><td>メールの宛先などを不正に変えられないか</td><td>対象外</td><td>メール送信機能やメール送信用の部品はありません。メールアドレスはログイン照合や取込の値として扱います。</td><td>今は追加対応なし。機能追加時に再確認</td></tr>
+<tr><td>IPA-1.9</td><td>偽の画面に重ねて意図しない操作をさせられないか</td><td>OK</td><td>通常画面は他のページの枠内表示を拒否します。スマホデモの限定パスだけ、同じサイト内からの埋込みを許可しています。外部サイトへの許可はありません。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>IPA-1.10</td><td>壊れた画像などで画像処理部品に問題が起きないか</td><td>要確認</td><td>形式・5MB・縦横6000px・2400万画素・単一静止画を確認し、画像を再変換します。ただしSharp等の内部処理と現在の部品の既知の問題は、この確認だけでは判断できません。</td><td><a href="#q2">Q2</a></td></tr>
+<tr><td>IPA-1.11</td><td>他人のデータや管理者機能を勝手に使えないか</td><td>OK</td><td>利用者はセッションから特定し、写真・編集・クーポンは本人の冊子と照合します。町管理機能は町権限を確認します。公開共有は有効なURLと掲載範囲を照合し、MCPは有効な町管理者キーを確認します。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>SUP-01</td><td>別のサイトからデータを読み取られないか</td><td>OK</td><td>別サイトからの読取許可を発行せず、画面は同一サイトのAPIを使用します。MCPも送信元が付く場合は許可した値と照合します。</td><td><a href="#q7">Q7</a></td></tr>
+<tr><td>SUP-02</td><td>ブラウザー側で情報が残ったり別サイトへ渡ったりしにくいか</td><td>OK</td><td>API・MCP応答は保存しない設定、外部への参照元通知はしない設定です。画面内の保存領域・他ページとのメッセージ交換は検出されず、デモ埋込み先も固定の同一サイト内です。</td><td><a href="#q5">Q5</a>・<a href="#q7">Q7</a></td></tr>
+<tr><td>SUP-03</td><td>秘密の設定やデモ用設定を適切に扱っているか</td><td>要確認</td><td>秘密の設定や写真・作業用領域はGitと開発サーバーの公開対象から除外する設定があります。接続キーは乱数で発行しハッシュだけを保存します。ただし固定ログインコードが安全かは利用範囲に依存します。</td><td><a href="#q1">Q1</a></td></tr>
+<tr><td>SUP-04</td><td>エラー表示やログに個人情報が出ないか</td><td>OK</td><td>API・MCPの異常応答は定型文です。管理記録は操作者ID・操作種別・対象・日時に絞ります。CSV検証エラーも入力値を含めず、ファイル区分や行番号を案内する形式です。</td><td><a href="#q3">Q3</a></td></tr>
+<tr><td>SUP-05</td><td>使用部品に既知の危険な問題がないか</td><td>要確認</td><td>直接依存の版は固定され、lockfileに整合性情報があります。自動ビルドを許可する部品も限定されています。ただし現在のlockfileに対する最新の既知問題との照合は行っていません。</td><td><a href="#q2">Q2</a></td></tr>
+<tr><td>SUP-06</td><td>実際の接続設定・権限・バックアップからの復旧は適切か</td><td>要確認</td><td>アプリ・開発サーバー・ComposeのDBは設定上ローカル端末向けです。DBと画像を同じ時点に戻す手順もあります。ただし実際の接続範囲・権限・保管・復元結果はソースでは証明できません。</td><td><a href="#q1">Q1</a>・<a href="#q3">Q3</a></td></tr>
+<tr><td>CFSA-AVAIL-01</td><td>同時処理や大きなデータで停止しないか</td><td>要確認</td><td>1回のJSON・画像・CSVサイズ、ログイン頻度、MCP頻度・集計期間・SQL時間には制限があります。一方、画像処理とキャッシュ未登録の読込み全体の同時数は制限できていると判断できません。CSVの20MiB判定は全体読込後です。</td><td><a href="#q4">Q4</a></td></tr>
+<tr><td>CFSA-SHARE-01</td><td>共有する情報とURLの扱いが利用者の意図に合うか</td><td>要確認</td><td>共有先には保存済みの掲載写真・コメントと、選んだ思い出の最新訪問日時・スタンプ状態が渡ります。アンケートやアカウント情報は渡しません。停止後の再開では同じURLが再び有効になります。</td><td><a href="#q5">Q5</a></td></tr>
+<tr><td>CFSA-MCP-01</td><td>分析連携で渡す情報とキーの管理方針は適切か</td><td>要確認</td><td>町管理者キーの期限・失効・現在の権限を照合し、集計は読取専用です。メール・氏名・本文・画像・共有URLは返さない構造です。ただし少人数の集計からの推測や、接続先へ渡すことへの承認は別途確認が必要です。</td><td><a href="#q6">Q6</a></td></tr>
+<tr><td>CFSA-CACHE-01</td><td>共有キャッシュから非公開情報や停止後の情報が出ないか</td><td>OK</td><td>公開状態と閲覧者を毎回確認し、作者向け応答はキャッシュを使いません。写真も掲載範囲を照合します。更新時の破棄と世代判定があり、古い読込を再格納しません。</td><td><a href="#q4">Q4</a>・<a href="#q5">Q5</a>・<a href="#q7">Q7</a></td></tr>
+<tr><td>CFSA-COUPON-01</td><td>クーポンを他人として使ったり重複記録したりできないか</td><td>OK</td><td>利用者本人の冊子・公開状態・コード発行済みを確認し、本人とスポットの組合せを一度だけ記録します。共有先の非作者には利用情報を返しません。本人の申告であり来訪の証明ではない仕様です。</td><td><a href="#q7">Q7</a></td></tr></tbody></table></div></section>
+<section aria-labelledby="changes"><h2 id="changes">前回から変わった点と今回の読み直し</h2><ul><li>前回以降の共有URL、共有写真、キャッシュ、クーポン、MCP分析・キー、スマホデモ用埋込み例外を今回のソースで確認し直しました。</li><li>通常画面は枠内表示を拒否しますが、スマホデモの限定パスは同一サイト内だけ許可する現在の仕様を反映しました。全画面が一律DENYという説明は使っていません。</li><li>CSVには20MiBの検証が存在します。今回の懸念は「上限がない」ことではなく、検証前に全ファイルを並列読込する点と、全体の資源上限が不明な点です。</li><li>以前の要確認は今回の証拠を確認し直して分類しました。過去のOKや動作検証を、そのまま現在の版の合格証拠にしていません。</li><li>監査はプログラムを修正する作業ではありません。今回、アプリの変更・反映・再起動は行っていません。</li></ul></section>
+<details class="technical"><summary>開発・運用担当者向け：ソースの根拠と詳しい監査記録を開く</summary>
+
+    <section aria-labelledby="result-summary">
+      <h2 id="result-summary">判定サマリー</h2>
+      <div class="counts">
+        <div class="count-card"><span>OK</span><strong>12</strong></div>
+        <div class="count-card"><span>NG</span><strong>0</strong></div>
+        <div class="count-card"><span>要確認</span><strong>8</strong></div>
+        <div class="count-card"><span>未実施</span><strong>0</strong></div>
+        <div class="count-card"><span>対象外</span><strong>2</strong></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="components">
+      <h2 id="components">コンポーネント状態</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>要求された監査コンポーネントと完了状態</caption>
+          <thead><tr><th scope="col">コンポーネント</th><th scope="col">要求</th><th scope="col">実行</th><th scope="col">状態</th><th scope="col">対象範囲</th><th scope="col">証拠</th><th scope="col">未検証・gap</th></tr></thead>
+          <tbody><tr><td>ipa-checklist</td><td>yes</td><td>yes</td><td>complete</td><td>IPA公式11分類＋SUP-01〜06のソース確認</td><td>監査項目表とソース行の根拠</td><td>要確認を含む工程完了。実環境・動作は未確認</td></tr>
+<tr><td>cloudflare-source</td><td>yes</td><td>yes</td><td>complete</td><td>共有・MCP・キャッシュ・クーポン・可用性を含む信頼境界のソース確認</td><td>監査項目表・Q1〜Q7</td><td>sourceプロファイルのみ。Cloudflare full auditとサービス設定の監査は未実施</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="frameworks">
+      <h2 id="frameworks">フレームワーク対応</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>IPA分類とCloudflare-authored監査手法の対象・状態</caption>
+          <thead><tr><th scope="col">フレームワーク／分類</th><th scope="col">対象項目</th><th scope="col">状態</th><th scope="col">根拠・制約</th></tr></thead>
+          <tbody><tr><td>IPA公式11分類</td><td>IPA-1.1〜IPA-1.11</td><td>OK 7／要確認 2／対象外 2</td><td>入力・認証・描画・ファイル・権限をソースから確認</td></tr>
+<tr><td>補足観点</td><td>SUP-01〜SUP-06</td><td>OK 3／要確認 3</td><td>IPA公式分類とは別。ブラウザー・秘密・ログ・依存・配備</td></tr>
+<tr><td>Cloudflare-authored source methodology</td><td>IPA/SUPへのCFSA対応＋CFSA-AVAIL/SHARE/MCP/CACHE/COUPON各01</td><td>追加5項目：OK 2／要確認 3</td><td>Cloudflare製品のアカウント監査ではなく、公開手法を使ったソース確認</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="audit-items">
+      <h2 id="audit-items">監査項目</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>何を、どの方法で監査し、なぜその判定になったか</caption>
+          <thead><tr><th scope="col">ID</th><th scope="col">Frameworks</th><th scope="col">区分</th><th scope="col">監査対象</th><th scope="col">監査方法</th><th scope="col">実施</th><th scope="col">判定</th><th scope="col">判定理由</th><th scope="col">証拠</th><th scope="col">未検証・gap</th></tr></thead>
+          <tbody><tr><td>IPA-1.1</td><td>IPA-1.1, CFSA:data-isolation</td><td>入力でデータベースを不正に操作できないか</td><td>API・管理集計・共有・MCP・取込のSQL</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>利用者入力はSQLの命令文と分けて渡します。検索条件や共有写真の結合先などの可変部分は、プログラム内の固定候補だけです。</td><td>src/server/app.ts:80-85; src/server/admin.ts:86-105; src/server/sharing.ts:21-25,81-87; src/server/analytics.ts:40-133; src/server/importer.ts:450-485</td><td>実DBでの拒否動作は今回未検証／判断の確認先：Q7</td></tr>
+<tr><td>IPA-1.2</td><td>IPA-1.2, CFSA:supply-chain</td><td>入力でパソコンの命令を勝手に実行できないか</td><td>Web/APIからのプロセス起動</td><td>起動機構の検索とpackage scripts・入口処理を確認</td><td>yes</td><td>対象外</td><td>アプリのソースにOSコマンド起動の経路は検出されず、package.jsonの開発・起動処理も固定コマンドです。</td><td>src/server・src/client・src/sharedのchild_process/execFile/spawn等の検索; package.json:11-24</td><td>外部コマンド実行機能を追加した場合は再監査／判断の確認先：—</td></tr>
+<tr><td>IPA-1.3</td><td>IPA-1.3, CFSA:data-isolation</td><td>許可されていないファイルを読み書きできないか</td><td>個人写真・公式写真・共有写真・管理用ファイル</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>写真名はシステムが作った識別子と.webpに限定し、保存先を確認します。共有写真も公開範囲との照合後に限定した名前だけを使います。取込・migrationのファイル名は固定または管理ファイルです。</td><td>src/server/app.ts:45-52,143-179; src/server/sharing.ts:81-93; src/server/importer.ts:291-309; src/server/db-cli.ts:9-15</td><td>保存先の権限・シンボリックリンク等の実環境はQ3で確認／判断の確認先：Q3・Q7</td></tr>
+<tr><td>IPA-1.4</td><td>IPA-1.4, CFSA:web-auth-session</td><td>ログインした本人を適切に確認できるか</td><td>ログイン・ログアウト・セッション</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>32バイト乱数、ハッシュ保存、12時間の期限、ログアウト失効を確認しました。ただし固定コード1111と暗号化通信専用でないCookieは、ローカルデモでの利用が前提です。</td><td>src/server/app.ts:73-98; src/server/index.ts:3-5; docs/security.md「個人情報と固定コード」</td><td>PCの利用者、外部への中継、実在の利用者データの有無が不明／判断の確認先：Q1</td></tr>
+<tr><td>IPA-1.5</td><td>IPA-1.5, CFSA:client-side</td><td>コメントや名称から危険なプログラムを実行されないか</td><td>編集画面・共有画面・管理画面・スポット詳細</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>コメント・名称・説明は通常のReactテキスト表示です。生のHTMLを挿入する経路は検出されません。画像の選択先は固定素材または検証済みのAPI参照です。</td><td>src/client/App.tsx:844-861,904,1058,1072,1121-1124; SpotDetailDialog.tsx:89-94; src/server/admin.ts:19-28; app.ts:54-58</td><td>ブラウザーでの不正文字列の表示確認は未実施／判断の確認先：Q7</td></tr>
+<tr><td>IPA-1.6</td><td>IPA-1.6, CFSA:web-auth-session</td><td>別のサイトから勝手に保存などをさせられないか</td><td>保存・共有・クーポン・管理更新・MCP</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>APIの変更操作は送信元と専用ヘッダーを要求し、CookieにはSameSite=Strictを設定します。MCPはCookieとは別の接続キーと送信元確認を使います。</td><td>src/server/app.ts:60-69,86; src/server/mcp.ts:76-102; src/client/App.tsx:67-75; sharing-api.ts:1-5</td><td>送信元がない・違う・ヘッダー不足の場合の実際の拒否動作は未検証／判断の確認先：Q7</td></tr>
+<tr><td>IPA-1.7</td><td>IPA-1.7, CFSA:web-protocol</td><td>通信の付加情報を不正に書き換えられないか</td><td>応答ヘッダー・Cookie・画像形式</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>保護ヘッダーと画像形式は固定値です。If-Matchは整数として保存版の確認に使います。MCPの待機時間表示も数値から作ります。</td><td>src/server/app.ts:54-64,105-107; src/server/mcp.ts:85,94,115</td><td>実際の中継設定によるヘッダー変更は未確認／判断の確認先：Q3・Q7</td></tr>
+<tr><td>IPA-1.8</td><td>IPA-1.8</td><td>メールの宛先などを不正に変えられないか</td><td>メール送信</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>対象外</td><td>メール送信機能やメール送信用の部品はありません。メールアドレスはログイン照合や取込の値として扱います。</td><td>package.json:26-55; src/server/app.ts:79-82; ソースのSMTP・MIME送信機構の確認</td><td>メール送信機能を追加した場合は再監査／判断の確認先：—</td></tr>
+<tr><td>IPA-1.9</td><td>IPA-1.9, CFSA:client-side</td><td>偽の画面に重ねて意図しない操作をさせられないか</td><td>全画面とスマホデモの埋込み例外</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>通常画面は他のページの枠内表示を拒否します。スマホデモの限定パスだけ、同じサイト内からの埋込みを許可しています。外部サイトへの許可はありません。</td><td>src/server/app.ts:54-58; src/shared/mobile-demo.ts:1-11; src/client/MobileDemo.tsx:13-14,66</td><td>通常画面とデモ用画面それぞれの実ブラウザー検証は未実施／判断の確認先：Q7</td></tr>
+<tr><td>IPA-1.10</td><td>IPA-1.10, CFSA:memory-binary, CFSA:supply-chain</td><td>壊れた画像などで画像処理部品に問題が起きないか</td><td>画像を処理するSharp・関連部品</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>形式・5MB・縦横6000px・2400万画素・単一静止画を確認し、画像を再変換します。ただしSharp等の内部処理と現在の部品の既知の問題は、この確認だけでは判断できません。</td><td>src/server/app.ts:26-41; package.json:37; pnpm-lock.yaml:41-43</td><td>現行lockと実際に使用する画像処理部品の版、既知の問題、隔離環境での拒否動作が未確認／判断の確認先：Q2</td></tr>
+<tr><td>IPA-1.11</td><td>IPA-1.11, CFSA:data-isolation, CFSA:web-auth-session</td><td>他人のデータや管理者機能を勝手に使えないか</td><td>所有者・役割・共有URL・分析接続の境界</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>利用者はセッションから特定し、写真・編集・クーポンは本人の冊子と照合します。町管理機能は町権限を確認します。公開共有は有効なURLと掲載範囲を照合し、MCPは有効な町管理者キーを確認します。</td><td>src/server/app.ts:90-179; src/server/brochures.ts:57-88; src/server/admin.ts:52-58; src/server/gifts.ts:20-24,43-81; src/server/sharing.ts:21-33,81-132; src/server/mcp-keys.ts:59-65</td><td>別利用者・期限切れ・失効直後の実行検査は未実施／判断の確認先：Q7</td></tr>
+<tr><td>SUP-01</td><td>SUP-01, CFSA:client-side</td><td>別のサイトからデータを読み取られないか</td><td>CORS・送信元の制約</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>別サイトからの読取許可を発行せず、画面は同一サイトのAPIを使用します。MCPも送信元が付く場合は許可した値と照合します。</td><td>src/server/app.ts:60-69; src/server/mcp.ts:78-86; src/client/sharing-api.ts:1-5</td><td>別サイトへのアクセス許可や中継設定を追加する場合は再監査／判断の確認先：Q7</td></tr>
+<tr><td>SUP-02</td><td>SUP-02, CFSA:client-side</td><td>ブラウザー側で情報が残ったり別サイトへ渡ったりしにくいか</td><td>Cookie以外のブラウザー保存・キャッシュ・埋込み</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>API・MCP応答は保存しない設定、外部への参照元通知はしない設定です。画面内の保存領域・他ページとのメッセージ交換は検出されず、デモ埋込み先も固定の同一サイト内です。</td><td>src/server/app.ts:54-61; src/server/mcp.ts:76-81; src/client/MobileDemo.tsx:13-14,66; AdminMcp.tsx:81</td><td>端末・ブラウザー自身の保存、コピー後の情報回収は保証しません／判断の確認先：Q5・Q7</td></tr>
+<tr><td>SUP-03</td><td>SUP-03, CFSA:cloud-deployment</td><td>秘密の設定やデモ用設定を適切に扱っているか</td><td>秘密情報・固定デモ認証・接続キー</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>秘密の設定や写真・作業用領域はGitと開発サーバーの公開対象から除外する設定があります。接続キーは乱数で発行しハッシュだけを保存します。ただし固定ログインコードが安全かは利用範囲に依存します。</td><td>.gitignore:1-19; vite.config.ts:9-11; src/server/app.ts:81,86; src/server/mcp-keys.ts:37-48; src/client/AdminMcp.tsx:91-97</td><td>実際の秘密値は未読。利用範囲、設定の管理方法はQ1で判断／判断の確認先：Q1</td></tr>
+<tr><td>SUP-04</td><td>SUP-04, CFSA:data-isolation</td><td>エラー表示やログに個人情報が出ないか</td><td>エラー・サーバーログ・操作記録</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>API・MCPの異常応答は定型文です。管理記録は操作者ID・操作種別・対象・日時に絞ります。CSV検証エラーも入力値を含めず、ファイル区分や行番号を案内する形式です。</td><td>src/server/app.ts:183-191; src/server/mcp.ts:37-39,100,117-119; src/server/admin.ts:35-36; src/server/importer.ts:233-283; src/server/import-cli.ts:34-39</td><td>実際のログ本文・外部のログ収集設定は読んでいません／判断の確認先：Q3</td></tr>
+<tr><td>SUP-05</td><td>SUP-05, CFSA:supply-chain</td><td>使用部品に既知の危険な問題がないか</td><td>MCP SDKを含む現在の依存部品</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>直接依存の版は固定され、lockfileに整合性情報があります。自動ビルドを許可する部品も限定されています。ただし現在のlockfileに対する最新の既知問題との照合は行っていません。</td><td>package.json:6-10,26-55; pnpm-lock.yaml:7-89,94; pnpm-workspace.yaml:1-2</td><td>以前のnpm audit記録を現在のpnpm lockの結果としては扱えません／判断の確認先：Q2</td></tr>
+<tr><td>SUP-06</td><td>SUP-06, CFSA:cloud-deployment, CFSA:data-isolation</td><td>実際の接続設定・権限・バックアップからの復旧は適切か</td><td>配備・通信・DB権限・バックアップ</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>アプリ・開発サーバー・ComposeのDBは設定上ローカル端末向けです。DBと画像を同じ時点に戻す手順もあります。ただし実際の接続範囲・権限・保管・復元結果はソースでは証明できません。</td><td>src/server/index.ts:3-5; vite.config.ts:6-11; compose.yaml:8-9; docs/database.md:71-79</td><td>外部への中継、実際のDB/画像権限、バックアップの保護と復元証跡が不足／判断の確認先：Q1・Q3</td></tr>
+<tr><td>CFSA-AVAIL-01</td><td>CFSA:resource-exhaustion</td><td>同時処理や大きなデータで停止しないか</td><td>画像・CSV・共有キャッシュ・MCP集計</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>1回のJSON・画像・CSVサイズ、ログイン頻度、MCP頻度・集計期間・SQL時間には制限があります。一方、画像処理とキャッシュ未登録の読込み全体の同時数は制限できていると判断できません。CSVの20MiB判定は全体読込後です。</td><td>src/server/app.ts:26,34-41,69,74-78; src/server/mcp.ts:89-103; src/server/analytics.ts:17-25,29-36; src/server/public-content-cache.ts:32-65; src/server/importer.ts:17,249-251,291-305</td><td>保存済みキャッシュ32MiB/128件は、処理中の全メモリーや同時数の上限ではありません／判断の確認先：Q4</td></tr>
+<tr><td>CFSA-SHARE-01</td><td>CFSA:data-isolation, CFSA:web-auth-session</td><td>共有する情報とURLの扱いが利用者の意図に合うか</td><td>共有情報・公開停止・同じURLでの再開</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>共有先には保存済みの掲載写真・コメントと、選んだ思い出の最新訪問日時・スタンプ状態が渡ります。アンケートやアカウント情報は渡しません。停止後の再開では同じURLが再び有効になります。</td><td>src/server/sharing.ts:21-68,107-132; src/client/SharePanel.tsx:44-79; docs/spec.md:123-132</td><td>URLを知る人が閲覧できる範囲、継続更新、再開時に旧URLが有効になる方針への承認が不明／判断の確認先：Q5</td></tr>
+<tr><td>CFSA-MCP-01</td><td>CFSA:data-isolation, CFSA:web-auth-session</td><td>分析連携で渡す情報とキーの管理方針は適切か</td><td>MCPの分析出力と管理キー</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>要確認</td><td>町管理者キーの期限・失効・現在の権限を照合し、集計は読取専用です。メール・氏名・本文・画像・共有URLは返さない構造です。ただし少人数の集計からの推測や、接続先へ渡すことへの承認は別途確認が必要です。</td><td>src/server/mcp-keys.ts:22-65; src/server/mcp.ts:13-26,28-67,73-119; src/server/analytics.ts:29-134; src/client/AdminMcp.tsx:79-80</td><td>提供してよい集計範囲、少数件の扱い、キー保管担当者・接続先の承認が不明／判断の確認先：Q6</td></tr>
+<tr><td>CFSA-CACHE-01</td><td>CFSA:data-isolation, CFSA:resource-exhaustion</td><td>共有キャッシュから非公開情報や停止後の情報が出ないか</td><td>共有本文・写真のキャッシュ</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>公開状態と閲覧者を毎回確認し、作者向け応答はキャッシュを使いません。写真も掲載範囲を照合します。更新時の破棄と世代判定があり、古い読込を再格納しません。</td><td>src/server/sharing.ts:38-68,81-93; src/server/public-content-cache.ts:20-65,74-84; docs/spec.md:134-140</td><td>単一プロセスが前提。DB直接更新・別プロセス変更は再起動が必要。更新前の進行中応答は取消されません／判断の確認先：Q4・Q5・Q7</td></tr>
+<tr><td>CFSA-COUPON-01</td><td>CFSA:data-isolation, CFSA:web-auth-session</td><td>クーポンを他人として使ったり重複記録したりできないか</td><td>クーポン表示・本人申告・二重記録防止</td><td>入力から保護の仕組み・処理先までソースを確認</td><td>yes</td><td>OK</td><td>利用者本人の冊子・公開状態・コード発行済みを確認し、本人とスポットの組合せを一度だけ記録します。共有先の非作者には利用情報を返しません。本人の申告であり来訪の証明ではない仕様です。</td><td>src/server/gifts.ts:20-24,43-81; db/migrations/004_spot_gift_claims.sql:3-8; src/server/sharing.ts:41-66; docs/spec.md:117-121</td><td>同時要求・再送時の実行検査は未実施。店舗での本人確認・実来訪の認定は対象外／判断の確認先：Q7</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="ipa-mapping">
+      <h2 id="ipa-mapping">IPA 11項目対応表</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>IPA公式11分類の判定と所見対応</caption>
+          <thead><tr><th scope="col">IPA ID</th><th scope="col">分類</th><th scope="col">判定</th><th scope="col">所見ID</th><th scope="col">証拠</th><th scope="col">判定理由</th></tr></thead>
+          <tbody><tr><td>IPA-1.1</td><td>SQLインジェクション</td><td>OK</td><td>—</td><td>src/server/app.ts:80-85; src/server/admin.ts:86-105; src/server/sharing.ts:21-25,81-87; src/server/analytics.ts:40-133; src/server/importer.ts:450-485</td><td>利用者入力はSQLの命令文と分けて渡します。検索条件や共有写真の結合先などの可変部分は、プログラム内の固定候補だけです。</td></tr>
+<tr><td>IPA-1.2</td><td>OSコマンド・インジェクション</td><td>対象外</td><td>—</td><td>src/server・src/client・src/sharedのchild_process/execFile/spawn等の検索; package.json:11-24</td><td>アプリのソースにOSコマンド起動の経路は検出されず、package.jsonの開発・起動処理も固定コマンドです。</td></tr>
+<tr><td>IPA-1.3</td><td>ディレクトリ・トラバーサル</td><td>OK</td><td>Q3</td><td>src/server/app.ts:45-52,143-179; src/server/sharing.ts:81-93; src/server/importer.ts:291-309; src/server/db-cli.ts:9-15</td><td>写真名はシステムが作った識別子と.webpに限定し、保存先を確認します。共有写真も公開範囲との照合後に限定した名前だけを使います。取込・migrationのファイル名は固定または管理ファイルです。</td></tr>
+<tr><td>IPA-1.4</td><td>セッション管理</td><td>要確認</td><td>Q1</td><td>src/server/app.ts:73-98; src/server/index.ts:3-5; docs/security.md「個人情報と固定コード」</td><td>32バイト乱数、ハッシュ保存、12時間の期限、ログアウト失効を確認しました。ただし固定コード1111と暗号化通信専用でないCookieは、ローカルデモでの利用が前提です。</td></tr>
+<tr><td>IPA-1.5</td><td>XSS</td><td>OK</td><td>—</td><td>src/client/App.tsx:844-861,904,1058,1072,1121-1124; SpotDetailDialog.tsx:89-94; src/server/admin.ts:19-28; app.ts:54-58</td><td>コメント・名称・説明は通常のReactテキスト表示です。生のHTMLを挿入する経路は検出されません。画像の選択先は固定素材または検証済みのAPI参照です。</td></tr>
+<tr><td>IPA-1.6</td><td>CSRF</td><td>OK</td><td>—</td><td>src/server/app.ts:60-69,86; src/server/mcp.ts:76-102; src/client/App.tsx:67-75; sharing-api.ts:1-5</td><td>APIの変更操作は送信元と専用ヘッダーを要求し、CookieにはSameSite=Strictを設定します。MCPはCookieとは別の接続キーと送信元確認を使います。</td></tr>
+<tr><td>IPA-1.7</td><td>HTTPヘッダ・インジェクション</td><td>OK</td><td>Q3</td><td>src/server/app.ts:54-64,105-107; src/server/mcp.ts:85,94,115</td><td>保護ヘッダーと画像形式は固定値です。If-Matchは整数として保存版の確認に使います。MCPの待機時間表示も数値から作ります。</td></tr>
+<tr><td>IPA-1.8</td><td>メールヘッダ・インジェクション</td><td>対象外</td><td>—</td><td>package.json:26-55; src/server/app.ts:79-82; ソースのSMTP・MIME送信機構の確認</td><td>メール送信機能やメール送信用の部品はありません。メールアドレスはログイン照合や取込の値として扱います。</td></tr>
+<tr><td>IPA-1.9</td><td>クリックジャッキング</td><td>OK</td><td>—</td><td>src/server/app.ts:54-58; src/shared/mobile-demo.ts:1-11; src/client/MobileDemo.tsx:13-14,66</td><td>通常画面は他のページの枠内表示を拒否します。スマホデモの限定パスだけ、同じサイト内からの埋込みを許可しています。外部サイトへの許可はありません。</td></tr>
+<tr><td>IPA-1.10</td><td>バッファオーバーフロー／画像処理</td><td>要確認</td><td>Q2</td><td>src/server/app.ts:26-41; package.json:37; pnpm-lock.yaml:41-43</td><td>形式・5MB・縦横6000px・2400万画素・単一静止画を確認し、画像を再変換します。ただしSharp等の内部処理と現在の部品の既知の問題は、この確認だけでは判断できません。</td></tr>
+<tr><td>IPA-1.11</td><td>アクセス制御／認可</td><td>OK</td><td>—</td><td>src/server/app.ts:90-179; src/server/brochures.ts:57-88; src/server/admin.ts:52-58; src/server/gifts.ts:20-24,43-81; src/server/sharing.ts:21-33,81-132; src/server/mcp-keys.ts:59-65</td><td>利用者はセッションから特定し、写真・編集・クーポンは本人の冊子と照合します。町管理機能は町権限を確認します。公開共有は有効なURLと掲載範囲を照合し、MCPは有効な町管理者キーを確認します。</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="confirmed">
+      <h2 id="confirmed">NG: 確定した問題</h2>
+      <div class="stack"><p>今回確認したソースの範囲で、確定したNGはありません。未確認の実環境・動作・公開方針を含めて安全とした判断ではありません。</p></div>
+    </section>
+
+    <section aria-labelledby="validation">
+      <h2 id="validation">要確認: 候補と追加確認</h2>
+      <div class="stack"><p>確認不足を根本原因ごとにQ1〜Q6へ整理しました。各項目の確認事項・方法・判断条件・証拠は冒頭の「何を確認すれば判断できるか」を参照してください。Q7は追加の動作確認計画です。回答や証拠がなければ要確認を維持します。</p></div>
+    </section>
+
+    <section aria-labelledby="limitations">
+      <h2 id="limitations">制約・対象外・未実施</h2>
+      <div class="stack"><ul><li>対象はソースと関連文書です。実際のサービスの安全性、公開可能性、未知の脆弱性の不存在を保証しません。</li><li>アプリ・テスト・ビルド・ブラウザー・画像parser・fixture・DBは実行せず、3001番へも接続していません。ソース確認を通常製品テストの合格に置き換えていません。</li><li>現行lockfileに対する外部advisoryの最新照合は未実施です。過去の別manifest・別lockfileの検証記録を流用していません。</li><li>Passwordで始まるファイル、秘密の設定、元CSV、実際の利用者の氏名・メール・自由回答、DB実データ、写真・uploadsは開いていません。compose設定やDB関連ソースも資格情報を出力しない項目に限定しました。</li><li>Cloudflare account・WAF・DNS・CDN・Workers・外部の設定やlive control planeは対象外です。</li><li>同梱security-auditのfull auditではありません。6段階の独立エージェント監査やfull用validatorは実施していません。</li><li>OS強制sandboxがないため、監査スキルの条件を満たす実行検査はできません。今回の確認でDocker・Podman・Windows Sandbox・bwrap・nsjailは利用可能と確認できませんでした。</li><li>実行検査の停止条件はweb-security-audit/SKILL.mdの「Run target-controlled builds, tests, processes, browsers, parsers, fixtures, or generated code only when every sandbox control required by security-audit is present」に基づきます。</li><li>同梱security-audit/SKILL.mdは「If every control cannot be enforced, do not execute target code」と規定しています。Q7は条件を満たした後に行う専用環境での計画です。</li><li>OSコマンド起動・メール送信は今回のアプリに経路がないため対象外です。欠けた保護を根拠なくNGにはしていません。</li></ul></div>
+    </section>
+
+    <section aria-labelledby="artifacts">
+      <h2 id="artifacts">成果物と再現情報</h2>
+      <div class="stack"><ul><li>REPORT.mdとREPORT.htmlはaudit-data.json内の同じ22項目・質問・件数から生成しています。</li><li>run-metadata.jsonに対象コミット・dirty状態・67ファイルの相対パスとSHA256を記録しています。ファイル一覧は確認対象の版を特定するためのもので、全ファイルを全行同じ深さで読んだという主張ではありません。</li><li>主な確認対象：src/server/app.ts、brochures.ts、admin.ts、admin-details.ts、sharing.ts、public-content-cache.ts、gifts.ts、mcp.ts、mcp-keys.ts、analytics.ts、validation.ts、importer.tsの関連箇所、src/clientの入力・表示・共有・キー管理・スマホデモ、関連migration・manifest/lockfile・設計文書。</li><li>ソース検索：SQL・プロセス起動・ファイルパス・画像・HTML/DOM挿入・ブラウザー保存・通信・Cookie・Origin・権限・ログ。検出箇所は入口と保護処理へ追跡しました。</li><li>監査中にdocs/spec.md・docs/design.md・src/client/App.tsxの3ファイルが更新されたため再確認しました。ログイン画面のデモ用メール初期入力、スマホ表示と操作ラベルの記述を読み直し、保護の判定に変更がないことを確認して、対象hashと生成日時を更新しました。</li><li>22 canonical items = OK 12 + NG 0 + 要確認 8 + 未実施 0 + 対象外 2。Q7の実行検査は今回のソース件数には含めません。</li></ul></div>
+    </section>
+
+    <section aria-labelledby="provenance">
+      <h2 id="provenance">出所</h2>
+      <div class="stack"><ul><li><a href="https://www.ipa.go.jp/security/vuln/websecurity/about.html">IPA「安全なウェブサイトの作り方」11分類</a></li><li><a href="https://github.com/cloudflare/security-audit-skill">Cloudflare-authored security-audit methodology</a></li><li>同梱Cloudflare vendor revision: <code>c1c8a8c1471069fb0e188eeaff69b8e8db6564a8</code>。分類と手法は同梱固定版に従います。今回、外部の最新advisoryを調べた結果ではありません。</li><li>監査用のプロジェクト固有スキルとテンプレートを使用。公式vendorは改変していません。</li></ul></div>
+    </section>
+  </details>
+</main>
+
+  <footer>
+    <p>生成元: <code>web-security-audit</code> / web-security-audit 同梱版／Cloudflare vendor c1c8a8c1471069fb0e188eeaff69b8e8db6564a8</p>
+  </footer>
+</body>
+</html>

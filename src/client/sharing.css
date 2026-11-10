@@ -6,3 +6,7 @@
 .shared-page .brochure-footer small { display: none; }.shared-page .brochure-footer::after { content: '共有パンフレット・ローカルデモ専用'; font-size: .7rem; }
 @media (max-width: 700px) { .share-panel { margin: 12px; padding: 16px; }.share-panel-heading > .button { width: 100%; }.shared-page-state { margin: 20px 12px; }.shared-page .preview-toolbar { flex-wrap: wrap; gap: 12px; } }
 @media print { .share-panel { display: none; } }
+
+.shared-page-home { min-height: 44px; text-decoration: none; border-radius: 6px; }
+.shared-page-home:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.shared-page-home:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }

@@ -31,8 +31,9 @@ export function SharedPage() {
   }, [data, token, requestId]);
   const spot = data?.spots.find(value => value.id === detailId);
   const item = data?.brochure.items.find(value => value.spotId === detailId);
+  const homeHref = window.location.pathname.startsWith('/demo/mobile/') ? '/demo/mobile/app' : '/';
   return <div className="app-shell preview-mode shared-page">
-    <header className="preview-toolbar"><div className="preview-toolbar-title"><Eye aria-hidden="true" /><span><strong>共有パンフレット</strong><small>今度はあなたと</small></span></div><a className="button button-outline" href="/">{data?.viewerIsOwner ? '編集画面へ' : 'ログイン画面へ'}</a></header>
+    <header className="preview-toolbar"><a className="preview-toolbar-title shared-page-home" href={homeHref} aria-label="今度はあなたと トップページへ"><Eye aria-hidden="true" /><span><strong>共有パンフレット</strong><small>今度はあなたと</small></span></a><a className="button button-outline" href="/">{data?.viewerIsOwner ? '編集画面へ' : 'ログイン画面へ'}</a></header>
     {error ? <main className="shared-page-state"><h1>パンフレットを表示できませんでした</h1><p role="alert">{error}</p>{token && <button className="button" onClick={() => setVersion(value => value + 1)}><RefreshCw aria-hidden="true" />再試行</button>}</main>
       : !data ? <main className="shared-page-state" role="status">共有パンフレットを読み込んでいます</main>
       : <main className="editor-main"><BrochurePaper draft={data.brochure} spots={data.spots} visits={data.memoryVisits} survey={null} onOpen={setDetailId} /></main>}

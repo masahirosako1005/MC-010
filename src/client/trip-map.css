@@ -1,6 +1,8 @@
 .trip-map {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  max-width: 100%;
   margin: 0 0 28px;
   padding: 18px;
   border: 1px solid var(--line);
@@ -11,8 +13,8 @@
 .trip-map-heading { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
 .trip-map-heading > svg { flex: 0 0 28px; width: 28px; height: 28px; color: var(--orange); }
 .trip-map-heading h2 { margin: 0; font: 900 1.55rem/1.4 var(--font-rounded); background: linear-gradient(transparent 78%, var(--yellow-soft) 78%); }
-.trip-map-figure { width: min(100%, 1040px); min-width: 0; margin: 0 auto; }
-.trip-map-canvas { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; background: var(--paper-deep); }
+.trip-map-figure { width: 100%; max-width: 1040px; min-width: 0; margin: 0 auto; }
+.trip-map-canvas { position: relative; width: 100%; max-width: 100%; min-width: 0; aspect-ratio: 4 / 3; border-radius: 12px; background: var(--paper-deep); }
 .trip-map-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
 .trip-map-route { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .trip-map-route-mobile { display: none; }
@@ -24,17 +26,17 @@
 .trip-map-eat { --map-color: var(--orange); --map-soft: var(--orange-soft); }
 .trip-map-relax { --map-color: #74c6dd; --map-soft: #e5f7fb; }
 .trip-map-buy { --map-color: #aa85cf; --map-soft: #f1eafa; }
-.trip-map-marker { position: absolute; left: var(--marker-x); top: var(--marker-y); z-index: 1; display: grid; width: 25%; max-width: 260px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 12px; color: var(--ink); background: transparent; text-align: left; transform: translate(-50%, -22px); cursor: pointer; }
-.trip-map-marker-heading { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 44px; }
+.trip-map-marker { position: absolute; left: var(--marker-x); top: var(--marker-y); z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); width: 25%; max-width: 260px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 12px; color: var(--ink); background: transparent; text-align: left; transform: translate(-50%, -22px); cursor: pointer; }
+.trip-map-marker-heading { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; max-width: 100%; min-height: 44px; }
 .trip-map-marker-heading > strong { padding: 5px 9px 5px 7px; border: 2px solid var(--map-color); border-radius: 18px; background: var(--surface); font: 900 clamp(.85rem, 1.7vw, 1.2rem)/1.1 var(--font-rounded); white-space: nowrap; box-shadow: 0 2px 5px rgb(68 35 18 / 15%); }
 .trip-map-pin { flex: 0 0 31px; display: grid; place-items: center; width: 31px; height: 31px; border: 2px solid var(--surface); border-radius: 50% 50% 50% 3px; color: var(--ink); background: var(--map-color); transform: rotate(-45deg); box-shadow: 0 2px 5px rgb(68 35 18 / 18%); }
 .trip-map-pin > span { font: 900 1rem/1 var(--font-rounded); transform: rotate(45deg); }
-.trip-map-callout { display: grid; gap: 4px; min-width: 0; padding: 9px 10px; border: 1px solid var(--map-color); border-radius: 4px 12px 12px; background: rgb(255 253 248 / 94%); box-shadow: 0 3px 10px rgb(68 35 18 / 14%); }
+.trip-map-callout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; width: 100%; min-width: 0; max-width: 100%; padding: 9px 10px; border: 1px solid var(--map-color); border-radius: 4px 12px 12px; background: rgb(255 253 248 / 94%); box-shadow: 0 3px 10px rgb(68 35 18 / 14%); }
 .trip-map-marker:hover .trip-map-callout, .trip-map-marker:focus-visible .trip-map-callout { background: var(--map-soft); }
 .trip-map-marker:active .trip-map-callout { box-shadow: inset 0 0 0 2px var(--map-color); }
 .trip-map-figure figcaption { margin-top: 9px; color: var(--ink-soft); text-align: center; font: 800 .8rem/1.5 var(--font-rounded); }
-.trip-map-place-name { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font: 900 .95rem/1.4 var(--font-rounded); overflow-wrap: anywhere; }
-.trip-map-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ink-soft); font-size: .78rem; line-height: 1.5; overflow-wrap: anywhere; }
+.trip-map-place-name { display: -webkit-box; min-width: 0; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font: 900 .95rem/1.4 var(--font-rounded); overflow-wrap: anywhere; }
+.trip-map-description { display: -webkit-box; min-width: 0; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--ink-soft); font-size: .78rem; line-height: 1.5; overflow-wrap: anywhere; }
 .template-postcard .trip-map { border-radius: 3px; box-shadow: none; }
 
 @media (max-width: 820px) {

@@ -2,14 +2,16 @@ import { MapPinned } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { EXPERIENCE_CATEGORIES, type ExperienceCategory } from '../shared/experience-categories';
 import type { BrochureItem, Spot } from '../shared/types';
+import { spotListDescription } from '../shared/spot-copy';
 import './trip-map.css';
 
-const positions: Record<ExperienceCategory, { x: number; y: number; mobileX: number; mobileY: number }> = {
-  see: { x: 25, y: 16, mobileX: 25, mobileY: 16 },
-  play: { x: 65, y: 10, mobileX: 68, mobileY: 9 },
-  eat: { x: 80, y: 41, mobileX: 78, mobileY: 41 },
-  relax: { x: 73, y: 74, mobileX: 72, mobileY: 74 },
-  buy: { x: 25, y: 68, mobileX: 25, mobileY: 68 },
+// Callouts use their top-left corner; the route runs between separate points below them.
+const positions: Record<ExperienceCategory, { left: number; top: number; width: number; x: number; y: number }> = {
+  see: { left: 15, top: 5, width: 32, x: 22, y: 35 },
+  play: { left: 53, top: 1, width: 43, x: 60, y: 31 },
+  eat: { left: 67, top: 34, width: 32, x: 81, y: 64 },
+  relax: { left: 59, top: 67, width: 40, x: 69, y: 97 },
+  buy: { left: 15, top: 58, width: 35, x: 23, y: 88 },
 };
 
 function routePath(points: Array<{ x: number; y: number }>) {
@@ -35,10 +37,7 @@ export function TripMap({ selected, spotsById, onOpen }: TripMapProps) {
   });
   if (!entries.length) return null;
 
-  const routes = {
-    desktop: routePath(entries.map(({ position }) => position)),
-    mobile: routePath(entries.map(({ position }) => ({ x: position.mobileX, y: position.mobileY }))),
-  };
+  const route = routePath(entries.map(({ position }) => position));
 
   return <section className="trip-map" aria-labelledby="trip-map-title">
     <div className="trip-map-heading"><MapPinned aria-hidden="true" /><h2 id="trip-map-title">旅の全体像</h2></div>
@@ -47,18 +46,22 @@ export function TripMap({ selected, spotsById, onOpen }: TripMapProps) {
         <picture className="trip-map-artwork">
           <img className="trip-map-art" src="/assets/trip-overview-map-v1.webp" alt="" width="1440" height="1080" loading="lazy" />
         </picture>
-        {Object.entries(routes).map(([layout, route]) => <svg key={layout} className={`trip-map-route trip-map-route-${layout}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <svg className="trip-map-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <path d={route} className="trip-map-route-halo" vectorEffect="non-scaling-stroke" />
           <path d={route} className="trip-map-route-line" vectorEffect="non-scaling-stroke" />
-        </svg>)}
+          {entries.map(({ item, position }) => <circle key={item.id} cx={position.x} cy={position.y} r="1.6" className="trip-map-route-stop" vectorEffect="non-scaling-stroke" />)}
+        </svg>
         {entries.map(({ item, category, spot, position }, index) => <button key={item.id} type="button"
           className={`trip-map-marker trip-map-${category.id}`} style={{
-            '--marker-x': `${position.x}%`, '--marker-y': `${position.y}%`,
-            '--marker-mobile-x': `${position.mobileX}%`, '--marker-mobile-y': `${position.mobileY}%`,
+            '--marker-left': `${position.left}%`, '--marker-top': `${position.top}%`,
+            '--marker-width': `${position.width}%`,
           } as CSSProperties}
           aria-label={`マップの${index + 1}番、${category.label}：${spot.name}の詳細を表示`} title={spot.name} onClick={() => onOpen(spot.id)}>
           <span className="trip-map-marker-heading"><span className="trip-map-pin"><span>{index + 1}</span></span><strong>{category.label}</strong></span>
-          <strong className="trip-map-place-name" title={spot.name}>{spot.name}</strong>
+          <span className="trip-map-callout">
+            <strong className="trip-map-place-name" title={spot.name}>{spot.name}</strong>
+            <span className="trip-map-description">{spotListDescription(spot)}</span>
+          </span>
         </button>)}
       </div>
       <figcaption>{entries.length}つの楽しみを、ひとめぐり。</figcaption>

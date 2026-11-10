@@ -9,7 +9,7 @@ import { getBrochure, getSpots, getVisits } from './brochures.js';
 import { transaction } from './db.js';
 import { AppError } from './errors.js';
 import { uuidSchema } from './validation.js';
-import { PublicContentCache } from './public-content-cache.js';
+import { PublicContentCache, type PublicContentResult } from './public-content-cache.js';
 
 type DB = Pick<pg.PoolClient, 'query'>;
 const exposedItem = `(i.selected OR (i.kind='visited' AND i.is_memory))`;
@@ -36,13 +36,15 @@ async function optionalViewer(db: DB, req: Request): Promise<string | null> {
 export function createPublicShareRouter(db: pg.Pool, uploadDir: string, cache = new PublicContentCache()) {
   const router = Router(), root = path.resolve(uploadDir);
   router.get('/shared/:token', async (req, res) => {
-    // Check publication and the current session even on a cache hit. Owner-only coupon
-    // visibility is generated separately and never enters the shared cache.
-    const share = await publicShare(db, req.params.token);
-    const viewerIsOwner = await optionalViewer(db, req) === share.user_id;
-    const load = () => transaction(async client => {
+    const token = req.params.token;
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw notFound();
+    // Anonymous hits do not query the DB. Authenticated identity is still verified,
+    // and owner-only content is generated separately from the public snapshot.
+    const viewerId = await optionalViewer(db, req);
+    const load = (viewerId: string | null) => transaction(async client => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
-      const share = await publicShare(client, req.params.token);
+      const share = await publicShare(client, token);
+      const viewerIsOwner = viewerId === share.user_id;
       const saved = await getBrochure(client, share.user_id);
       if (!saved) throw notFound();
       const items = saved.items.filter(item => item.selected || (item.kind === 'visited' && item.isMemory));
@@ -59,13 +61,19 @@ export function createPublicShareRouter(db: pg.Pool, uploadDir: string, cache = 
           latestVisits.set(visit.spotId, { spotId: visit.spotId, visitedAt: visit.visitedAt, stamp: visit.stamp });
         }
       }
-      return { brochure: { ...saved, items: items.map(item => ({ ...item,
+      const body = { brochure: { ...saved, items: items.map(item => ({ ...item,
         photoUrl: item.photoUrl?.replace(/^\/api\/photos\//, `${photoBase}/photos/`) ?? null,
       })) }, spots, memoryVisits: [...latestVisits.values()], viewerIsOwner } satisfies SharedBrochure;
+      return { body, ownerId: share.user_id as string };
     }, db);
-    if (viewerIsOwner) return void res.json(await load());
-    const bytes = await cache.getOrLoad(`page:${share.token}`, async () => Buffer.from(JSON.stringify(await load())));
-    res.type('application/json').send(bytes);
+    const cached = await cache.getOrLoadContent(`page:${token}`, async () => {
+      const snapshot = await load(null);
+      return { bytes: Buffer.from(JSON.stringify(snapshot.body)), ownerId: snapshot.ownerId };
+    });
+    if (viewerId && viewerId === cached.content.ownerId) {
+      return void res.set('X-Public-Cache', 'BYPASS').json((await load(viewerId)).body);
+    }
+    res.set('X-Public-Cache', cached.status).type('application/json').send(cached.content.bytes);
   });
   router.post('/shared/:token/views', async (req, res) => {
     const { requestId } = z.object({ requestId: uuidSchema }).strict().parse(req.body);
@@ -78,19 +86,30 @@ export function createPublicShareRouter(db: pg.Pool, uploadDir: string, cache = 
     res.json({ ok: true });
   });
 
-  async function photo(req: Request, official: boolean): Promise<Buffer> {
-    const share = await publicShare(db, req.params.token), id = uuidSchema.parse(req.params.id);
-    const from = official
-      ? 'spot_photos p JOIN brochure_items i ON i.spot_id=p.spot_id'
-      : 'item_photos p JOIN brochure_items i ON i.id=p.item_id';
-    const row = (await db.query(`SELECT p.storage_key FROM ${from}
-      WHERE p.id=$1 AND i.brochure_id=$2 AND ${exposedItem} LIMIT 1`, [id, share.brochure_id])).rows[0];
-    if (!row || !/^[a-f0-9-]{36}\.webp$/.test(row.storage_key)) throw new AppError(404, 'photo_not_found', '共有写真が見つかりません。');
-    try { return await cache.getOrLoad(`photo:${share.token}:${row.storage_key}`, () => readFile(path.join(root, row.storage_key))); }
-    catch { throw new AppError(404, 'photo_not_found', '共有写真を読み込めません。'); }
+  async function photo(req: Request, official: boolean): Promise<PublicContentResult> {
+    const token = req.params.token;
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw notFound();
+    const id = uuidSchema.parse(req.params.id);
+    return cache.getOrLoadContent(`photo:${token}:${official ? 'spot' : 'item'}:${id}`, async () => {
+      const share = await publicShare(db, token);
+      const from = official
+        ? 'spot_photos p JOIN brochure_items i ON i.spot_id=p.spot_id'
+        : 'item_photos p JOIN brochure_items i ON i.id=p.item_id';
+      const row = (await db.query(`SELECT p.storage_key FROM ${from}
+        WHERE p.id=$1 AND i.brochure_id=$2 AND ${exposedItem} LIMIT 1`, [id, share.brochure_id])).rows[0];
+      if (!row || !/^[a-f0-9-]{36}\.webp$/.test(row.storage_key)) throw new AppError(404, 'photo_not_found', '共有写真が見つかりません。');
+      try { return { bytes: await readFile(path.join(root, row.storage_key)) }; }
+      catch { throw new AppError(404, 'photo_not_found', '共有写真を読み込めません。'); }
+    });
   }
-  router.get('/shared/:token/photos/:id', async (req, res) => { res.type('image/webp').send(await photo(req, false)); });
-  router.get('/shared/:token/spot-photos/:id', async (req, res) => { res.type('image/webp').send(await photo(req, true)); });
+  router.get('/shared/:token/photos/:id', async (req, res) => {
+    const cached = await photo(req, false);
+    res.set('X-Public-Cache', cached.status).type('image/webp').send(cached.content.bytes);
+  });
+  router.get('/shared/:token/spot-photos/:id', async (req, res) => {
+    const cached = await photo(req, true);
+    res.set('X-Public-Cache', cached.status).type('image/webp').send(cached.content.bytes);
+  });
   return router;
 }
 

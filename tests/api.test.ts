@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import sharp from 'sharp';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/server/app.js';
 import { CATALOG, stableId } from '../src/server/catalog.js';
 import type { Brochure, SavePayload, SessionData, TripSettings } from '../src/shared/types.js';
@@ -590,6 +590,7 @@ databaseDescribe('PostgreSQL API integration', () => {
     const endpoint = '/api/shared/' + shared.body.share.path.split('/').at(-1);
     const ownerFirst = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie: owner.cookie });
     expect(ownerFirst.body.viewerIsOwner).toBe(true);
+    expect(ownerFirst.response.headers.get('x-public-cache')).toBe('BYPASS');
     expect(ownerFirst.body.spots.find(value => value.id === spot.id)?.hasGift).toBe(true);
     for (const cookie of [undefined, other.cookie, town.cookie]) {
       const result = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint, { cookie });
@@ -606,8 +607,41 @@ databaseDescribe('PostgreSQL API integration', () => {
     expect(self.body.spots.find(value => value.id === spot.id)?.hasGift).toBe(true);
     const publicAgain = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
     expect(publicAgain.body.viewerIsOwner).toBe(false);
+    expect(publicAgain.response.headers.get('x-public-cache')).toBe('HIT');
     expect(publicAgain.body.spots.every(value => value.hasGift === false)).toBe(true);
     expect(publicAgain.response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('公開キャッシュHITは匿名本文と共有写真のDB問い合わせを行わない', async () => {
+    const { owner, brochure } = await giftFixture();
+    const item = brochure.items.find(value => value.selected)!;
+    await api(`/api/items/${item.id}/photo`, { method: 'POST', cookie: owner.cookie, body: await pngForm() });
+    const share = (await post<{ share: { path: string } }>('/api/brochure/share', owner.cookie)).body.share;
+    const endpoint = '/api/shared/' + share.path.split('/').at(-1);
+    const first = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+    expect(first.response.headers.get('x-public-cache')).toBe('MISS');
+    const photo = first.body.brochure.items.find(value => value.id === item.id)!.photoUrl!;
+    await (await fetch(baseUrl + photo)).arrayBuffer();
+    const queries = vi.spyOn(db, 'query');
+    const connections = vi.spyOn(db, 'connect');
+    try {
+      const again = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+      expect(again.response.status).toBe(200);
+      expect(again.body).toEqual(first.body);
+      expect(queries).not.toHaveBeenCalled();
+      expect(connections).not.toHaveBeenCalled();
+      expect(again.response.headers.get('x-public-cache')).toBe('HIT');
+      const picture = await fetch(baseUrl + photo);
+      await picture.arrayBuffer();
+      expect(picture.status).toBe(200);
+      expect(queries).not.toHaveBeenCalled();
+      expect(connections).not.toHaveBeenCalled();
+      expect(picture.headers.get('x-public-cache')).toBe('HIT');
+    } finally { queries.mockRestore(); connections.mockRestore(); }
+    expect((await fetch(baseUrl + photo.replace('/photos/', '/spot-photos/'))).status).toBe(404);
+    expect((await api('/api/brochure/share', { method: 'DELETE', cookie: owner.cookie, body: '{}' })).response.status).toBe(200);
+    expect((await api(endpoint)).response.status).toBe(404);
+    expect((await fetch(baseUrl + photo)).status).toBe(404);
   });
 
   it('共有本文を再利用した後も保存と管理スポット更新を次回取得へ反映する', async () => {
@@ -619,6 +653,7 @@ databaseDescribe('PostgreSQL API integration', () => {
     item.comment = '更新後の公開コメント';
     expect((await api('/api/brochure', { method: 'PUT', cookie: owner.cookie, body: JSON.stringify(draft) })).response.status).toBe(200);
     const updated = await api<import('../src/shared/sharing-types.js').SharedBrochure>(endpoint);
+    expect(updated.response.headers.get('x-public-cache')).toBe('MISS');
     expect(updated.body.brochure.items.find(value => value.id === item.id)?.comment).toBe('更新後の公開コメント');
     const current = (await adminSpots(town.cookie)).find(value => value.id === spot.id)!;
     expect((await editSpot(town.cookie, current, { name: '更新後の公開スポット' })).response.status).toBe(200);

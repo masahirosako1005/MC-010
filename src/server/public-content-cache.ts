@@ -7,12 +7,14 @@ interface CacheOptions {
   maxEntryBytes: number;
   now: () => number;
 }
-interface Entry { bytes: Buffer; expiresAt: number }
+export interface PublicContent { bytes: Buffer; ownerId?: string }
+export interface PublicContentResult { content: PublicContent; status: 'HIT' | 'MISS' | 'COALESCED' }
+interface Entry { content: PublicContent; expiresAt: number }
 
-// Only already-authorized public response bytes belong here, never sessions or owner responses.
+// Only public bytes and internal ownership metadata belong here, never sessions or owner responses.
 export class PublicContentCache {
   private readonly entries = new Map<string, Entry>();
-  private readonly pending = new Map<string, Promise<Buffer>>();
+  private readonly pending = new Map<string, Promise<PublicContent>>();
   private readonly options: CacheOptions;
   private byteSize = 0;
   private generation = 0;
@@ -30,6 +32,10 @@ export class PublicContentCache {
   }
 
   async getOrLoad(key: string, load: () => Promise<Buffer>): Promise<Buffer> {
+    return (await this.getOrLoadContent(key, async () => ({ bytes: await load() }))).content.bytes;
+  }
+
+  async getOrLoadContent(key: string, load: () => Promise<PublicContent>): Promise<PublicContentResult> {
     const now = this.options.now();
     for (const [entryKey, entry] of this.entries) {
       if (entry.expiresAt <= now) this.remove(entryKey);
@@ -38,14 +44,15 @@ export class PublicContentCache {
     if (cached) {
       this.entries.delete(key);
       this.entries.set(key, cached);
-      return cached.bytes;
+      return { content: cached.content, status: 'HIT' };
     }
     const existing = this.pending.get(key);
-    if (existing) return existing;
+    if (existing) return { content: await existing, status: 'COALESCED' };
     const generation = this.generation;
     // Start the read before registering its promise; loaders never receive the cache itself.
     const loaded = load();
-    const pending = loaded.then(bytes => {
+    const pending = loaded.then(content => {
+      const { bytes } = content;
       if (generation === this.generation && bytes.length <= this.options.maxEntryBytes && bytes.length <= this.options.maxBytes) {
         while (this.entries.size >= this.options.maxEntries || this.byteSize + bytes.length > this.options.maxBytes) {
           const oldest = this.entries.keys().next().value;
@@ -54,20 +61,20 @@ export class PublicContentCache {
         }
         // Replacement can occur when the pending tracking limit was reached.
         this.remove(key);
-        this.entries.set(key, { bytes, expiresAt: this.options.now() + this.options.ttlMs });
+        this.entries.set(key, { content, expiresAt: this.options.now() + this.options.ttlMs });
         this.byteSize += bytes.length;
       }
-      return bytes;
+      return content;
     }).finally(() => {
       if (this.pending.get(key) === pending) this.pending.delete(key);
     });
     if (this.pending.size < this.options.maxEntries) this.pending.set(key, pending);
-    return pending;
+    return { content: await pending, status: 'MISS' };
   }
 
   private remove(key: string): void {
     const entry = this.entries.get(key);
-    if (entry) { this.byteSize -= entry.bytes.length; this.entries.delete(key); }
+    if (entry) { this.byteSize -= entry.content.bytes.length; this.entries.delete(key); }
   }
 }
 

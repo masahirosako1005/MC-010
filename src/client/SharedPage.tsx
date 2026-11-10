@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Eye, MailOpen, RefreshCw, Smartphone } from 'lucide-react';
+import { Eye, MailOpen, RefreshCw, Smartphone } from 'lucide-react';
 import type { SharedBrochure } from '../shared/sharing-types';
 import { getSharedPageToken, isMobileDemoContentPath, MOBILE_APP_PATH } from '../shared/mobile-demo';
 import { BrochurePaper } from './App';
@@ -48,13 +48,11 @@ export function SharedPage() {
   const item = data?.brochure.items.find(value => value.spotId === detailId);
   const homeHref = window.location.pathname.startsWith('/demo/mobile/') ? '/demo/mobile/app' : '/';
   if (showInvitation) return <main className="shared-invitation">
-    <section className="shared-invitation-card" aria-labelledby="shared-invitation-title">
+    <section className="shared-invitation-content" aria-labelledby="shared-invitation-title">
       <a className="shared-invitation-brand" href={homeHref}>今度はあなたと</a>
       <div className="shared-invitation-envelope" aria-hidden="true"><MailOpen /></div>
       <h1 id="shared-invitation-title"><span>あなたに</span><span>旅の案内が届いてます</span></h1>
       <p role="status">{data ? 'まもなく旅のしおりを開きます。' : '旅のしおりを準備しています。'}</p>
-      <button type="button" className="button button-primary shared-invitation-open" disabled={!data}
-        onClick={() => setInvitationFinished(true)}>しおりを開く<ArrowRight aria-hidden="true" /></button>
     </section>
   </main>;
   return <div className="app-shell preview-mode shared-page">

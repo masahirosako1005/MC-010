@@ -81,7 +81,7 @@ test('相手別の招待・表示計測・所有者限定クーポンと一度�
     await guestPage.keyboard.press('Escape');
     await guestPage.screenshot({ path: info.outputPath('shared-anonymous.png'), fullPage: true });
     await guestPage.reload();
-    await guestPage.getByRole('button', { name: 'しおりを開く', exact: true }).click();
+    await expect(guestPage.getByRole('button', { name: 'しおりを開く', exact: true })).toHaveCount(0);
     await expect(guestPage.getByTestId('brochure')).toBeVisible();
     await expect(heart).toHaveAttribute('aria-pressed', 'true');
     await heart.click();
@@ -131,7 +131,8 @@ test('公開案内と本文取得後の掲載変更をスマホ枠内でも回�
   const frame=page.frameLocator('iframe.mobile-demo-app');
   await expect(frame.getByRole('heading',{name:/あなたに\s*旅の案内が届いてます/})).toBeVisible();
   await page.screenshot({path:info.outputPath('invitation-mobile-frame.png'),fullPage:true});
-  await frame.getByRole('button',{name:'しおりを開く',exact:true}).click();
+  await expect(frame.getByRole('button',{name:'しおりを開く',exact:true})).toHaveCount(0);
+  await expect(frame.locator('.shared-invitation-card')).toHaveCount(0);
   await expect(frame.getByTestId('brochure')).toBeVisible();
   await expect(frame.getByRole('button',{name:'しおりを再読み込み'})).toHaveCount(5);
   await expect(frame.locator('.spot-like-button .spin')).toHaveCount(0);

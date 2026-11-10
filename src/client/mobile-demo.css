@@ -1,3 +1,7 @@
+/* Hide only the embedded page scrollbar; keep native scrolling enabled. */
+html.mobile-demo-content { scrollbar-width: none; }
+html.mobile-demo-content::-webkit-scrollbar { display: none; }
+
 .mobile-demo {
   --device-body: #25272c;
   --device-edge: #73757c;

@@ -20,6 +20,8 @@ const sharedPage = pathname === '/share' || pathname.startsWith('/share/') || pa
 const mobileSharedPage = Boolean(shareToken && !isMobileDemoContentPath(pathname) && new URLSearchParams(window.location.search).get('view') === 'mobile');
 const mobileDemo = pathname === '/demo/mobile' || pathname === '/demo/mobile/' || mobileSharedPage;
 
+document.documentElement.classList.toggle('mobile-demo-content', isMobileDemoContentPath(pathname));
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppBoundary>{rallyDemo ? <RallyDemo /> : mobileDemo ? <MobileDemo shareToken={shareToken} /> : sharedPage ? <SharedPage /> : <App />}</AppBoundary>

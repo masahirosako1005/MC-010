@@ -1,5 +1,21 @@
 # 画像素材と生成記録
 
+## マップ風の旅の全体像（2026-11-10）
+
+`public/assets/trip-overview-map-v1.webp` はユーザー提供のマップ画像を参照して内蔵imagegen標準モードで生成した、架空の海辺の町の背景イラスト。1440×1080、WebP quality 88、610,846 bytes。生成PNGはプロジェクト外の既定生成先へ保持し、Sharpで同梱用WebPへ変換した。生成された背景画像の構図・文字なし・5つの場面は確認済みだが、アプリ画面の目視/操作確認とは区別する。利用者が追加する写真ではなく、実行時に外部AI・画像サービスへ接続しない同梱の画面素材。
+
+文字・番号・点線は画像へ含めず、React/SVGで描画する。灯台・クラフト・食事・海辺の休憩・買い物の図案はカテゴリのイメージであり、個々のスポットの位置・距離・設備の事実を表すものではない。
+
+生成プロンプト（built-in / reference-image edit）:
+
+```text
+Create a high-resolution production background ILLUSTRATION asset for a Japanese travel brochure's map-like trip overview. Use the attached small illustration as the strong style and composition reference. This output is the illustration asset itself, NOT a phone mockup or a webpage screenshot.
+Retain its charming bright watercolor/gouache travel-pamphlet style, warm ivory paper, blue sea and sky, red-roofed lighthouse, quaint Japanese coastal town, sunny cheerful atmosphere and five connected scenic vignettes. The artwork must feel like ONE coherent illustrated coastal village from an elevated oblique perspective.
+Composition: landscape 4:3, approximately 1536×1152, full bleed with subtly feathered ivory edges. Five vignettes positioned clearly: top-left red-capped white lighthouse on a rocky coast; top-center a small outdoor handmade crafts market with two people near a stall, a glimpse of blue lake beyond; middle-right a big appetizing seafood lunch bowl and plate at a harbor eatery; bottom-right a peaceful seaside viewing terrace with wooden bench and one person relaxing, overlooking the blue sea; bottom-left little wooden souvenir shops with visible bags, pottery and goods on a cobbled lane. A pale winding stone-paved walking lane visually ties the landscape together. Include textured flowers, orange rooftops, bright sky and sea, with no dominant green UI color.
+IMPORTANT: remove ALL overlaid interface elements from the reference: NO title, NO text anywhere, NO Japanese labels, NO category badges, NO numbered pins, NO numbers, NO colored dots, NO dashed orange route line, NO legend or footer caption, NO rounded border. We will add accessible labels, pins and a dashed route using HTML and SVG separately. Do not bake any words or numbers into the asset.
+Reserve small calm light-colored areas near the vignette upper edges so category labels can later be overlaid at top-left x20% y30%, top-center x57% y13%, middle-right x82% y42%, bottom-right x75% y75%, and bottom-left x22% y77%. Do not obscure the distinctive subjects. Polished detailed colorful editorial illustration, high-resolution clean edges, faithful to the reference's scenic map feeling, no photoreal collage, no grid of photos, no watermark, no logos.
+```
+
 `public/assets/*.png` は架空スポット向けに内蔵imagegen標準モードで生成したラスターイラスト。実在施設の写真ではありません。外部写真素材・外部画像URL・SVG代替は使用していません。各スポットの紹介・タグも提供不足を補うデモ用の補足であり、実施設の営業情報・位置・距離を主張しません。
 
 すべて2026-11-09に生成後目視確認。実行時は同梱ローカル画像のみを読み込みます。画像の復元は同じGit版の `public/assets` から行い、ユーザー追加写真を上書きしません。画面イメージは `docs/design-mockups` に別保管。

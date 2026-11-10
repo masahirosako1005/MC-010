@@ -2,6 +2,8 @@
 .share-panel-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }.share-panel h2 { margin: 0; font-size: 1.15rem; }.share-panel p { margin: 6px 0; line-height: 1.7; }.share-panel-heading .button { flex-shrink: 0; min-height: 48px; }
 .share-panel-metrics { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 16px 0; }.share-panel-metrics > span { display: inline-flex; align-items: center; gap: 8px; }.share-panel-metrics svg { width: 20px; }.share-panel-metrics small { line-height: 1.7; color: var(--ink-soft); }
 .share-notice { padding: 9px 12px; background: var(--yellow-soft); border-radius: 8px; }
+.share-panel-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.share-panel-actions a { text-decoration: none; }
 .shared-page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .shared-page-state { max-width: 760px; margin: 40px auto; padding: 28px; border: 2px solid var(--orange); border-radius: 16px; background: var(--paper); }.shared-page-state h1 { font-size: 1.4rem; }
 .shared-page .brochure-footer small { display: none; }.shared-page .brochure-footer::after { content: '共有パンフレット・ローカルデモ専用'; font-size: .7rem; }

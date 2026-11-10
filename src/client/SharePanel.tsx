@@ -1,4 +1,4 @@
-import { Eye, LoaderCircle, RefreshCw, Send } from 'lucide-react';
+import { ExternalLink, Eye, LoaderCircle, RefreshCw, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ShareSettings } from '../shared/sharing-types';
 import type { Companion } from '../shared/types';
@@ -21,6 +21,11 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
     return () => controller.abort();
   }, [version]);
   const inviteLabel = companion === '一人' ? 'しおりを共有する' : `${companion}を誘う`;
+  function publicUrl(path: string) {
+    const url = new URL(path, window.location.origin);
+    if (isMobileDemoContentPath(window.location.pathname)) url.searchParams.set('view', 'mobile');
+    return url.href;
+  }
   async function recordCopies() {
     if (recordingRef.current || !pendingCopies.current.length) return;
     recordingRef.current = true; setRecording(true);
@@ -47,13 +52,12 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
     try {
       const result = await shareRequest<{ share: ShareSettings }>('/api/brochure/share', { method: 'POST', body: '{}' });
       setShare(result.share);
-      const url = new URL(result.share.path, window.location.origin);
-      if (isMobileDemoContentPath(window.location.pathname)) url.searchParams.set('view', 'mobile');
+      const url = publicUrl(result.share.path);
       try {
-        await navigator.clipboard.writeText(url.href);
+        await navigator.clipboard.writeText(url);
         setNotice(companion === '一人' ? 'しおりの共有URLをコピーしました。' : `${companion}を誘うURLをコピーしました。`);
       } catch {
-        window.prompt('共有URLを選択してコピーしてください。', url.href);
+        window.prompt('共有URLを選択してコピーしてください。', url);
         setNotice('共有URLを発行しました。');
         return;
       }
@@ -76,7 +80,10 @@ export function SharePanel({ canPublish, companion }: { canPublish: boolean; com
       <button className="button button-primary" disabled={busy || loading || !canPublish} onClick={() => void copyUrl()}>{busy ? <LoaderCircle className="spin" aria-hidden="true" /> : <Send aria-hidden="true" />}{inviteLabel}</button></div>
     {!canPublish && <p className="share-notice">未保存の変更や未完了の写真があります。編集画面で保存を完了してから共有してください。</p>}
     {loading ? <p role="status">共有情報を確認しています</p> : <div className="share-panel-metrics"><span><Eye aria-hidden="true" />表示回数 <strong>{error ? '—' : (share?.viewCount ?? 0).toLocaleString('ja-JP')}</strong>回</span><small>共有ページの再読み込みも含みます。作者のプレビューは加算しません。</small><button className="button" disabled={busy} onClick={() => setVersion(value => value + 1)}><RefreshCw aria-hidden="true" />件数を更新</button></div>}
-    {share?.active && <button className="button button-outline" disabled={busy || loading} onClick={() => void stopSharing()}>公開を停止する</button>}
+    {share?.active && <div className="share-panel-actions">
+      {!loading && <a className="button button-outline" href={publicUrl(share.path)} target="_blank" rel="noopener noreferrer" aria-label="公開ページを開く（新しいタブ）"><ExternalLink aria-hidden="true" />ページを開く</a>}
+      <button className="button button-outline" disabled={busy || loading} onClick={() => void stopSharing()}>公開を停止する</button>
+    </div>}
     {notice && <p role="status" className="share-notice">{notice}</p>}{error && <p role="alert" className="form-error">{error}</p>}
     {unrecordedCopies > 0 && <div className="share-notice" role="status"><p>URLはコピーできましたが、{unrecordedCopies}回分のコピー記録が未完了です。</p><button className="button button-outline" disabled={recording} onClick={() => void recordCopies()}>{recording ? '記録しています' : 'コピー記録を再送する'}</button></div>}
   </section>;

@@ -16,7 +16,7 @@
 |---|---|---|
 |`web-security-audit`|IPA「安全なウェブサイトの作り方」公式11分類と補足観点、およびCloudflare-authored `security-audit` の信頼境界ベースのソース監査を統合する。|動的スキャナーを要件とせず、`preflight` / `source` / `full`を分離。同じ根本原因はframework横断で1件へ統合し、同一データから`REPORT.md`とoffline `REPORT.html`を生成する。Cloudflare account、WAF、DNS、CDN、edge設定は対象外。|
 |[`project-operations`](../.agents/skills/project-operations/SKILL.md)|本プロジェクトのDBバックアップ・復元とログ確認。|Windows・PostgreSQL・ローカル運用専用。DBと写真を一組で保存し、復元は原則別の空DBへ行う。ログは安全な項目だけを抽出する。詳細は分野別references。自動実行・常時監視・アプリ変更・追加テストは行わない。|
-|[`project-demo-prepare`](../.agents/skills/project-demo-prepare/SKILL.md)|`demo@example.test` の来訪履歴を確保し、しおり作成履歴をクリアするデモ準備。|`fixture:demo` 専用。seedと同じ訪問2件を不足分だけ追加し、本人の冊子・編集・写真参照・共有履歴・セッションを単一transactionで削除する。他利用者・元CSV・写真実体・クーポンを保持し、対象アプリだけをHidden再起動する。|
+|[`project-demo-prepare`](../.agents/skills/project-demo-prepare/SKILL.md)|`demo@example.test` の来訪履歴を確保し、しおり作成履歴とクーポン使用履歴をクリアするデモ準備。|`fixture:demo` 専用。seedと同じ訪問2件を不足分だけ追加し、本人の冊子・編集・写真参照・共有履歴・クーポン使用履歴・セッションを単一transactionで削除する。他利用者・元CSV・写真実体・発行済みクーポンコードを保持し、対象アプリだけをHidden再起動する。|
 
 IPAの規範項目は公式ページ <https://www.ipa.go.jp/security/vuln/websecurity/about.html> を基準とする。CORS、ブラウザ分離ヘッダー、秘密情報、ログ、依存関係、deployment/backupは`SUP-*`補足項目として分け、IPA公式11分類であるかのように扱わない。Cloudflare vendorスキルと固定SHAは変更していない。
 
@@ -74,7 +74,9 @@ node scripts/skill-inventory.mjs
 
 ## 通常デモの準備（2026-11-10）
 
-プロジェクト独自の[project-demo-prepare](../.agents/skills/project-demo-prepare/SKILL.md)を追加した。既存のseed・認証照合・冊子処理・migrationを根拠とする手順書で、`demo@example.test`（`fixture:demo`）にseedと同じ2件のデモ来訪履歴を不足分だけ確保し、本人のしおり・編集・写真参照・共有表示/コピー履歴・セッションを単一transactionで削除する。メール/別名の衝突、訪問キーの不一致、想定外の依存関係では変更を止める。他利用者・提供CSV・アンケート・クーポン・写真実体は保持する。DB書き込み前に対象アプリだけを停止し、成功・失敗にかかわらず元の設定でHidden起動して配信状態を確認する。
+プロジェクト独自の[project-demo-prepare](../.agents/skills/project-demo-prepare/SKILL.md)を追加した。既存のseed・認証照合・冊子処理・migrationを根拠とする手順書で、`demo@example.test`（`fixture:demo`）にseedと同じ2件のデモ来訪履歴を不足分だけ確保し、本人のしおり・編集・写真参照・共有表示/コピー履歴・クーポン使用履歴・セッションを単一transactionで削除する。メール/別名の衝突、訪問キーの不一致、想定外の依存関係では変更を止める。他利用者・提供CSV・アンケート・発行済みクーポンコード・写真実体は保持する。DB書き込み前に対象アプリだけを停止し、成功・失敗にかかわらず元の設定でHidden起動して配信状態を確認する。
 
 利用例は「project-demo-prepareでdemo@example.testのデモ準備をして」。今回はスキル作成のみで、DB接続・データ変更・アプリ停止/再起動・HTTP参照は未実施。新規SKILL.mdのSHA256だけをinventoryへ追加し、既存の登録値と公式vendorを保持する。実行スクリプト・定期実行設定は追加していない。AGENTS.mdに従い、validator・inventory照合・テスト・独立レビューは未実施。アプリコード変更がないためビルド・再起動も対象外。
+
+同日の追加指示で、リセット対象に本人のクーポン使用履歴（`spot_gift_claims`）を含めた。しおり未作成でも本人の全スポット分を削除し、削除前後の件数と終了時0件を確認する。他利用者の使用履歴と発行済みコード（`spot_coupon_codes`）は保持する。変更はスキル手順・資料・SHA台帳のみで、今回DB操作・リセット・アプリ再起動は行っていない。validator・inventory照合・テスト・独立レビューは未実施。
 

@@ -49,6 +49,7 @@ import { GiftBadge, SpotDetailDialog } from './SpotDetailDialog';
 import { SharePanel } from './SharePanel';
 import { spotListDescription, spotOverview, spotRecommendation } from '../shared/spot-copy';
 import { mergeBrochureEdits } from '../shared/brochure-merge';
+import { TripOverview } from './TripOverview';
 
 type Screen = 'checking' | 'login' | 'settings' | 'brochure' | 'no-history' | 'admin';
 type SaveState = 'clean' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -773,6 +774,7 @@ export function BrochurePaper({ draft, spots, visits, survey, pendingPhotos = {}
   return (
         <article id="brochure-top" data-testid="brochure" className={`brochure template-${draft.template}`}>
           <BrochureHeader brochure={draft} heroImage={heroImage} memoryNames={visitedItems.map(item => spotsById.get(item.spotId)?.name).filter((name): name is string => Boolean(name))} />
+          <TripOverview selected={selected} spotsById={spotsById} pendingPhotos={pendingPhotos} onOpen={onOpen} />
           <section className="pickup-section" aria-labelledby="pickup-title">
             <div className="section-heading pickup-heading">
               <Sparkles aria-hidden="true" />
